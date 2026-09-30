@@ -3,7 +3,9 @@
 //	metabolism ingest  -journal PATH [-from FILE]
 //	metabolism sim     -journal PATH [-seed N] [-count N] [-days N]
 //	metabolism curves  -journal PATH [-window 7d] [-label NAME] [-out DIR]
-//	metabolism inspect -journal PATH [-n 10]
+//	metabolism inspect -journal PATH [-n 10] [-end E] [-scope S] [-id ID]
+//	metabolism recall  -journal PATH -q TEXT [-scope S] [-k 5]
+//	metabolism recall-eval -journal PATH [-k 5] [-label ATTR] [-out DIR]
 //
 // The journal defaults to $METABOLISM_JOURNAL, then ~/.metabolism/journal.db.
 package main
@@ -25,7 +27,6 @@ import (
 	"github.com/Nibir1/metabolism/adapters/ndjson"
 	"github.com/Nibir1/metabolism/bench"
 	"github.com/Nibir1/metabolism/hosts/helixsim"
-	"github.com/Nibir1/metabolism/types"
 )
 
 const usage = `usage: metabolism <command> [flags]
@@ -34,7 +35,9 @@ commands:
   ingest   read a host's recorded episodes (Helix: /metabolism on) into a journal
   sim      fill a journal with simulated Helix episodes (for testing the harness)
   curves   compute learning curves from a journal
-  inspect  summarise what a journal holds
+  inspect  summarise what a journal holds, or show one episode
+  recall   the past episodes most like a request (episodic memory)
+  recall-eval  does recall predict outcomes better than the base rate?
 
 run "metabolism <command> -h" for a command's flags
 `
@@ -60,11 +63,15 @@ func run(ctx context.Context, args []string, out io.Writer) error {
 		return cmdCurves(ctx, args[1:], out)
 	case "inspect":
 		return cmdInspect(ctx, args[1:], out)
+	case "recall":
+		return cmdRecall(ctx, args[1:], out)
+	case "recall-eval":
+		return cmdRecallEval(ctx, args[1:], out)
 	case "help", "-h", "--help":
 		_, _ = fmt.Fprint(out, usage)
 		return nil
 	}
-	return fmt.Errorf("unknown command %q (try: ingest, sim, curves, inspect)", args[0])
+	return fmt.Errorf("unknown command %q (try: ingest, sim, curves, inspect, recall, recall-eval)", args[0])
 }
 
 func defaultJournal() string {
@@ -219,10 +226,10 @@ func printCurve(out io.Writer, c bench.Curve) {
 	tw := tabwriter.NewWriter(out, 0, 0, 2, ' ', tabwriter.AlignRight)
 	_, _ = fmt.Fprintf(out, "%s · window %s · %d episodes · tokens are estimates (%d chars/token)\n\n",
 		c.Label, formatWindow(c.Window), c.Total.Episodes, bench.CharsPerToken)
-	_, _ = fmt.Fprintln(tw, "window\tepisodes\tfinish\tcalls/fin\test tok/fin\tbudget\tfail step\tundo\tdecline\trepeat\t")
+	_, _ = fmt.Fprintln(tw, "window\tepisodes\tlabelled\tfinish\tcalls/fin\test tok/fin\tbudget\tfail step\tundo\tdecline\trepeat\t")
 	row := func(name string, m bench.Metrics) {
-		_, _ = fmt.Fprintf(tw, "%s\t%d\t%s\t%.2f\t%.0f\t%s\t%s\t%s\t%s\t%s\t\n", name, m.Episodes,
-			pct(m.FinishRate), m.ModelCallsPerFinished, m.EstTokensPerFinished,
+		_, _ = fmt.Fprintf(tw, "%s\t%d\t%s\t%s\t%.2f\t%.0f\t%s\t%s\t%s\t%s\t%s\t\n", name, m.Episodes,
+			pct(m.OutcomeCoverage), pct(m.FinishRate), m.ModelCallsPerFinished, m.EstTokensPerFinished,
 			pct(m.BudgetExhaustionRate), pct(m.FailedStepRate),
 			pct(m.UndoRate), pct(m.DeclineRate), pct(m.RepeatRate))
 	}
@@ -248,52 +255,6 @@ func parseWindow(s string) (time.Duration, error) {
 		return 0, fmt.Errorf("-window %q: want a positive duration like 7d or 12h", s)
 	}
 	return w, nil
-}
-
-func cmdInspect(ctx context.Context, args []string, out io.Writer) error {
-	fs := flag.NewFlagSet("inspect", flag.ContinueOnError)
-	fs.SetOutput(out)
-	path := fs.String("journal", defaultJournal(), "journal file")
-	n := fs.Int("n", 10, "recent episodes to list")
-	if err := fs.Parse(args); err != nil {
-		return err
-	}
-	if _, err := os.Stat(*path); err != nil {
-		// Opening would create an empty journal, which is not what "inspect" means.
-		return fmt.Errorf("no journal at %s", *path)
-	}
-	j, err := sqlite.Open(ctx, *path)
-	if err != nil {
-		return err
-	}
-	defer func() { _ = j.Close() }()
-
-	counts := map[types.RecordKind]int{}
-	var recent []types.Episode
-	for r, err := range j.Scan(ctx, types.JournalQuery{}) {
-		if err != nil {
-			return err
-		}
-		counts[r.Kind]++
-		if r.Kind == types.RecordEpisode {
-			recent = append(recent, *r.Episode)
-			if len(recent) > *n {
-				recent = recent[1:]
-			}
-		}
-	}
-	_, _ = fmt.Fprintf(out, "%s\n  episodes %d · outcomes %d · lifecycle events %d\n",
-		*path, counts[types.RecordEpisode], counts[types.RecordOutcome], counts[types.RecordEvent])
-	if len(recent) == 0 {
-		return nil
-	}
-	_, _ = fmt.Fprintf(out, "\nlast %d episodes:\n", len(recent))
-	tw := tabwriter.NewWriter(out, 0, 0, 2, ' ', 0)
-	for _, e := range recent {
-		_, _ = fmt.Fprintf(tw, "  %s\t%s\t%s\t%d steps\t%s\t%s\n", e.StartedAt.UTC().Format("2006-01-02 15:04"),
-			e.Host, e.End, len(e.Steps), e.Request.Provenance, truncate(e.Request.Text, 50))
-	}
-	return tw.Flush()
 }
 
 func truncate(s string, n int) string {

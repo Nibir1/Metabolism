@@ -56,6 +56,9 @@ type Metrics struct {
 	Finished int `json:"finished"`
 
 	FinishRate float64 `json:"finish_rate"`
+	// OutcomeCoverage is the share of episodes with at least one outcome
+	// label. Learning needs labels; Phase 1 requires this ≥ 90% for a host.
+	OutcomeCoverage float64 `json:"outcome_coverage"`
 	// Cost of all episodes, successful or not, per finished one: failures
 	// are paid for too.
 	ModelCallsPerFinished float64 `json:"model_calls_per_finished"`
@@ -68,18 +71,9 @@ type Metrics struct {
 	RepeatRate           float64 `json:"repeat_rate"`
 }
 
-// Finished reports whether an episode counts as a good outcome.
-func Finished(ep types.Episode, outs []types.Outcome) bool {
-	if ep.End != types.RunDone {
-		return false
-	}
-	for _, o := range outs {
-		if o.Kind.Negative() {
-			return false
-		}
-	}
-	return true
-}
+// Finished reports whether an episode counts as a good outcome
+// (types.Succeeded).
+func Finished(ep types.Episode, outs []types.Outcome) bool { return types.Succeeded(ep, outs) }
 
 // Compute measures eps using the outcomes in ds.
 func Compute(eps []types.Episode, outcomes map[types.ID][]types.Outcome) Metrics {
@@ -88,6 +82,7 @@ func Compute(eps []types.Episode, outcomes map[types.ID][]types.Outcome) Metrics
 		calls, chars               int
 		exhausted, failedSteps     int
 		undone, declined, repeated int
+		labelled                   int
 	)
 	for _, ep := range eps {
 		outs := outcomes[ep.ID]
@@ -98,6 +93,9 @@ func Compute(eps []types.Episode, outcomes map[types.ID][]types.Outcome) Metrics
 		chars += ep.Usage.InputChars + ep.Usage.OutputChars
 		if ep.End == types.RunBudgetExhausted {
 			exhausted++
+		}
+		if len(outs) > 0 {
+			labelled++
 		}
 		if Finished(ep, outs) {
 			m.Finished++
@@ -113,6 +111,7 @@ func Compute(eps []types.Episode, outcomes map[types.ID][]types.Outcome) Metrics
 		}
 	}
 	m.FinishRate = ratio(m.Finished, m.Episodes)
+	m.OutcomeCoverage = ratio(labelled, m.Episodes)
 	m.ModelCallsPerFinished = ratio(calls, m.Finished)
 	m.EstTokensPerFinished = ratio(chars, m.Finished) / CharsPerToken
 	m.BudgetExhaustionRate = ratio(exhausted, m.Episodes)

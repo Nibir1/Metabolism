@@ -65,7 +65,7 @@ func (c Curve) WriteJSON(w io.Writer) error {
 
 // csvHeader is the column order of WriteCSV.
 var csvHeader = []string{
-	"start", "end", "episodes", "finished", "finish_rate",
+	"start", "end", "episodes", "finished", "finish_rate", "outcome_coverage",
 	"model_calls_per_finished", "est_tokens_per_finished",
 	"budget_exhaustion_rate", "failed_step_rate",
 	"undo_rate", "decline_rate", "repeat_rate",
@@ -82,7 +82,7 @@ func (c Curve) WriteCSV(w io.Writer) error {
 		m := p.Metrics
 		row := []string{
 			p.Start.UTC().Format(time.RFC3339), p.End.UTC().Format(time.RFC3339),
-			strconv.Itoa(m.Episodes), strconv.Itoa(m.Finished), f(m.FinishRate),
+			strconv.Itoa(m.Episodes), strconv.Itoa(m.Finished), f(m.FinishRate), f(m.OutcomeCoverage),
 			f(m.ModelCallsPerFinished), f(m.EstTokensPerFinished),
 			f(m.BudgetExhaustionRate), f(m.FailedStepRate),
 			f(m.UndoRate), f(m.DeclineRate), f(m.RepeatRate),

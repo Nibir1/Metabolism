@@ -213,6 +213,7 @@ metabolism/
   engine/                scheduler, stage supervisor, lifecycle state machine
   digest/                reflection prompts and parsing
   verify/                nutrient test
+  episodic/              tier 1: time-aware case recall (Phase 1)
   ledger/                credit assignment
   immune/                provenance, quarantine, poisoning tests
   eliminate/             decay, contradiction, supersession

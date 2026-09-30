@@ -75,21 +75,40 @@ baseline and the public benchmark are in place.
 
 Deliverables:
 
-- Helix emits Episodes and Outcomes (Helix-side changes are listed in
-  [helix-integration.md](helix-integration.md)).
-- Outcome labelling, including **late outcomes**: `/undo`, declined
-  confirmations, and a follow-up request that repeats a failed one.
-- Provenance and trust levels on every episode; redaction reused from Helix's
-  journal.
-- An episodic retrieval baseline: similar past episodes as examples (Memento-style).
-- The `metabolism inspect` CLI to browse episodes and outcomes.
+- [x] Helix emits Episodes and Outcomes: interactive shell and daemon
+      (built in Phase 0 under D-012; daemon wired in Phase 1).
+- [x] Outcome labelling, including **late outcomes**: undo, declined
+      confirmations, and a repeated request.
+- [x] Provenance and trust levels on every episode. Redaction reuses Helix's
+      journal plus credential masking.
+- [x] An episodic retrieval baseline: similar past episodes as cases
+      (Memento-style). `episodic/` does time-aware BM25 with scope and recency
+      boosts, rebuilt from the journal, with untrusted transcripts excluded by
+      default. `metabolism recall`.
+- [x] `metabolism inspect`: summary, filters (`-end`, `-scope`) and a full
+      episode view (`-id`) with outcomes.
 
 Exit criteria:
 
-- [ ] ≥ 90% of Helix agentic runs have an outcome label.
-- [ ] Nothing leaves the machine unless the network opt-in is set (test enforced).
+- [ ] ≥ 90% of Helix agentic runs have an outcome label. It is met by
+      construction, since every recorded turn gets a host outcome, and
+      `labelled` in `metabolism curves` measures it. Tick it once real data
+      confirms it.
+- [x] Nothing leaves the machine unless the network opt-in is set (test
+      enforced). `internal/privacyguard` fails if any engine package outside
+      `adapters/remote/` imports networking, or if any dependency pulls in an
+      HTTP/TLS client. Helix's `internal/metabolism` has the same test.
 - [ ] Episodic retrieval measured against the baseline. It is allowed to show
       no gain; that is the data point.
+  - [x] The measurement: `metabolism recall-eval`, time-ordered Brier skill
+        against the base rate. It was checked to find signal where there is
+        some (simulator, skill 0.96) and none where there is none (noise test).
+  - [ ] The real number: run on the Helix baseline once it exists.
+
+**Status (2026-09-30): built. The exit criteria are waiting on real Helix data.**
+Rubric: C1 (ingest) is met in code; the evidence bar, outcome coverage ≥ 90% on
+real episodes, is pending data. C3 (persists) is met: the journal is durable,
+and the index is derived from it (`TestRebuildFromJournalAfterRestart`).
 
 ## Phase 2: Digestion and the nutrient test (about 4 weeks). C2, C6
 

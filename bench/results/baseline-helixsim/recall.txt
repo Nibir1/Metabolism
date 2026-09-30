@@ -1,0 +1,10 @@
+baseline-helixsim · episodic recall, k=5 · 980 of 1000 episodes evaluated
+
+                           memory  base rate  
+  brier (lower is better)  0.0102  0.2488     
+  accuracy                 99.9%   54.6%      
+
+  skill 0.959 · recalled something for 99.7% of episodes · same-task precision 93.0%
+  memory predicts outcomes better than the base rate: recalled cases carry signal
+
+wrote bench/results/baseline-helixsim/recall.json

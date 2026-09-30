@@ -7,10 +7,10 @@ lessons, verifies each lesson before keeping it, delivers kept lessons to
 future work, credits or blames them by outcome, and eliminates what stops
 earning its place.
 
-Status (2026-09-30): **Phase 0, engine side done.** See the Phase 0 status in
-[docs/roadmap.md](docs/roadmap.md). Helix now records episodes and `metabolism ingest`
-reads them. Still open: weeks of real use to form the Helix baseline, and choosing
-a public benchmark. The docs below are the source
+Status (2026-09-30): **Phases 0 and 1 built.** Their remaining exit criteria wait
+on real Helix data: the user runs `/metabolism on` in Helix and uses it for
+weeks. Still open: choosing a public benchmark. Next: Phase 2 (reflection and
+the nutrient test). See [docs/roadmap.md](docs/roadmap.md). The docs below are the source
 of truth for what, why and how.
 
 ## Working in this repo
@@ -25,6 +25,8 @@ of truth for what, why and how.
   | `ports/` | interfaces; the engine imports only these and `types` |
   | `adapters/journal/sqlite` | durable journal |
   | `adapters/ndjson` | `metabolism ingest`: reads Helix's recorded episodes (wire v1) |
+  | `episodic/` | tier-1 memory: time-aware case recall over the journal |
+  | `internal/privacyguard` | test: no network code outside `adapters/remote/` |
   | `hosts/helixsim` | simulated Helix |
   | `bench/` | metrics and curves |
   | `cmd/metabolism` | CLI |

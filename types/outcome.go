@@ -66,6 +66,22 @@ func (s OutcomeSource) Valid() bool {
 	return false
 }
 
+// Succeeded reports whether an episode counts as a good outcome: it ended
+// done and collected no negative outcome. This is the one definition of
+// success. Benchmarks divide cost by it, and episodic memory labels cases
+// with it.
+func Succeeded(ep Episode, outs []Outcome) bool {
+	if ep.End != RunDone {
+		return false
+	}
+	for _, o := range outs {
+		if o.Kind.Negative() {
+			return false
+		}
+	}
+	return true
+}
+
 // Outcome labels an episode. An episode may collect several: the host's
 // immediate verdict, then an undo an hour later. Nothing overwrites; readers
 // decide how to combine them.

@@ -27,6 +27,8 @@ baseline-sim:
 	go run ./cmd/metabolism sim -journal $(BASELINE_SIM)/journal.db -seed 1 -count 1000 -days 56
 	go run ./cmd/metabolism curves -journal $(BASELINE_SIM)/journal.db -window 7d \
 		-label baseline-helixsim -out $(BASELINE_SIM) | tee $(BASELINE_SIM)/curve.txt
+	go run ./cmd/metabolism recall-eval -journal $(BASELINE_SIM)/journal.db -label scenario \
+		-name baseline-helixsim -out $(BASELINE_SIM) | tee $(BASELINE_SIM)/recall.txt
 	rm -f $(BASELINE_SIM)/journal.db*
 
 clean:

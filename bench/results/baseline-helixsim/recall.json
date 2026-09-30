@@ -1,0 +1,13 @@
+{
+  "label": "baseline-helixsim",
+  "k": 5,
+  "episodes": 1000,
+  "evaluated": 980,
+  "covered": 0.996938775510204,
+  "brier_memory": 0.010157710504317586,
+  "brier_base": 0.2487713930064977,
+  "skill": 0.959168,
+  "accuracy_memory": 0.9989795918367347,
+  "accuracy_base": 0.5459183673469388,
+  "same_task_precision": 0.9299336650082919
+}

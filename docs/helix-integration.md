@@ -98,7 +98,8 @@ The user's own workflow:
 3. Run `metabolism ingest`, then `metabolism curves -out bench/results/baseline-helix`.
 
 **Known gaps:**
-- The daemon's agent isn't wired yet; only the interactive shell records.
+- ~~The daemon's agent isn't wired yet.~~ It was wired in Phase 1, and its
+  unattended refusals are not counted as declines.
 - A turn's model usage is a meter delta, so ambient or vision calls that land
   during a turn are counted in it.
 

@@ -53,6 +53,7 @@ func TestComputeExactNumbers(t *testing.T) {
 		t.Fatalf("counts: %+v", m)
 	}
 	check("finish rate", m.FinishRate, 0.25)
+	check("outcome coverage", m.OutcomeCoverage, 0.5)
 	// All ten calls are paid for by the one finished episode.
 	check("calls per finished", m.ModelCallsPerFinished, 10)
 	check("tokens per finished", m.EstTokensPerFinished, 4000.0/CharsPerToken)
