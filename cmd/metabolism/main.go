@@ -1,5 +1,6 @@
 // Command metabolism inspects and measures a Metabolism journal.
 //
+//	metabolism doctor  [-journal PATH] [-from FILE] [-helix-config FILE]
 //	metabolism ingest  -journal PATH [-from FILE]
 //	metabolism sim     -journal PATH [-seed N] [-count N] [-days N]
 //	metabolism curves  -journal PATH [-window 7d] [-label NAME] [-out DIR]
@@ -32,6 +33,7 @@ import (
 const usage = `usage: metabolism <command> [flags]
 
 commands:
+  doctor   what the Helix → engine pipeline sees right now, and what to do next
   ingest   read a host's recorded episodes (Helix: /metabolism on) into a journal
   sim      fill a journal with simulated Helix episodes (for testing the harness)
   curves   compute learning curves from a journal
@@ -55,6 +57,8 @@ func run(ctx context.Context, args []string, out io.Writer) error {
 		return errors.New("no command given")
 	}
 	switch args[0] {
+	case "doctor":
+		return cmdDoctor(ctx, args[1:], out)
 	case "ingest":
 		return cmdIngest(ctx, args[1:], out)
 	case "sim":
@@ -71,7 +75,7 @@ func run(ctx context.Context, args []string, out io.Writer) error {
 		_, _ = fmt.Fprint(out, usage)
 		return nil
 	}
-	return fmt.Errorf("unknown command %q (try: ingest, sim, curves, inspect, recall, recall-eval)", args[0])
+	return fmt.Errorf("unknown command %q (try: doctor, ingest, sim, curves, inspect, recall, recall-eval)", args[0])
 }
 
 func defaultJournal() string {

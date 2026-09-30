@@ -110,6 +110,46 @@ func TestRecallInspectAndEval(t *testing.T) {
 	}
 }
 
+func TestDoctor(t *testing.T) {
+	ctx := context.Background()
+	dir := t.TempDir()
+	journal := filepath.Join(dir, "j.db")
+	cfg := filepath.Join(dir, "config.json")
+	golden := filepath.Join("..", "..", "adapters", "ndjson", "testdata", "helix_wire_v1.ndjson")
+	doctor := func() string {
+		t.Helper()
+		var out bytes.Buffer
+		if err := run(ctx, []string{"doctor", "-journal", journal, "-from", golden, "-helix-config", cfg}, &out); err != nil {
+			t.Fatalf("doctor: %v", err)
+		}
+		return out.String()
+	}
+
+	// Nothing set up: preference unreadable, no journal. Doctor must not create one.
+	got := doctor()
+	for _, want := range []string{"no Helix config at", "1 file(s), 3 records (1 episodes, 2 outcomes)", "none yet at", "make helix-ingest"} {
+		if !strings.Contains(got, want) {
+			t.Errorf("before ingest, doctor output lacks %q:\n%s", want, got)
+		}
+	}
+	if _, err := os.Stat(journal); !os.IsNotExist(err) {
+		t.Fatal("doctor created a journal")
+	}
+
+	if err := os.WriteFile(cfg, []byte(`{"user_preferences":{"metabolism_record":true,"other":"ignored"}}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := run(ctx, []string{"ingest", "-journal", journal, "-from", golden}, &bytes.Buffer{}); err != nil {
+		t.Fatal(err)
+	}
+	got = doctor()
+	for _, want := range []string{"metabolism_record is on", "all 1 recorded episodes are in the journal", "helix 1", "100.0% of episodes", "make helix-report"} {
+		if !strings.Contains(got, want) {
+			t.Errorf("after ingest, doctor output lacks %q:\n%s", want, got)
+		}
+	}
+}
+
 func TestParseScope(t *testing.T) {
 	for _, ok := range []string{"", "global", "machine:m-1", "project:helix-ab12"} {
 		if _, err := parseScope(ok); err != nil {

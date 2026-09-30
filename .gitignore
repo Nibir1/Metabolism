@@ -36,3 +36,4 @@ go.work.sum
 *.db-wal
 *.db-shm
 bin/
+.demo/

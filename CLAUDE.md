@@ -15,8 +15,13 @@ of truth for what, why and how.
 
 ## Working in this repo
 
-- `make all` runs lint (gofmt, vet, golangci-lint v2.13.2) and race tests. Keep it green.
-- `make baseline-sim` regenerates the synthetic baseline in `bench/results/`.
+- `make` lists every target.
+  - `make check`: lint (gofmt, vet, golangci-lint v2.13.2), race tests and the wire contract. Keep it green.
+  - `make verify`: `check`, plus Helix's integration tests and an end-to-end CLI demo.
+  - `make baseline-sim`: regenerates the synthetic baseline in `bench/results/`.
+- Checking with real Helix: [docs/verifying.md](docs/verifying.md)
+  (`make helix-build`, `make doctor`, `make helix-report`). The user runs Helix
+  and shares the output.
 - Layout:
 
   | Path | Contents |
