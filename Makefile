@@ -1,4 +1,4 @@
-.PHONY: all test race lint fmt build baseline-sim clean
+.PHONY: all test race lint fmt build baseline-sim check-wire clean
 
 all: lint race
 
@@ -31,3 +31,9 @@ baseline-sim:
 
 clean:
 	rm -rf bin
+
+# The Helix wire contract: our golden copy must match Helix's byte for byte.
+HELIX ?= ../Helix
+check-wire:
+	cmp adapters/ndjson/testdata/helix_wire_v1.ndjson $(HELIX)/internal/metabolism/testdata/wire_v1.ndjson \
+		&& echo "wire v1: Helix and Metabolism agree"

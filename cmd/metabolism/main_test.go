@@ -40,6 +40,18 @@ func TestSimThenCurvesThenInspect(t *testing.T) {
 	}
 }
 
+func TestIngestHelixGolden(t *testing.T) {
+	journal := filepath.Join(t.TempDir(), "j.db")
+	var out bytes.Buffer
+	golden := filepath.Join("..", "..", "adapters", "ndjson", "testdata", "helix_wire_v1.ndjson")
+	if err := run(context.Background(), []string{"ingest", "-journal", journal, "-from", golden}, &out); err != nil {
+		t.Fatalf("ingest: %v\n%s", err, out.String())
+	}
+	if !strings.Contains(out.String(), "episodes 1 · outcomes 2") {
+		t.Fatalf("ingest output:\n%s", out.String())
+	}
+}
+
 func TestInspectDoesNotCreateAJournal(t *testing.T) {
 	missing := filepath.Join(t.TempDir(), "nope.db")
 	if err := run(context.Background(), []string{"inspect", "-journal", missing}, &bytes.Buffer{}); err == nil {

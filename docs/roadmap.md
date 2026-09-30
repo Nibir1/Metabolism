@@ -56,7 +56,10 @@ Exit criteria:
 
 - [ ] Baseline curves produced and committed (`bench/results/baseline-*`).
   - [x] Synthetic: `baseline-helixsim`. Proves the harness works; it is not a baseline.
-  - [ ] Real Helix: needs Helix to emit episodes first (see D-012).
+  - [ ] Real Helix: Helix now records episodes (`/metabolism on`, branch
+        `feat/metabolism-integration`) and `metabolism ingest` reads them (D-012,
+        D-013). Waiting on weeks of real use with learning off, then
+        `metabolism curves` → `bench/results/baseline-helix/`.
   - [ ] Public benchmark: pick one (research.md, open tasks), then write its runner.
 - [x] The Journal survives a crash test (kill mid-write, reopen, no loss).
 - [x] CI runs `go test -race ./...` and lint (`.github/workflows/ci.yml`).

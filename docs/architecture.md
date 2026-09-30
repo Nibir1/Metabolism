@@ -220,6 +220,7 @@ metabolism/
   consolidate/           parametric tier (Phase 7)
   adapters/
     journal/sqlite/      modernc.org/sqlite (pure Go, same as Helix)
+    ndjson/              host-recorded episodes, wire v1 (Helix; D-013)
     store/sqlite/
     reflector/ollama/    local default
     reflector/deepseek/  opt-in

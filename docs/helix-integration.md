@@ -77,6 +77,33 @@ idle / nightly / on /reboot: digest → verify (Helix plan-only replay) → assi
 All of these are additive and behind a config switch (`metabolism: off` by default
 until Phase 3).
 
+**Done (Phase 0, Helix branch `feat/metabolism-integration`):** changes 1 and 2
+below, as a recorder that writes wire-v1 NDJSON rather than calling the engine
+(decision D-013). What was built:
+
+| Where in Helix | What |
+|---|---|
+| `internal/metabolism/` | the recorder: wire types, secret masking, pseudonymous scope keys, repeat detection, golden-file test |
+| `internal/agent/metabolism.go` | turn → episode mapping. Only planner turns are recorded; the run end matches `reportRunEnd` |
+| `internal/agent/policy_voice.go` | begin/finish around `HandleInputEvent`; an undo emits `undone` for the episode that committed |
+| `internal/session/undo.go` | `UndoEntry.EpisodeID` |
+| `internal/commands/prompt.go` | `DeclinedConfirmations()`: yes/no declines by a person (unattended refusals excluded) |
+| `cmd/helix/metabolism_cmd.go` | `/metabolism [on\|off\|status]`, `/config metabolism`, and the startup announcement |
+| `docs/harness.md` §10 | what is recorded, what it cannot do, masking, and the wire contract |
+
+The user's own workflow:
+
+1. In Helix, run `/metabolism on`.
+2. Use Helix normally for weeks.
+3. Run `metabolism ingest`, then `metabolism curves -out bench/results/baseline-helix`.
+
+**Known gaps:**
+- The daemon's agent isn't wired yet; only the interactive shell records.
+- A turn's model usage is a meter delta, so ambient or vision calls that land
+  during a turn are counted in it.
+
+Changes 3–7 remain for Phases 2–3.
+
 1. **Episode emission.** At the end of each planner turn and agentic run, build
    an Episode from the request, provenance, context digest, lesson IDs in
    context, StepObservations and run-end category, and hand it to the

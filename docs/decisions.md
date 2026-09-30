@@ -5,6 +5,24 @@ change it. Don't reverse a decision without adding a new entry that says why.
 
 ---
 
+### D-013 · 2026-09-30 · Helix talks to the engine through a file, not a Go import
+**Decision:** Helix writes versioned NDJSON (`~/.helix/metabolism/episodes.ndjson`,
+wire v1), and `metabolism ingest` reads it into the journal. Helix does not
+import the engine's module.
+**Why:**
+- Helix's build and release stay independent of an unpublished, fast-changing module.
+- A local file keeps Helix's telemetry-free guarantee obvious: nothing leaves the
+  machine until the user runs ingest.
+- The contract is pinned by one golden file kept in both repos
+  (`make check-wire`), and both sides decode it with unknown fields refused.
+
+**Revisit when:** Phase 2 needs `Host.Replay` (plan-only replay called by the
+engine) and Phase 3 needs lessons delivered into Helix's prompt. Both need a
+live call. The likely shape is Helix importing a small, stable `ports`/`types`
+module once it is published, or a local socket through Helix's daemon.
+
+---
+
 ### D-012 · 2026-09-30 · Helix episode emission moves forward into Phase 0
 **Why:** a real Helix baseline can't exist until Helix emits episodes, and
 learning can't be judged without one. The Helix-side emission and late outcomes

@@ -1,5 +1,6 @@
 // Command metabolism inspects and measures a Metabolism journal.
 //
+//	metabolism ingest  -journal PATH [-from FILE]
 //	metabolism sim     -journal PATH [-seed N] [-count N] [-days N]
 //	metabolism curves  -journal PATH [-window 7d] [-label NAME] [-out DIR]
 //	metabolism inspect -journal PATH [-n 10]
@@ -21,6 +22,7 @@ import (
 	"time"
 
 	"github.com/Nibir1/metabolism/adapters/journal/sqlite"
+	"github.com/Nibir1/metabolism/adapters/ndjson"
 	"github.com/Nibir1/metabolism/bench"
 	"github.com/Nibir1/metabolism/hosts/helixsim"
 	"github.com/Nibir1/metabolism/types"
@@ -29,6 +31,7 @@ import (
 const usage = `usage: metabolism <command> [flags]
 
 commands:
+  ingest   read a host's recorded episodes (Helix: /metabolism on) into a journal
   sim      fill a journal with simulated Helix episodes (for testing the harness)
   curves   compute learning curves from a journal
   inspect  summarise what a journal holds
@@ -49,6 +52,8 @@ func run(ctx context.Context, args []string, out io.Writer) error {
 		return errors.New("no command given")
 	}
 	switch args[0] {
+	case "ingest":
+		return cmdIngest(ctx, args[1:], out)
 	case "sim":
 		return cmdSim(ctx, args[1:], out)
 	case "curves":
@@ -59,7 +64,7 @@ func run(ctx context.Context, args []string, out io.Writer) error {
 		_, _ = fmt.Fprint(out, usage)
 		return nil
 	}
-	return fmt.Errorf("unknown command %q (try: sim, curves, inspect)", args[0])
+	return fmt.Errorf("unknown command %q (try: ingest, sim, curves, inspect)", args[0])
 }
 
 func defaultJournal() string {
@@ -71,6 +76,46 @@ func defaultJournal() string {
 		return "journal.db"
 	}
 	return filepath.Join(home, ".metabolism", "journal.db")
+}
+
+// defaultHelixFile is where Helix's /metabolism writes.
+func defaultHelixFile() string {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return "episodes.ndjson"
+	}
+	return filepath.Join(home, ".helix", "metabolism", "episodes.ndjson")
+}
+
+func cmdIngest(ctx context.Context, args []string, out io.Writer) error {
+	fs := flag.NewFlagSet("ingest", flag.ContinueOnError)
+	fs.SetOutput(out)
+	path := fs.String("journal", defaultJournal(), "journal file")
+	from := fs.String("from", defaultHelixFile(), "NDJSON episode file (rotated generations are read too)")
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	j, err := sqlite.Open(ctx, *path)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = j.Close() }()
+	st, err := ndjson.Ingest(ctx, j, *from)
+	if err != nil {
+		return err
+	}
+	_, _ = fmt.Fprintf(out, "read %d records from %d file(s) into %s\n", st.Lines, len(st.Files), *path)
+	_, _ = fmt.Fprintf(out, "  episodes %d · outcomes %d (appended, or already present)\n", st.Episodes, st.Outcomes)
+	if st.Orphans > 0 {
+		_, _ = fmt.Fprintf(out, "  %d outcome(s) skipped: their episode rotated out before it was ingested\n", st.Orphans)
+	}
+	if st.Invalid+st.Malformed > 0 {
+		_, _ = fmt.Fprintf(out, "  %d invalid and %d malformed line(s) skipped:\n", st.Invalid, st.Malformed)
+		for _, p := range st.Problems {
+			_, _ = fmt.Fprintf(out, "    %s\n", p)
+		}
+	}
+	return nil
 }
 
 func cmdSim(ctx context.Context, args []string, out io.Writer) error {
