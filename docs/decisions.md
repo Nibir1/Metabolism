@@ -5,6 +5,16 @@ change it. Don't reverse a decision without adding a new entry that says why.
 
 ---
 
+### D-012 · 2026-09-30 · Helix episode emission moves forward into Phase 0
+**Why:** a real Helix baseline can't exist until Helix emits episodes, and
+learning can't be judged without one. The Helix-side emission and late outcomes
+(helix-integration.md, changes 1–2) are therefore Phase 0 work, with learning
+off. Weeks of use then produce `bench/results/baseline-helix/` while Phases 1–2
+are built. Until then, the synthetic `baseline-helixsim` checks only that the
+harness works.
+
+---
+
 ### D-011 · 2026-09-30 · Dropped from the design: Topological AI, Born for training, DeepSeek-API LoRA
 **Why:** Topological AI and TOPO-2026 have no credible source. Born has no
 LoRA and is verified only on about 1B-parameter models. The DeepSeek API offers

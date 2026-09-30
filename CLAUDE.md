@@ -7,8 +7,29 @@ lessons, verifies each lesson before keeping it, delivers kept lessons to
 future work, credits or blames them by outcome, and eliminates what stops
 earning its place.
 
-Status (2026-09-30): **design only.** No engine code yet. The docs below are
-the source of truth for what, why and how.
+Status (2026-09-30): **Phase 0, engine side done.** See the Phase 0 status in
+[docs/roadmap.md](docs/roadmap.md). Still open: Helix emitting episodes for a real
+baseline (D-012), and choosing a public benchmark. The docs below are the source
+of truth for what, why and how.
+
+## Working in this repo
+
+- `make all` runs lint (gofmt, vet, golangci-lint v2.13.2) and race tests. Keep it green.
+- `make baseline-sim` regenerates the synthetic baseline in `bench/results/`.
+- Layout:
+
+  | Path | Contents |
+  |---|---|
+  | `types/` | vocabulary |
+  | `ports/` | interfaces; the engine imports only these and `types` |
+  | `adapters/journal/sqlite` | durable journal |
+  | `hosts/helixsim` | simulated Helix |
+  | `bench/` | metrics and curves |
+  | `cmd/metabolism` | CLI |
+
+- The journal is append-only by database trigger. Never add a code path that
+  updates or deletes records. Forget-with-proof is a planned, audited Phase 4
+  migration.
 
 ## Read in this order
 

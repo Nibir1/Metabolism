@@ -55,8 +55,18 @@ Core metrics (Helix):
 Exit criteria:
 
 - [ ] Baseline curves produced and committed (`bench/results/baseline-*`).
-- [ ] The Journal survives a crash test (kill mid-write, reopen, no loss).
-- [ ] CI runs `go test -race ./...` and lint.
+  - [x] Synthetic: `baseline-helixsim`. Proves the harness works; it is not a baseline.
+  - [ ] Real Helix: needs Helix to emit episodes first (see D-012).
+  - [ ] Public benchmark: pick one (research.md, open tasks), then write its runner.
+- [x] The Journal survives a crash test (kill mid-write, reopen, no loss).
+- [x] CI runs `go test -race ./...` and lint (`.github/workflows/ci.yml`).
+
+**Status (2026-09-30): engine side done.** Built so far: `types/`, `ports/`,
+`adapters/journal/sqlite` (append-only via triggers, versioned migrations,
+0600/0700, crash test), `hosts/helixsim` (scenarios drawn from real Helix
+failures), `bench/` (metrics, weekly curves, replay runner), `cmd/metabolism`
+(`sim`, `curves`, `inspect`), and CI. Phase 0 stays open until the real Helix
+baseline and the public benchmark are in place.
 
 ## Phase 1: Ingestion and episodic memory (about 3 weeks). C1, C3
 
