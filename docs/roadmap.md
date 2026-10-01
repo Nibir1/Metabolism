@@ -158,10 +158,22 @@ Delivered in three stages.
       presentation, judge thinking disabled, one retry on empty answers, and
       the simulator refusing to judge lessons it cannot model.
 
-**2c: real Helix replay.** A plan-only `helix replay` command that injects
-lessons into a fenced `<learned_lessons>` block and returns the plan without
-executing it; a `hosts/helix` adapter; a Jev judge through typesafe-go;
-judge-agreement labelling.
+**2c: real Helix replay (built 2026-10-01).**
+- [x] Helix (`feat/metabolism-integration`): `helix replay`. The plan-only
+      pipeline is shared with `/plan`; the fenced lessons block is bounded,
+      sanitised and fence-proof; no session or recording; an always-refuse
+      prompter; stdout carries the protocol only. Tested: a planned `touch`
+      never runs; hostile lessons cannot close the fence. `/plan` now uses
+      the live turn's prompt builder.
+- [x] `adapters/remote/helix`: one process per run, timeouts kill a hung
+      replay, broken streams restart it, Helix episodes only. Tested against
+      a fake `helix replay` and the shared golden file.
+- [x] CLI: `verify -host helix` (needs `-allow-remote` and a model judge),
+      `verify -save` for labelling, `replay` (one episode, both plans, the
+      verdict), `label` (blind, resumable) and `label -score` (agreement and
+      Cohen's κ). D-017.
+- [ ] Live: real lessons nutrient-tested on real Helix episodes, and a
+      labelled sample (see docs/verifying.md, "Real Helix replay").
 
 Exit criteria:
 

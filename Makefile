@@ -99,11 +99,15 @@ baseline-sim: ## regenerate the synthetic baseline in bench/results/
 
 # ---------------------------------------------------------------- Helix
 
-check-wire: ## the Helix wire contract: both golden files must match byte for byte
+check-wire: ## the Helix contracts: recording and replay golden files must match byte for byte
 	@if [ -f $(HELIX)/internal/metabolism/testdata/wire_v1.ndjson ]; then \
 		cmp adapters/ndjson/testdata/helix_wire_v1.ndjson $(HELIX)/internal/metabolism/testdata/wire_v1.ndjson \
 		&& echo "✔ wire v1: Helix and Metabolism agree"; \
 	else echo "• wire check skipped: no Helix checkout with the integration at $(HELIX)"; fi
+	@if [ -f $(HELIX)/cmd/helix/testdata/replay_v1.ndjson ]; then \
+		cmp adapters/remote/helix/testdata/replay_v1.ndjson $(HELIX)/cmd/helix/testdata/replay_v1.ndjson \
+		&& echo "✔ replay v1: Helix and Metabolism agree"; \
+	else echo "• replay check skipped: no Helix checkout with helix replay at $(HELIX)"; fi
 
 helix-branch:
 	@test -d $(HELIX)/.git || { echo "✘ no Helix checkout at $(HELIX) (set HELIX=...)"; exit 1; }
@@ -116,7 +120,7 @@ helix-branch:
 helix-verify: helix-branch check-wire ## Helix's integration tests, lint and full suite
 	cd $(HELIX) && CGO_ENABLED=$(HELIX_CGO) go vet ./...
 	cd $(HELIX) && CGO_ENABLED=$(HELIX_CGO) go test -count=1 \
-		./internal/metabolism/ ./internal/agent/ ./internal/commands/ ./internal/session/ ./internal/daemon/
+		./internal/metabolism/ ./internal/agent/ ./internal/commands/ ./internal/session/ ./internal/daemon/ ./cmd/helix/
 	cd $(HELIX) && CGO_ENABLED=$(HELIX_CGO) go test -count=1 ./... > /dev/null && echo "✔ Helix full suite passes"
 	@cd $(HELIX) && if command -v golangci-lint >/dev/null; then CGO_ENABLED=$(HELIX_CGO) golangci-lint run ./...; fi
 

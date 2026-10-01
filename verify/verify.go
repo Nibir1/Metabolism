@@ -92,6 +92,12 @@ func NewHistory(eps []types.Episode, outcomes map[types.ID][]types.Outcome) *His
 	return h
 }
 
+// Episode returns a past episode and its outcomes.
+func (h *History) Episode(id types.ID) (types.Episode, []types.Outcome, bool) {
+	ep, ok := h.byID[id]
+	return ep, h.outcomes[id], ok
+}
+
 // LoadHistory reads every episode and outcome from a journal.
 func LoadHistory(ctx context.Context, j ports.Journal) (*History, error) {
 	var eps []types.Episode
@@ -122,11 +128,16 @@ type Verifier struct {
 	baseline map[types.ID]types.ReplayResult
 }
 
-// Comparison is one replayed pair, for reports.
+// Comparison is one replayed pair, for reports and for labelling.
 type Comparison struct {
 	Episode    types.ID      `json:"episode"`
 	Regression bool          `json:"regression_set"`
 	Verdict    types.Verdict `json:"verdict"`
+	// Judged is false when the two plans were identical and no judge was
+	// asked. Only judged comparisons are worth a person's label.
+	Judged  bool               `json:"judged"`
+	With    types.ReplayResult `json:"with"`
+	Without types.ReplayResult `json:"without"`
 }
 
 // Report is what a test did, beyond the evidence it recorded.
@@ -165,12 +176,14 @@ func (v *Verifier) Test(ctx context.Context, m *metabolome.Metabolome, id types.
 		regression bool
 	}{{relevant, false}, {regression, true}} {
 		for _, eid := range set.eps {
-			verdict, err := v.compare(ctx, eid, lesson)
+			c, err := v.compare(ctx, eid, lesson)
 			if err != nil {
 				return Report{}, err
 			}
+			c.Regression = set.regression
+			verdict := c.Verdict
 			ev.Episodes = append(ev.Episodes, eid)
-			rep.Comparisons = append(rep.Comparisons, Comparison{Episode: eid, Regression: set.regression, Verdict: verdict})
+			rep.Comparisons = append(rep.Comparisons, c)
 			decisive := verdict.Confidence >= cfg.MinConfidence
 			switch {
 			case set.regression:
@@ -232,33 +245,36 @@ func decide(ev types.Evidence, quarantined bool, cfg Config) (types.TestResult, 
 	return types.ResultPass, "helps where it should and harms nothing: " + counts
 }
 
-func (v *Verifier) compare(ctx context.Context, eid types.ID, lesson types.Lesson) (types.Verdict, error) {
+func (v *Verifier) compare(ctx context.Context, eid types.ID, lesson types.Lesson) (Comparison, error) {
 	ep := v.History.byID[eid]
 	without, ok := v.baseline[eid]
 	if !ok {
 		var err error
 		without, err = v.Host.Replay(ctx, ep, nil)
 		if err != nil {
-			return types.Verdict{}, fmt.Errorf("replay %s without lessons: %w", eid, err)
+			return Comparison{}, fmt.Errorf("replay %s without lessons: %w", eid, err)
 		}
 		v.baseline[eid] = without
 	}
 	with, err := v.Host.Replay(ctx, ep, []types.Lesson{lesson})
 	if err != nil {
-		return types.Verdict{}, fmt.Errorf("replay %s with lesson %s: %w", eid, lesson.ID, err)
+		return Comparison{}, fmt.Errorf("replay %s with lesson %s: %w", eid, lesson.ID, err)
 	}
+	c := Comparison{Episode: eid, With: with, Without: without}
 	// The lesson changed nothing here. That is a tie by definition, so no
 	// judge is asked: a model shown two identical plans can only add noise,
 	// and one confident coin-flip on a regression episode would fail a good
 	// lesson. It also saves a judge call for most regression episodes.
 	if sameReplay(with, without) {
-		return types.Verdict{Prefer: types.PreferNeither, Confidence: 1, Reason: "identical plans"}, nil
+		c.Verdict = types.Verdict{Prefer: types.PreferNeither, Confidence: 1, Reason: "identical plans"}
+		return c, nil
 	}
-	verdict, err := v.Judge.Compare(ctx, ep, v.History.outcomes[eid], with, without)
+	c.Verdict, err = v.Judge.Compare(ctx, ep, v.History.outcomes[eid], with, without)
 	if err != nil {
-		return types.Verdict{}, fmt.Errorf("judge %s: %w", eid, err)
+		return Comparison{}, fmt.Errorf("judge %s: %w", eid, err)
 	}
-	return verdict, nil
+	c.Judged = true
+	return c, nil
 }
 
 // relevant returns the lesson's sources first, then the episodes episodic

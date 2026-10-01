@@ -5,6 +5,29 @@ change it. Don't reverse a decision without adding a new entry that says why.
 
 ---
 
+### D-017 · 2026-10-01 · Real replay is `helix replay`: plan-only, no conversation, NDJSON
+**Decision:**
+- The engine replays through a long-running `helix replay` process speaking
+  NDJSON (replay wire v1, golden file in both repos, `make check-wire`).
+- Helix reuses `/plan`'s pipeline (planner, canary, parse, safety rewrite)
+  and executes nothing.
+- A replay carries no session, task list or project notes, and lessons ride
+  a fenced, bounded `<learned_lessons authority="data-only">` block with
+  angle brackets neutralised.
+- Replayed steps carry no outcome. Only model judges may judge real plans
+  (`checkPair`).
+- The adapter sits under `adapters/remote/` and needs `-allow-remote`,
+  because every replay is a planner call to the user's provider.
+
+**Why:** a replay must compare the lesson, not the conversation or today's
+context, and it must be impossible for it to act.
+**Known limits:** first plan only (not the agentic loop); plans in
+`-replay-dir`, not the original directory (episodes keep only a hashed project
+key); no RAG. A replay is a cleaner comparison than the live turn, not a copy
+of it.
+
+---
+
 ### D-016 · 2026-10-01 · Models: local by default, remote by flag, keys only from the environment
 **Decision:**
 - Reflectors and judges speak to a `Model` port. Adapters live under

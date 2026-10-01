@@ -12,6 +12,7 @@ import (
 	"text/tabwriter"
 	"time"
 
+	helixhost "github.com/Nibir1/metabolism/adapters/remote/helix"
 	"github.com/Nibir1/metabolism/adapters/remote/jev"
 	"github.com/Nibir1/metabolism/adapters/remote/llm"
 	"github.com/Nibir1/metabolism/bench"
@@ -99,12 +100,32 @@ func pickReflector(name, model string, r remote) (ports.Reflector, error) {
 	return nil, fmt.Errorf("-reflector %q is not available (have: sim, ollama, deepseek)", name)
 }
 
-func pickHost(name string) (ports.Host, error) {
+func pickHost(name, bin, dir string, r remote) (ports.Host, error) {
 	switch name {
 	case "sim", "helixsim":
 		return helixsim.Host{}, nil
+	case "helix":
+		if err := r.require("replaying through Helix", "Helix's configured model provider (past requests are planned again)"); err != nil {
+			return nil, err
+		}
+		return &helixhost.Host{Command: bin, Dir: dir}, nil
 	}
-	return nil, fmt.Errorf("-host %q is not available yet (have: sim; real Helix replay arrives in Phase 2c)", name)
+	return nil, fmt.Errorf("-host %q is not available (have: sim, helix)", name)
+}
+
+// checkPair refuses combinations that cannot mean anything: the heuristic
+// judge counts failed steps, and a real replay only plans, so nothing failed.
+func checkPair(host, judgeName string) error {
+	if host == "helix" && judgeName == "heuristic" {
+		return fmt.Errorf("the heuristic judge cannot read real plans (nothing ran, so nothing failed); use -judge jev, deepseek or ollama")
+	}
+	return nil
+}
+
+func closeHost(h ports.Host) {
+	if c, ok := h.(io.Closer); ok {
+		_ = c.Close()
+	}
 }
 
 func pickJudge(name, model string, r remote) (ports.Judge, error) {
@@ -205,7 +226,10 @@ func cmdVerify(ctx context.Context, args []string, out io.Writer) error {
 	fs := flag.NewFlagSet("verify", flag.ContinueOnError)
 	fs.SetOutput(out)
 	path := fs.String("journal", defaultJournal(), "journal file")
-	hostName := fs.String("host", "sim", "what replays episodes without side effects (sim)")
+	hostName := fs.String("host", "sim", "what replays episodes without side effects: sim, helix")
+	helixBin := fs.String("helix-bin", "helix", "helix binary for -host helix (e.g. bin/helix from make helix-build)")
+	replayDir := fs.String("replay-dir", "", "directory Helix plans replays in (default: this one); episodes record only a hashed project key")
+	save := fs.String("save", "", "append every judged comparison to this NDJSON file, for metabolism label")
 	judgeName := fs.String("judge", "heuristic", "what compares replays: heuristic, ollama, deepseek, jev")
 	judgeModel := fs.String("judge-model", "", "model for an ollama, deepseek or jev judge")
 	allowRemote := fs.Bool("allow-remote", false, "allow a remote judge to receive replayed plans")
@@ -213,11 +237,18 @@ func cmdVerify(ctx context.Context, args []string, out io.Writer) error {
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
-	host, err := pickHost(*hostName)
+	rem := remote{allowed: *allowRemote, out: out}
+	if err := checkPair(*hostName, *judgeName); err != nil {
+		return err
+	}
+	host, err := pickHost(*hostName, *helixBin, *replayDir, rem)
 	if err != nil {
 		return err
 	}
-	rem := remote{allowed: *allowRemote, out: out}
+	defer closeHost(host)
+	if *hostName == "helix" {
+		rem.notice("each replay sends a past request (and the lesson) to Helix's configured model provider")
+	}
 	jd, err := pickJudge(*judgeName, *judgeModel, rem)
 	if err != nil {
 		return err
@@ -266,6 +297,11 @@ func cmdVerify(ctx context.Context, args []string, out io.Writer) error {
 			return err
 		}
 		e, _ := m.Get(id)
+		if *save != "" {
+			if err := saveComparisons(*save, e.Lesson, rep, h, jd.Name()); err != nil {
+				return err
+			}
+		}
 		ev := rep.Evidence
 		say(tw, "  %s\t%s → %s\t%d/%d/%d\t%d\t%s\n", ev.Result, rep.From, rep.To,
 			ev.Wins, ev.Losses, ev.Ties, ev.Regressions, truncate(e.Lesson.Text, 60))

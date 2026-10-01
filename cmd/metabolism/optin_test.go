@@ -151,3 +151,76 @@ func TestSimHostDoesNotJudgeLessonsItCannotModel(t *testing.T) {
 		t.Fatalf("the untestable lesson should still be a candidate:\n%s", out.String())
 	}
 }
+
+func TestHelixHostNeedsOptInAndAReadingJudge(t *testing.T) {
+	ctx := context.Background()
+	journal := filepath.Join(t.TempDir(), "j.db")
+	if err := run(ctx, []string{"sim", "-journal", journal, "-count", "60"}, &bytes.Buffer{}); err != nil {
+		t.Fatal(err)
+	}
+	err := run(ctx, []string{"verify", "-journal", journal, "-host", "helix", "-judge", "jev"}, &bytes.Buffer{})
+	if err == nil || !strings.Contains(err.Error(), "-allow-remote") {
+		t.Errorf("helix host without opt-in: %v", err)
+	}
+	err = run(ctx, []string{"verify", "-journal", journal, "-host", "helix", "-allow-remote"}, &bytes.Buffer{})
+	if err == nil || !strings.Contains(err.Error(), "heuristic judge cannot read real plans") {
+		t.Errorf("helix host with the heuristic judge: %v", err)
+	}
+}
+
+// verify -save writes the judged comparisons; label shows them blind and
+// records answers; label -score measures the judge against them.
+func TestSaveLabelAndScore(t *testing.T) {
+	ctx := context.Background()
+	dir := t.TempDir()
+	journal := filepath.Join(dir, "j.db")
+	saved := filepath.Join(dir, "comparisons.ndjson")
+	for _, args := range [][]string{
+		{"sim", "-journal", journal, "-count", "300"},
+		{"digest", "-journal", journal, "-reflector", "sim"},
+		{"verify", "-journal", journal, "-save", saved},
+	} {
+		if err := run(ctx, args, &bytes.Buffer{}); err != nil {
+			t.Fatalf("%v: %v", args, err)
+		}
+	}
+	comps, err := readNDJSON[comparisonRecord](saved)
+	if err != nil || len(comps) == 0 {
+		t.Fatalf("saved %d comparisons, err %v", len(comps), err)
+	}
+
+	// Label the first three the way the judge would have (pick the
+	// with-lesson plan), then quit; resume labels the rest "same".
+	var answers []string
+	for _, c := range comps[:3] {
+		if c.WithIsA {
+			answers = append(answers, "a")
+		} else {
+			answers = append(answers, "b")
+		}
+	}
+	var out bytes.Buffer
+	if err := cmdLabel(ctx, []string{"-from", saved}, &out, strings.NewReader("nonsense\n"+strings.Join(answers, "\n")+"\nq\n")); err != nil {
+		t.Fatal(err)
+	}
+	shown := out.String()
+	if strings.Contains(shown, "with the lesson") || strings.Contains(shown, "heuristic") || strings.Contains(shown, comps[0].LessonText) {
+		t.Fatal("labelling is not blind: it shows the lesson or the judge")
+	}
+	out.Reset()
+	if err := cmdLabel(ctx, []string{"-from", saved, "-score"}, &out, nil); err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(out.String(), "agrees on 3 of 3") || !strings.Contains(out.String(), "early reading") {
+		t.Fatalf("score after 3 agreeing labels:\n%s", out.String())
+	}
+
+	rest := strings.Repeat("s\n", len(comps))
+	if err := cmdLabel(ctx, []string{"-from", saved}, &bytes.Buffer{}, strings.NewReader(rest)); err != nil {
+		t.Fatal(err)
+	}
+	labels, _ := readNDJSON[labelRecord](saved + ".labels")
+	if len(labels) != len(comps) {
+		t.Fatalf("%d labels for %d comparisons (resume must not relabel)", len(labels), len(comps))
+	}
+}

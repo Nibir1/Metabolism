@@ -103,7 +103,10 @@ The user's own workflow:
 - A turn's model usage is a meter delta, so ambient or vision calls that land
   during a turn are counted in it.
 
-Changes 3–7 remain for Phases 2–3.
+Changes 3–7 remain for Phases 2–3. **Update (Phase 2c):** changes 3 and 4 now
+exist for replay only. `helix replay` plans with the fenced
+`<learned_lessons>` block; live turns get the block in Phase 3. See D-017 and
+Helix's `docs/harness.md` §11.
 
 ### First real run (2026-10-01)
 

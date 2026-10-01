@@ -144,6 +144,51 @@ example `ollama pull qwen3:8b`), and use `-reflector ollama` or
 
 Share the output of `nutrient-eval` with each judge.
 
+## 2c. Real Helix replay
+
+Build Helix from the integration branch first: `make helix-build` (it puts
+`bin/helix` here). Every replay below is a planner call to Helix's configured
+provider, so `-allow-remote` is required.
+
+**See one replay.** Pick an episode from `bin/metabolism inspect -journal …`
+and a lesson you write yourself:
+
+```bash
+bin/metabolism replay -journal ~/.metabolism/journal.db -episode <ID> -lesson "When a search finds nothing, say so instead of repeating it." -host helix -helix-bin bin/helix -replay-dir ~ -judge jev -allow-remote
+```
+
+It prints the plan without the lesson, the plan with it, and the judge's
+verdict. Nothing is recorded.
+
+`-replay-dir` is where Helix plans the replay. Use the directory the episode
+happened in: `~` for daemon episodes, the repository for interactive ones.
+Episodes keep only a hashed project key, so the engine cannot know it.
+
+**The full loop on your recorded episodes.** After a while with
+`/metabolism on`:
+
+```bash
+make helix-ingest && bin/metabolism digest -reflector deepseek -allow-remote
+```
+
+```bash
+bin/metabolism verify -host helix -helix-bin bin/helix -replay-dir ~ -judge jev -allow-remote -save comparisons.ndjson
+```
+
+```bash
+bin/metabolism label -from comparisons.ndjson
+```
+
+```bash
+bin/metabolism label -from comparisons.ndjson -score
+```
+
+`label` shows each judged comparison **blind**: the request, how it went, and
+plans A and B, never which one had the lesson or what the judge said. It saves
+as you go; `q` quits and the same command resumes. `-score` reports agreement
+and Cohen's κ. The Phase 2 bar is ≥ 80% agreement, and fewer than 30 labels
+is an early reading.
+
 ## 3. Once there are weeks of data
 
 ```bash
