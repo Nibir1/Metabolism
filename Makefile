@@ -57,20 +57,25 @@ install: ## install the metabolism CLI into your Go bin
 
 demo: build ## run every CLI command end to end on simulated Helix (in .demo/)
 	@rm -rf $(DEMO) && mkdir -p $(DEMO)
-	@echo "━━ 1/7 sim: 300 simulated Helix episodes over 3 weeks"
+	@echo "━━ 1/9 sim: 300 simulated Helix episodes over 3 weeks"
 	@$(BIN) sim -journal $(DEMO)/journal.db -count 300 -days 21 -start 2026-09-09
-	@echo "━━ 2/7 ingest: Helix's golden wire file (the cross-repo contract)"
+	@echo "━━ 2/9 ingest: Helix's golden wire file (the cross-repo contract)"
 	@$(BIN) ingest -journal $(DEMO)/journal.db -from adapters/ndjson/testdata/helix_wire_v1.ndjson
-	@echo "━━ 3/7 inspect: summary, then the ingested Helix episode in full"
+	@echo "━━ 3/9 inspect: summary, then the ingested Helix episode in full"
 	@$(BIN) inspect -journal $(DEMO)/journal.db -n 3
 	@$(BIN) inspect -journal $(DEMO)/journal.db -id 0199a1b2c3d4e5f6a7b8c9d0e1f2
-	@echo "━━ 4/7 curves: weekly metrics"
+	@echo "━━ 4/9 curves: weekly metrics"
 	@$(BIN) curves -journal $(DEMO)/journal.db -window 7d
-	@echo "━━ 5/7 recall: past cases for a new request"
+	@echo "━━ 5/9 recall: past cases for a new request"
 	@$(BIN) recall -journal $(DEMO)/journal.db -q "commit my changes" -k 3
-	@echo "━━ 6/7 recall-eval: does memory predict outcomes? (synthetic: expect high skill)"
+	@echo "━━ 6/9 recall-eval: does memory predict outcomes? (synthetic: expect high skill)"
 	@$(BIN) recall-eval -journal $(DEMO)/journal.db -label scenario
-	@echo "━━ 7/7 doctor: the pipeline as the engine sees it"
+	@echo "━━ 7/9 digest: reflect on the episodes and record candidate lessons"
+	@$(BIN) digest -journal $(DEMO)/journal.db
+	@echo "━━ 8/9 verify: the nutrient test, then a lesson's history and evidence"
+	@$(BIN) verify -journal $(DEMO)/journal.db
+	@$(BIN) lessons -journal $(DEMO)/journal.db -id $$($(BIN) lessons -journal $(DEMO)/journal.db -state trial | awk 'NR>2{print $$1; exit}')
+	@echo "━━ 9/9 doctor: the pipeline as the engine sees it"
 	@echo '{"user_preferences":{"metabolism_record":true}}' > $(DEMO)/helix-config.json
 	@$(BIN) doctor -journal $(DEMO)/journal.db -from adapters/ndjson/testdata/helix_wire_v1.ndjson \
 		-helix-config $(DEMO)/helix-config.json
@@ -88,6 +93,8 @@ baseline-sim: ## regenerate the synthetic baseline in bench/results/
 		-label baseline-helixsim -out bench/results/baseline-helixsim | tee bench/results/baseline-helixsim/curve.txt
 	go run ./cmd/metabolism recall-eval -journal bench/results/baseline-helixsim/journal.db -label scenario \
 		-name baseline-helixsim -out bench/results/baseline-helixsim | tee bench/results/baseline-helixsim/recall.txt
+	go run ./cmd/metabolism nutrient-eval -seeds 5 -count 400 -out bench/results/baseline-helixsim \
+		| tee bench/results/baseline-helixsim/nutrient.txt
 	rm -f bench/results/baseline-helixsim/journal.db*
 
 # ---------------------------------------------------------------- Helix

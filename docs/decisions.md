@@ -5,6 +5,37 @@ change it. Don't reverse a decision without adding a new entry that says why.
 
 ---
 
+### D-015 · 2026-10-01 · The nutrient test's decision rule
+**Decision:** replay *relevant* episodes (the lesson's sources plus similar ones
+found by episodic memory, up to 8) and a *regression* sample (up to 6 past
+successes in scope that the lesson is not about), each with and without the
+lesson. Verdicts below 0.6 confidence count as ties. The outcome is:
+- **pass:** ≥ 2 wins, wins ≥ 3× losses, and no regressions;
+- **quarantined lessons:** ≥ 4 wins and zero losses;
+- **fail:** "changes nothing" (no wins and no losses), any regression, or the
+  bar not met;
+- **inconclusive:** fewer than 3 relevant comparisons. The lesson stays where
+  it is.
+
+Every count goes into the evidence, so the decision can be recomputed by a reader.
+**Why:** it is simple enough to audit, and strict where it matters. Harming a
+past success is disqualifying however many wins a lesson has.
+**Revisit when:** real Helix replays (Phase 2c) produce enough data to calibrate
+the thresholds, or when the judge is replaced.
+
+### D-014 · 2026-10-01 · The metabolome is event-sourced from the journal
+**Decision:** lesson bodies, lifecycle events and evidence are journal records
+(append-only, like everything else). `metabolome` folds them into current
+state and is the only code that appends them. The journal refuses events and
+evidence for unknown lessons. `metabolome.Move` refuses a move to trial unless
+it cites passing nutrient-test evidence for that same lesson.
+**Why:** "why is this lesson trusted?" must always be answerable from the
+journal alone. Making C6 structural means no code path can promote an
+untested lesson. This replaces the separate mutable Store the architecture
+sketched.
+
+---
+
 ### D-013 · 2026-09-30 · Helix talks to the engine through a file, not a Go import
 **Decision:** Helix writes versioned NDJSON (`~/.helix/metabolism/episodes.ndjson`,
 wire v1), and `metabolism ingest` reads it into the journal. Helix does not

@@ -1,16 +1,67 @@
 package types
 
-import "time"
+import (
+	"errors"
+	"fmt"
+	"time"
+)
 
 // Evidence is a recorded test result about a lesson. Lessons advance only on
-// evidence (docs/architecture.md, principle 3).
+// evidence (docs/architecture.md, principle 3), and the journal keeps every
+// piece of it, so "why is this lesson trusted?" always has an answer.
 type Evidence struct {
 	ID       ID           `json:"id"`
 	LessonID ID           `json:"lesson_id"`
 	At       time.Time    `json:"at"`
 	Kind     EvidenceKind `json:"kind"`
-	Passed   bool         `json:"passed"`
+	Result   TestResult   `json:"result"`
 	Summary  string       `json:"summary"`
+
+	// Judge names what decided the comparisons ("heuristic", "jev", ...).
+	Judge string `json:"judge,omitempty"`
+
+	// Counts from a nutrient test. Relevant episodes are those the lesson is
+	// about; regression episodes are past successes it should leave alone.
+	Compared    int `json:"compared,omitempty"`
+	Wins        int `json:"wins,omitempty"`
+	Losses      int `json:"losses,omitempty"`
+	Ties        int `json:"ties,omitempty"`
+	Regressions int `json:"regressions,omitempty"`
+	// Episodes lists every episode replayed, relevant and regression alike.
+	Episodes []ID `json:"episodes,omitempty"`
+}
+
+// Passed reports whether the evidence supports the lesson.
+func (e Evidence) Passed() bool { return e.Result == ResultPass }
+
+// Validate reports every problem with e at once.
+func (e Evidence) Validate() error {
+	var errs []error
+	if !e.ID.Valid() {
+		errs = append(errs, fmt.Errorf("id %q is not a valid ID", e.ID))
+	}
+	if !e.LessonID.Valid() {
+		errs = append(errs, fmt.Errorf("lesson_id %q is not a valid ID", e.LessonID))
+	}
+	if e.At.IsZero() {
+		errs = append(errs, errors.New("at is zero"))
+	}
+	if !e.Kind.Valid() {
+		errs = append(errs, fmt.Errorf("kind %q is unknown", e.Kind))
+	}
+	if !e.Result.Valid() {
+		errs = append(errs, fmt.Errorf("result %q is unknown", e.Result))
+	}
+	if e.Summary == "" {
+		errs = append(errs, errors.New("summary is empty"))
+	}
+	if e.Compared < 0 || e.Wins < 0 || e.Losses < 0 || e.Ties < 0 || e.Regressions < 0 {
+		errs = append(errs, errors.New("negative count"))
+	}
+	if e.Wins+e.Losses+e.Ties > e.Compared {
+		errs = append(errs, errors.New("wins + losses + ties exceeds compared"))
+	}
+	return errors.Join(errs...)
 }
 
 // EvidenceKind names the test that produced the evidence.
@@ -25,6 +76,37 @@ const (
 	EvidenceContradiction EvidenceKind = "contradiction"
 )
 
+// Valid reports whether k is a known evidence kind.
+func (k EvidenceKind) Valid() bool {
+	switch k {
+	case EvidenceNutrientTest, EvidenceCredit, EvidenceContradiction:
+		return true
+	}
+	return false
+}
+
+// TestResult is what a test concluded.
+type TestResult string
+
+const (
+	// ResultPass: the evidence supports the lesson.
+	ResultPass TestResult = "pass"
+	// ResultFail: the evidence is against it.
+	ResultFail TestResult = "fail"
+	// ResultInconclusive: not enough evidence either way. The lesson stays
+	// where it is.
+	ResultInconclusive TestResult = "inconclusive"
+)
+
+// Valid reports whether r is a known result.
+func (r TestResult) Valid() bool {
+	switch r {
+	case ResultPass, ResultFail, ResultInconclusive:
+		return true
+	}
+	return false
+}
+
 // Credit is the running estimate of a lesson's contribution to outcomes, as
 // Beta-Bernoulli counts starting from a uniform prior.
 type Credit struct {
@@ -36,4 +118,12 @@ type Credit struct {
 // Mean is the posterior mean success rate under a Beta(1,1) prior.
 func (c Credit) Mean() float64 {
 	return (c.Successes + 1) / (c.Successes + c.Failures + 2)
+}
+
+// Experience is an episode with what is known about how it turned out. It is
+// what a Reflector reads.
+type Experience struct {
+	Episode   Episode   `json:"episode"`
+	Outcomes  []Outcome `json:"outcomes"`
+	Succeeded bool      `json:"succeeded"`
 }

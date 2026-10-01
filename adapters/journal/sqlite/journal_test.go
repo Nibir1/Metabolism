@@ -70,16 +70,21 @@ func TestRoundTrip(t *testing.T) {
 	if err := j.AppendOutcome(ctx, o); err != nil {
 		t.Fatal(err)
 	}
-	ev := types.LifecycleEvent{ID: types.NewID(t0), LessonID: types.NewID(t0), At: t0,
+	l := lessonFrom(ep)
+	if err := j.AppendLesson(ctx, l); err != nil {
+		t.Fatal(err)
+	}
+	ev := types.LifecycleEvent{ID: types.NewID(t0), LessonID: l.ID, At: t0,
 		To: types.StateCandidate, Reason: "reflected"}
 	if err := j.AppendEvent(ctx, ev); err != nil {
 		t.Fatal(err)
 	}
-
+	// The undefined-lesson rule: the lesson record now precedes its event.
 	recs := collect(t, j, types.JournalQuery{})
-	if len(recs) != 3 {
-		t.Fatalf("got %d records, want 3", len(recs))
+	if len(recs) != 4 {
+		t.Fatalf("got %d records, want 4", len(recs))
 	}
+	recs = append(recs[:2], recs[3])
 	if recs[0].Seq >= recs[1].Seq || recs[1].Seq >= recs[2].Seq {
 		t.Fatal("seq is not strictly increasing")
 	}
@@ -92,6 +97,66 @@ func TestRoundTrip(t *testing.T) {
 	}
 	if recs[2].Event == nil || recs[2].Event.Reason != "reflected" {
 		t.Fatalf("event did not round-trip: %+v", recs[2])
+	}
+}
+
+func lessonFrom(ep types.Episode) types.Lesson {
+	return types.Lesson{
+		ID: types.NewID(t0), Kind: types.KindPattern, Scope: types.Scope{Level: types.ScopeGlobal},
+		Text: "an empty search result is an answer", State: types.StateCandidate,
+		Sources: []types.ID{ep.ID}, Provenance: types.ProvUserTyped, CreatedAt: t0, UpdatedAt: t0,
+	}
+}
+
+func TestLessonsEventsAndEvidence(t *testing.T) {
+	ctx := context.Background()
+	j := openTemp(t)
+	ep := episodeAt(t0)
+	if err := j.AppendEpisode(ctx, ep); err != nil {
+		t.Fatal(err)
+	}
+	stranger := types.NewID(t0)
+	ev := types.LifecycleEvent{ID: types.NewID(t0), LessonID: stranger, At: t0, To: types.StateCandidate, Reason: "x"}
+	if err := j.AppendEvent(ctx, ev); !errors.Is(err, ports.ErrUnknownLesson) {
+		t.Fatalf("event for an unknown lesson: err = %v", err)
+	}
+	evid := types.Evidence{ID: types.NewID(t0), LessonID: stranger, At: t0, Kind: types.EvidenceNutrientTest,
+		Result: types.ResultFail, Summary: "x"}
+	if err := j.AppendEvidence(ctx, evid); !errors.Is(err, ports.ErrUnknownLesson) {
+		t.Fatalf("evidence for an unknown lesson: err = %v", err)
+	}
+
+	l := lessonFrom(ep)
+	if err := j.AppendLesson(ctx, l); err != nil {
+		t.Fatal(err)
+	}
+	ev.LessonID, evid.LessonID = l.ID, l.ID
+	evid.Compared, evid.Wins, evid.Ties = 4, 3, 1
+	if err := j.AppendEvent(ctx, ev); err != nil {
+		t.Fatal(err)
+	}
+	if err := j.AppendEvidence(ctx, evid); err != nil {
+		t.Fatal(err)
+	}
+	// An unrelated lesson must not leak into the lesson query.
+	other := lessonFrom(ep)
+	other.ID = types.NewID(t0.Add(time.Second))
+	if err := j.AppendLesson(ctx, other); err != nil {
+		t.Fatal(err)
+	}
+
+	got := collect(t, j, types.JournalQuery{LessonID: l.ID})
+	if len(got) != 3 || got[0].Lesson == nil || got[1].Event == nil || got[2].Evidence == nil {
+		t.Fatalf("lesson query: %+v", got)
+	}
+	if got[2].Evidence.Wins != 3 || got[0].Lesson.Text != l.Text {
+		t.Fatal("lesson or evidence did not round-trip")
+	}
+
+	bad := evid
+	bad.ID, bad.Wins = types.NewID(t0), 9
+	if err := j.AppendEvidence(ctx, bad); !errors.Is(err, ports.ErrInvalid) {
+		t.Fatalf("evidence with impossible counts: err = %v", err)
 	}
 }
 

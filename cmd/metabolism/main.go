@@ -7,6 +7,10 @@
 //	metabolism inspect -journal PATH [-n 10] [-end E] [-scope S] [-id ID]
 //	metabolism recall  -journal PATH -q TEXT [-scope S] [-k 5]
 //	metabolism recall-eval -journal PATH [-k 5] [-label ATTR] [-out DIR]
+//	metabolism digest  -journal PATH [-reflector sim] [-since D] [-until D]
+//	metabolism verify  -journal PATH [-host sim] [-judge heuristic] [-lesson ID]
+//	metabolism lessons -journal PATH [-state S] [-id ID]
+//	metabolism nutrient-eval [-seeds 5] [-count 400] [-out DIR]
 //
 // The journal defaults to $METABOLISM_JOURNAL, then ~/.metabolism/journal.db.
 package main
@@ -40,6 +44,10 @@ commands:
   inspect  summarise what a journal holds, or show one episode
   recall   the past episodes most like a request (episodic memory)
   recall-eval  does recall predict outcomes better than the base rate?
+  digest   reflect on episodes and record candidate lessons
+  verify   the nutrient test: replay with and without each candidate lesson
+  lessons  list lessons, or show one's history and evidence
+  nutrient-eval  does the nutrient test reject planted wrong lessons? (simulator)
 
 run "metabolism <command> -h" for a command's flags
 `
@@ -71,11 +79,19 @@ func run(ctx context.Context, args []string, out io.Writer) error {
 		return cmdRecall(ctx, args[1:], out)
 	case "recall-eval":
 		return cmdRecallEval(ctx, args[1:], out)
+	case "digest":
+		return cmdDigest(ctx, args[1:], out)
+	case "verify":
+		return cmdVerify(ctx, args[1:], out)
+	case "lessons":
+		return cmdLessons(ctx, args[1:], out)
+	case "nutrient-eval":
+		return cmdNutrientEval(ctx, args[1:], out)
 	case "help", "-h", "--help":
 		_, _ = fmt.Fprint(out, usage)
 		return nil
 	}
-	return fmt.Errorf("unknown command %q (try: doctor, ingest, sim, curves, inspect, recall, recall-eval)", args[0])
+	return fmt.Errorf("unknown command %q (try: doctor, ingest, sim, curves, inspect, recall, recall-eval, digest, verify, lessons, nutrient-eval)", args[0])
 }
 
 func defaultJournal() string {

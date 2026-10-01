@@ -2,9 +2,9 @@
 // adapters implement them; the engine imports nothing else. That dependency
 // direction is what keeps the core domain-agnostic (docs/decisions.md, D-006).
 //
-// Phase 0 implements Journal (adapters/journal/sqlite) and a simulated Host
-// and Judge (hosts/helixsim). The rest are declared now so later phases fill
-// them in without reshaping the core.
+// Journal is implemented by adapters/journal/sqlite; Host, Judge and Reflector
+// by hosts/helixsim (simulated) and, from Phase 2, real adapters. Store and
+// Selector are declared for later phases.
 package ports
 
 import (
@@ -24,6 +24,8 @@ var (
 	ErrConflict = errors.New("conflicting record with the same id")
 	// ErrUnknownEpisode: an outcome names an episode the journal never saw.
 	ErrUnknownEpisode = errors.New("outcome for an unknown episode")
+	// ErrUnknownLesson: an event or evidence names a lesson the journal never saw.
+	ErrUnknownLesson = errors.New("record for an unknown lesson")
 )
 
 // Journal is the durable, append-only record of everything the engine
@@ -32,7 +34,10 @@ var (
 type Journal interface {
 	AppendEpisode(ctx context.Context, ep types.Episode) error
 	AppendOutcome(ctx context.Context, o types.Outcome) error
+	// AppendLesson records a lesson's body. Its state changes are events.
+	AppendLesson(ctx context.Context, l types.Lesson) error
 	AppendEvent(ctx context.Context, ev types.LifecycleEvent) error
+	AppendEvidence(ctx context.Context, e types.Evidence) error
 	// Scan yields matching records in Seq order. Stopping the iteration early
 	// releases its resources.
 	Scan(ctx context.Context, q types.JournalQuery) iter.Seq2[types.Record, error]
@@ -51,13 +56,17 @@ type Host interface {
 // Judge compares a replay with lessons against one without, knowing how the
 // original episode actually turned out.
 type Judge interface {
+	Name() string
 	Compare(ctx context.Context, original types.Episode, outcomes []types.Outcome,
 		with, without types.ReplayResult) (types.Verdict, error)
 }
 
-// Reflector turns episodes into candidate lessons (Phase 2).
+// Reflector turns experience into candidate lessons (Phase 2). It proposes;
+// the engine validates, screens, deduplicates and records. A Reflector need
+// not set IDs, state, provenance or timestamps; those are the engine's.
 type Reflector interface {
-	Reflect(ctx context.Context, eps []types.Episode, existing []types.Lesson) ([]types.Lesson, error)
+	Name() string
+	Reflect(ctx context.Context, batch []types.Experience, existing []types.Lesson) ([]types.Lesson, error)
 }
 
 // LessonQuery selects lessons from a Store. Zero fields don't filter.

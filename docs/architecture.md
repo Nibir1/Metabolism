@@ -211,8 +211,11 @@ metabolism/
   types/                 Episode, Outcome, Lesson, Evidence, Credit…
   ports/                 interfaces above
   engine/                scheduler, stage supervisor, lifecycle state machine
-  digest/                reflection prompts and parsing
-  verify/                nutrient test
+  metabolome/            event-sourced lessons, lifecycle and evidence (D-014)
+  immune/                deterministic safety screen and provenance (Phase 2)
+  digest/                reflection: validate, screen, dedupe, record
+  verify/                nutrient test (D-015)
+  judge/                 host-agnostic judges (heuristic; LLM and Jev in 2b/2c)
   episodic/              tier 1: time-aware case recall (Phase 1)
   ledger/                credit assignment
   immune/                provenance, quarantine, poisoning tests

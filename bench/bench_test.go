@@ -11,6 +11,7 @@ import (
 
 	"github.com/Nibir1/metabolism/adapters/journal/sqlite"
 	"github.com/Nibir1/metabolism/hosts/helixsim"
+	"github.com/Nibir1/metabolism/judge"
 	"github.com/Nibir1/metabolism/types"
 )
 
@@ -148,7 +149,7 @@ func TestLoadAndReplayOnSimulatedHelix(t *testing.T) {
 	// One lesson that fixes one scenario: replay must prefer it exactly on
 	// that scenario's episodes and nowhere else.
 	lesson := types.Lesson{ID: types.NewID(t0), Text: "an empty-glob result is an answer; stop searching"}
-	s, err := Replay(ctx, helixsim.Host{}, helixsim.Judge{}, ds, ds.Episodes, []types.Lesson{lesson})
+	s, err := Replay(ctx, helixsim.Host{}, judge.Heuristic{}, ds, ds.Episodes, []types.Lesson{lesson})
 	if err != nil {
 		t.Fatal(err)
 	}

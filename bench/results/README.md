@@ -20,6 +20,12 @@ Each directory is one measured curve: `curve.json` (full precision),
   test in `bench/recall_test.go` shows it reports none when there is none.
   Real Helix skill will be far lower, and any value above 0 means memory knows
   something.
+- **The simulated nutrient-test score (100%) proves the logic, not the power.**
+  The simulator's host is an oracle: a lesson repairs a scenario if and only
+  if it carries that scenario's fix tag, and harmful lessons carry harm tags.
+  The score shows the decision rule, the replay sets and the evidence wiring
+  do what they should. Whether the test separates good from bad lessons on
+  real plans depends on real Helix replays and a real judge (Phase 2c).
 - **The real Helix baseline doesn't exist yet.** It needs Helix to emit
   episodes (see `docs/helix-integration.md`) and a few weeks of real use with
   learning off. It will be committed as `baseline-helix/`.

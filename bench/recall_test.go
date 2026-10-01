@@ -1,11 +1,13 @@
 package bench
 
 import (
+	"context"
 	"testing"
 	"time"
 
 	"github.com/Nibir1/metabolism/hosts/helixsim"
 	"github.com/Nibir1/metabolism/types"
+	"github.com/Nibir1/metabolism/verify"
 )
 
 func simDataset(seed uint64, n int) Dataset {
@@ -58,5 +60,22 @@ func TestRecallNeedsHistory(t *testing.T) {
 	r := EvaluateRecall("tiny", simDataset(3, 10), RecallConfig{})
 	if r.Evaluated != 0 || r.SameTaskPrecision != -1 {
 		t.Fatalf("with less history than MinHistory nothing is evaluated: %+v", r)
+	}
+}
+
+func TestNutrientTestSeparatesGoodFromWrongLessons(t *testing.T) {
+	r, err := EvaluateNutrient(context.Background(), []uint64{1, 2, 3}, 400, verify.Config{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if r.WrongTotal != 15 || r.CorrectTotal != 18 {
+		t.Fatalf("planted %d wrong and %d correct, want 15 and 18", r.WrongTotal, r.CorrectTotal)
+	}
+	// The Phase 2 exit bar, on the simulator.
+	if r.WrongRejectRate < 0.9 {
+		t.Fatalf("rejected only %.0f%% of wrong lessons", 100*r.WrongRejectRate)
+	}
+	if r.CorrectAcceptRate < 0.8 {
+		t.Fatalf("accepted only %.0f%% of correct lessons", 100*r.CorrectAcceptRate)
 	}
 }

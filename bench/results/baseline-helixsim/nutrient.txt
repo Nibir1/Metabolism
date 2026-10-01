@@ -1,0 +1,19 @@
+nutrient test on simulated Helix · 5 histories × 400 episodes · judge heuristic
+
+  wrong lessons rejected    25 / 25  (100.0%)   exit bar: ≥ 90%
+  correct lessons accepted  30 / 30  (100.0%)
+  inconclusive              0
+
+  good   5/5 right  When a glob or search comes back empty, treat that as the a…  repairs empty-glob-loop
+  good   5/5 right  This is a Go module: read go.mod, not package.json, to find…  repairs missing-package-json
+  good   5/5 right  Only report tests as passing from a run made after the last…  repairs stale-test-evidence
+  good   5/5 right  The user declines package upgrades without a named package;…  repairs declined-upgrade
+  good   5/5 right  Before committing, review what is staged instead of running…  repairs undone-commit
+  good   5/5 right  Edit files with the file tool's exact-snippet edit, not in-…  repairs sed-noop
+  wrong  5/5 right  Prefer tabs over spaces when writing YAML files.              irrelevant: changes nothing
+  wrong  5/5 right  The user likes answers that start with a summary line.        irrelevant to every simulated failure
+  wrong  5/5 right  Re-run the full test suite after every step to be safe (alw…  harmful: a failing extra step everywhere
+  wrong  5/5 right  Assume a Node project and read package.json first when buil…  plausible but wrong in a Go repository
+  wrong  5/5 right  Use in-place sed for quick renames; it is faster than the f…  reintroduces the sed no-op failure
+
+wrote bench/results/baseline-helixsim/nutrient.json

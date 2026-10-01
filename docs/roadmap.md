@@ -112,21 +112,54 @@ and the index is derived from it (`TestRebuildFromJournalAfterRestart`).
 
 ## Phase 2: Digestion and the nutrient test (about 4 weeks). C2, C6
 
-Deliverables:
+Delivered in three stages.
 
-- Reflector adapters (Ollama by default, DeepSeek opt-in) that produce candidate
-  lessons linked to source episodes.
-- Lesson kinds: fact, pattern, preference. Scopes: machine, project, global.
-- The **nutrient test**, with replay through Helix plan-only mode. Judges: a Jev
-  `Score` through typesafe-go, plus a deterministic checker where possible.
-- The lifecycle state machine: candidate → quarantined → trial.
-- The evidence record for every decision.
+**2a: engine core (built 2026-10-01).**
+- [x] Lessons, lifecycle events and evidence as journal records. The
+      event-sourced `metabolome` (D-014) refuses a move to trial without
+      passing evidence for that lesson.
+- [x] `immune`: a deterministic screen run before any lesson is recorded. It
+      rejects lessons that teach getting around confirmations, sandbox,
+      firewall or hooks, or acting without consent, or disguising a request
+      to get past a refusal, or that recommend `--no-verify`, `--force`,
+      `sudo`, `chmod 777` or `/permissions auto`, or read as prompt
+      injections. It also rejects gate and procedure kinds, bad lengths, and
+      fence-breaking markup. Provenance is the least trusted of a lesson's
+      sources.
+- [x] `digest`: reflector output is untrusted. Sources must be episodes it
+      was shown, scopes must match a source, it must pass the screen, and it
+      must not duplicate a known lesson (eliminated ones included). Recorded
+      as candidate, or quarantined when learned from untrusted content.
+- [x] `verify`, the nutrient test (D-015): relevant and regression replays,
+      judged, with evidence recorded and the lesson moved to trial,
+      eliminated, or nowhere when inconclusive. Baseline replays are cached.
+- [x] `judge.Heuristic`: deterministic (fewer failed steps, then fewer
+      model calls).
+- [x] The lifecycle state machine: candidate → quarantined → trial (plus
+      eliminated).
+- [x] CLI: `digest`, `verify`, `lessons [-id]`, `nutrient-eval`.
+
+**2b: real reflectors and judges (next).** A `Model` port; adapters for Ollama
+(local, default) and DeepSeek (opt-in, explicit flag) under `adapters/remote/`;
+an LLM reflector with strict JSON parsing; an LLM judge.
+
+**2c: real Helix replay.** A plan-only `helix replay` command that injects
+lessons into a fenced `<learned_lessons>` block and returns the plan without
+executing it; a `hosts/helix` adapter; a Jev judge through typesafe-go;
+judge-agreement labelling.
 
 Exit criteria:
 
-- [ ] Every trial lesson has with/without ablation evidence (the C6 bar).
+- [x] Every trial lesson has with/without ablation evidence (the C6 bar).
+      Enforced structurally by `metabolome.Move`, and tested.
 - [ ] Planted wrong lessons are rejected by the nutrient test at ≥ 90%.
-- [ ] Judge agreement with a human-labelled sample is ≥ 80%, or the judge is replaced.
+  - [x] On the simulator: 25/25 wrong rejected, 30/30 correct accepted
+        (`bench/results/baseline-helixsim/nutrient.*`). **This proves the
+        test's logic, not its power.** The simulator's host knows which
+        lesson fixes which failure.
+  - [ ] On real Helix replays (2c).
+- [ ] Judge agreement with a human-labelled sample is ≥ 80%, or the judge is
+      replaced (2c).
 
 ## Phase 3: Distribution and the credit ledger (about 4 weeks). C4, C9
 

@@ -166,13 +166,46 @@ func (j *Journal) AppendOutcome(ctx context.Context, o types.Outcome) error {
 	})
 }
 
-// AppendEvent journals a lesson lifecycle event.
+// AppendLesson journals a lesson's body. The body is immutable: the lesson's
+// state moves only by lifecycle events.
+func (j *Journal) AppendLesson(ctx context.Context, l types.Lesson) error {
+	if err := l.Validate(); err != nil {
+		return fmt.Errorf("%w: %w", ports.ErrInvalid, err)
+	}
+	l.CreatedAt, l.UpdatedAt = l.CreatedAt.UTC(), l.UpdatedAt.UTC()
+	return j.append(ctx, types.RecordLesson, l.ID, "", l.CreatedAt, l, nil)
+}
+
+// AppendEvent journals a lesson lifecycle event. The lesson must already be
+// in the journal.
 func (j *Journal) AppendEvent(ctx context.Context, ev types.LifecycleEvent) error {
 	if err := ev.Validate(); err != nil {
 		return fmt.Errorf("%w: %w", ports.ErrInvalid, err)
 	}
 	ev.At = ev.At.UTC()
-	return j.append(ctx, types.RecordEvent, ev.ID, ev.LessonID, ev.At, ev, nil)
+	return j.append(ctx, types.RecordEvent, ev.ID, ev.LessonID, ev.At, ev, j.lessonExists(ctx, ev.LessonID))
+}
+
+// AppendEvidence journals a test result about a lesson. The lesson must
+// already be in the journal.
+func (j *Journal) AppendEvidence(ctx context.Context, e types.Evidence) error {
+	if err := e.Validate(); err != nil {
+		return fmt.Errorf("%w: %w", ports.ErrInvalid, err)
+	}
+	e.At = e.At.UTC()
+	return j.append(ctx, types.RecordEvidence, e.ID, e.LessonID, e.At, e, j.lessonExists(ctx, e.LessonID))
+}
+
+func (j *Journal) lessonExists(ctx context.Context, id types.ID) func(*sql.Tx) error {
+	return func(tx *sql.Tx) error {
+		var one int
+		err := tx.QueryRowContext(ctx,
+			`SELECT 1 FROM records WHERE kind = ? AND id = ?`, types.RecordLesson, id).Scan(&one)
+		if errors.Is(err, sql.ErrNoRows) {
+			return fmt.Errorf("%w: %s", ports.ErrUnknownLesson, id)
+		}
+		return err
+	}
 }
 
 // append writes one record in a transaction. Re-appending an identical record
@@ -284,6 +317,11 @@ func buildQuery(q types.JournalQuery) (string, []any) {
 		where = append(where, "at < ?")
 		args = append(args, q.Until.UnixNano())
 	}
+	if q.LessonID != "" {
+		where = append(where, "((kind = ? AND id = ?) OR (kind IN (?, ?) AND ref = ?))")
+		args = append(args, string(types.RecordLesson), string(q.LessonID),
+			string(types.RecordEvent), string(types.RecordEvidence), string(q.LessonID))
+	}
 	if q.EpisodeID != "" {
 		where = append(where, "(id = ? OR (kind = ? AND ref = ?))")
 		args = append(args, string(q.EpisodeID), string(types.RecordOutcome), string(q.EpisodeID))
@@ -308,9 +346,15 @@ func decode(r *types.Record, body []byte) error {
 	case types.RecordOutcome:
 		r.Outcome = new(types.Outcome)
 		return json.Unmarshal(body, r.Outcome)
+	case types.RecordLesson:
+		r.Lesson = new(types.Lesson)
+		return json.Unmarshal(body, r.Lesson)
 	case types.RecordEvent:
 		r.Event = new(types.LifecycleEvent)
 		return json.Unmarshal(body, r.Event)
+	case types.RecordEvidence:
+		r.Evidence = new(types.Evidence)
+		return json.Unmarshal(body, r.Evidence)
 	}
 	return fmt.Errorf("unknown record kind %q", r.Kind)
 }

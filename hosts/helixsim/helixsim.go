@@ -17,6 +17,7 @@ import (
 	"context"
 	"fmt"
 	"math/rand/v2"
+	"slices"
 	"strings"
 	"time"
 
@@ -275,58 +276,134 @@ func (Host) Describe() types.HostProfile {
 	}
 }
 
-// Replay re-plans ep with lessons in context.
+// Replay re-plans ep with lessons in context. A lesson whose text contains
+// the scenario's fix tag repairs it; a lesson carrying a harm tag damages the
+// plan wherever it applies; anything else changes nothing.
 func (Host) Replay(ctx context.Context, ep types.Episode, lessons []types.Lesson) (types.ReplayResult, error) {
 	if err := ctx.Err(); err != nil {
 		return types.ReplayResult{}, err
 	}
-	res := types.ReplayResult{EpisodeID: ep.ID, Steps: ep.Steps, Usage: ep.Usage}
 	sc, ok := lookup(ep.Attrs["scenario"])
 	if !ok {
 		return types.ReplayResult{}, fmt.Errorf("helixsim: episode %s has unknown scenario %q", ep.ID, ep.Attrs["scenario"])
 	}
-	if sc.fix == "" {
-		return res, nil
+	res := types.ReplayResult{EpisodeID: ep.ID, Steps: slices.Clone(ep.Steps), Usage: ep.Usage}
+	if sc.fix != "" {
+		for _, l := range lessons {
+			if strings.Contains(l.Text, sc.fix) {
+				res.Steps = []types.Step{{Tool: "file", Action: "edit", Subject: "fixed", OK: true}}
+				res.Usage = types.Usage{ModelCalls: 1, InputChars: ep.Usage.InputChars / max(ep.Usage.ModelCalls, 1),
+					OutputChars: ep.Usage.OutputChars / max(ep.Usage.ModelCalls, 1)}
+				res.Text = "applied lesson " + string(l.ID)
+				break
+			}
+		}
 	}
 	for _, l := range lessons {
-		if strings.Contains(l.Text, sc.fix) {
-			res.Steps = []types.Step{{Tool: "file", Action: "edit", Subject: "fixed", OK: true}}
-			res.Usage = types.Usage{ModelCalls: 1, InputChars: ep.Usage.InputChars / max(ep.Usage.ModelCalls, 1),
-				OutputChars: ep.Usage.OutputChars / max(ep.Usage.ModelCalls, 1)}
-			res.Text = "applied lesson " + string(l.ID)
-			return res, nil
+		for _, h := range harms {
+			if strings.Contains(l.Text, h.tag) && h.applies(sc.name) {
+				res.Steps = append(res.Steps, types.Step{Tool: "shell", Subject: h.step, OK: false, Err: h.err})
+				res.Usage.ModelCalls++
+			}
 		}
 	}
 	return res, nil
 }
 
-// Judge prefers the replay with fewer failed steps, then fewer model calls.
-type Judge struct{}
-
-var _ ports.Judge = Judge{}
-
-// Compare implements ports.Judge.
-func (Judge) Compare(_ context.Context, _ types.Episode, _ []types.Outcome, with, without types.ReplayResult) (types.Verdict, error) {
-	fw, fo := failed(with.Steps), failed(without.Steps)
-	switch {
-	case fw < fo:
-		return types.Verdict{Prefer: types.PreferWith, Confidence: 0.9, Reason: "fewer failed steps"}, nil
-	case fw > fo:
-		return types.Verdict{Prefer: types.PreferWithout, Confidence: 0.9, Reason: "more failed steps"}, nil
-	case with.Usage.ModelCalls < without.Usage.ModelCalls:
-		return types.Verdict{Prefer: types.PreferWith, Confidence: 0.7, Reason: "fewer model calls"}, nil
-	case with.Usage.ModelCalls > without.Usage.ModelCalls:
-		return types.Verdict{Prefer: types.PreferWithout, Confidence: 0.7, Reason: "more model calls"}, nil
-	}
-	return types.Verdict{Prefer: types.PreferNeither, Confidence: 0.5, Reason: "equivalent"}, nil
+// harm is a way a wrong lesson damages a plan in the simulator.
+type harm struct {
+	tag     string
+	step    string
+	err     string
+	applies func(scenario string) bool
 }
 
-func failed(steps []types.Step) int {
-	n := 0
-	for _, s := range steps {
-		if !s.OK {
-			n++
+func everywhere(string) bool { return true }
+
+func only(names ...string) func(string) bool {
+	return func(s string) bool { return slices.Contains(names, s) }
+}
+
+var harms = []harm{
+	// A lesson that sounds diligent and costs a failing step on every turn.
+	{tag: "always-rerun", step: "go test ./... (re-run)", err: "exit status 1", applies: everywhere},
+	// Plausible but wrong: assume a Node project, in a Go repository.
+	{tag: "node-first", step: "cat package.json", err: "no such file",
+		applies: only("missing-package-json", "edit-and-test", "stale-test-evidence")},
+	// The exact failure the file tool was built to replace.
+	{tag: "prefer-sed", step: "sed -i 's/a/b/' main.go", err: "pattern did not match",
+		applies: only("edit-and-test", "sed-noop", "stale-test-evidence")},
+}
+
+// LessonSpec is a lesson the simulator knows the truth about.
+type LessonSpec struct {
+	Text string
+	Kind types.LessonKind
+	// Good says whether the lesson should survive a correct nutrient test.
+	Good bool
+	// Why says what makes it good or wrong.
+	Why string
+	// From is the scenario whose episodes the lesson would be learned from.
+	From string
+}
+
+// CorrectLessons are lessons that repair a scenario (one per fixable scenario).
+func CorrectLessons() []LessonSpec {
+	return []LessonSpec{
+		{Text: "When a glob or search comes back empty, treat that as the answer instead of loosening the pattern (empty-glob).", Kind: types.KindPattern, Good: true, Why: "repairs empty-glob-loop", From: "empty-glob-loop"},
+		{Text: "This is a Go module: read go.mod, not package.json, to find build and dependency information (go-module).", Kind: types.KindFact, Good: true, Why: "repairs missing-package-json", From: "missing-package-json"},
+		{Text: "Only report tests as passing from a run made after the last edit (fresh-evidence).", Kind: types.KindPattern, Good: true, Why: "repairs stale-test-evidence", From: "stale-test-evidence"},
+		{Text: "The user declines package upgrades without a named package; ask which package first (ask-package).", Kind: types.KindPreference, Good: true, Why: "repairs declined-upgrade", From: "declined-upgrade"},
+		{Text: "Before committing, review what is staged instead of running git add -A (review-staged).", Kind: types.KindPattern, Good: true, Why: "repairs undone-commit", From: "undone-commit"},
+		{Text: "Edit files with the file tool's exact-snippet edit, not in-place sed, which reports success when it changes nothing (file-edit).", Kind: types.KindPattern, Good: true, Why: "repairs sed-noop", From: "sed-noop"},
+	}
+}
+
+// WrongLessons are planted lessons a sound nutrient test must reject.
+func WrongLessons() []LessonSpec {
+	return []LessonSpec{
+		{Text: "Prefer tabs over spaces when writing YAML files.", Kind: types.KindPreference, Why: "irrelevant: changes nothing", From: "edit-and-test"},
+		{Text: "The user likes answers that start with a summary line.", Kind: types.KindPreference, Why: "irrelevant to every simulated failure", From: "answer"},
+		{Text: "Re-run the full test suite after every step to be safe (always-rerun).", Kind: types.KindPattern, Why: "harmful: a failing extra step everywhere", From: "edit-and-test"},
+		{Text: "Assume a Node project and read package.json first when building (node-first).", Kind: types.KindFact, Why: "plausible but wrong in a Go repository", From: "missing-package-json"},
+		{Text: "Use in-place sed for quick renames; it is faster than the file tool (prefer-sed).", Kind: types.KindPattern, Why: "reintroduces the sed no-op failure", From: "sed-noop"},
+	}
+}
+
+// Reflector proposes CorrectLessons for scenarios that keep failing, the
+// way a perfect reflector would. It exists to test the pipeline around
+// reflection, not reflection itself.
+type Reflector struct{}
+
+var _ ports.Reflector = Reflector{}
+
+// Name implements ports.Reflector.
+func (Reflector) Name() string { return "helixsim" }
+
+// Reflect implements ports.Reflector.
+func (Reflector) Reflect(_ context.Context, batch []types.Experience, _ []types.Lesson) ([]types.Lesson, error) {
+	failures := map[string][]types.ID{}
+	for _, x := range batch {
+		if !x.Succeeded {
+			sc := x.Episode.Attrs["scenario"]
+			failures[sc] = append(failures[sc], x.Episode.ID)
 		}
 	}
-	return n
+	var out []types.Lesson
+	for _, spec := range CorrectLessons() {
+		for _, sc := range scenarios {
+			if sc.fix == "" || !strings.Contains(spec.Text, "("+sc.fix+")") || len(failures[sc.name]) < 2 {
+				continue
+			}
+			src := failures[sc.name]
+			if len(src) > 5 {
+				src = src[:5]
+			}
+			out = append(out, types.Lesson{
+				Kind: spec.Kind, Scope: types.Scope{Level: types.ScopeGlobal}, Text: spec.Text,
+				Sources: src, Rationale: fmt.Sprintf("%d %s episodes failed", len(failures[sc.name]), sc.name),
+			})
+		}
+	}
+	return out, nil
 }

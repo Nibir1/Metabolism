@@ -1,0 +1,454 @@
+{
+  "seeds": 5,
+  "episodes_per_seed": 400,
+  "judge": "heuristic",
+  "wrong_total": 25,
+  "wrong_rejected": 25,
+  "wrong_reject_rate": 1,
+  "correct_total": 30,
+  "correct_accepted": 30,
+  "correct_accept_rate": 1,
+  "inconclusive": 0,
+  "rows": [
+    {
+      "seed": 1,
+      "text": "When a glob or search comes back empty, treat that as the answer instead of loosening the pattern (empty-glob).",
+      "good": true,
+      "why": "repairs empty-glob-loop",
+      "result": "pass",
+      "summary": "helps where it should and harms nothing: 8 wins, 0 losses, 0 ties over 8 relevant episodes; 0 regressions"
+    },
+    {
+      "seed": 1,
+      "text": "This is a Go module: read go.mod, not package.json, to find build and dependency information (go-module).",
+      "good": true,
+      "why": "repairs missing-package-json",
+      "result": "pass",
+      "summary": "helps where it should and harms nothing: 8 wins, 0 losses, 0 ties over 8 relevant episodes; 0 regressions"
+    },
+    {
+      "seed": 1,
+      "text": "Only report tests as passing from a run made after the last edit (fresh-evidence).",
+      "good": true,
+      "why": "repairs stale-test-evidence",
+      "result": "pass",
+      "summary": "helps where it should and harms nothing: 8 wins, 0 losses, 0 ties over 8 relevant episodes; 0 regressions"
+    },
+    {
+      "seed": 1,
+      "text": "The user declines package upgrades without a named package; ask which package first (ask-package).",
+      "good": true,
+      "why": "repairs declined-upgrade",
+      "result": "pass",
+      "summary": "helps where it should and harms nothing: 3 wins, 0 losses, 5 ties over 8 relevant episodes; 0 regressions"
+    },
+    {
+      "seed": 1,
+      "text": "Before committing, review what is staged instead of running git add -A (review-staged).",
+      "good": true,
+      "why": "repairs undone-commit",
+      "result": "pass",
+      "summary": "helps where it should and harms nothing: 8 wins, 0 losses, 0 ties over 8 relevant episodes; 0 regressions"
+    },
+    {
+      "seed": 1,
+      "text": "Edit files with the file tool's exact-snippet edit, not in-place sed, which reports success when it changes nothing (file-edit).",
+      "good": true,
+      "why": "repairs sed-noop",
+      "result": "pass",
+      "summary": "helps where it should and harms nothing: 3 wins, 0 losses, 5 ties over 8 relevant episodes; 0 regressions"
+    },
+    {
+      "seed": 1,
+      "text": "Prefer tabs over spaces when writing YAML files.",
+      "good": false,
+      "why": "irrelevant: changes nothing",
+      "result": "fail",
+      "summary": "changes nothing where it should help: 0 wins, 0 losses, 8 ties over 8 relevant episodes; 0 regressions"
+    },
+    {
+      "seed": 1,
+      "text": "The user likes answers that start with a summary line.",
+      "good": false,
+      "why": "irrelevant to every simulated failure",
+      "result": "fail",
+      "summary": "changes nothing where it should help: 0 wins, 0 losses, 8 ties over 8 relevant episodes; 0 regressions"
+    },
+    {
+      "seed": 1,
+      "text": "Re-run the full test suite after every step to be safe (always-rerun).",
+      "good": false,
+      "why": "harmful: a failing extra step everywhere",
+      "result": "fail",
+      "summary": "harms past successes it is not about: 0 wins, 8 losses, 0 ties over 8 relevant episodes; 6 regressions"
+    },
+    {
+      "seed": 1,
+      "text": "Assume a Node project and read package.json first when building (node-first).",
+      "good": false,
+      "why": "plausible but wrong in a Go repository",
+      "result": "fail",
+      "summary": "harms past successes it is not about: 0 wins, 8 losses, 0 ties over 8 relevant episodes; 5 regressions"
+    },
+    {
+      "seed": 1,
+      "text": "Use in-place sed for quick renames; it is faster than the file tool (prefer-sed).",
+      "good": false,
+      "why": "reintroduces the sed no-op failure",
+      "result": "fail",
+      "summary": "harms past successes it is not about: 0 wins, 8 losses, 0 ties over 8 relevant episodes; 3 regressions"
+    },
+    {
+      "seed": 2,
+      "text": "When a glob or search comes back empty, treat that as the answer instead of loosening the pattern (empty-glob).",
+      "good": true,
+      "why": "repairs empty-glob-loop",
+      "result": "pass",
+      "summary": "helps where it should and harms nothing: 8 wins, 0 losses, 0 ties over 8 relevant episodes; 0 regressions"
+    },
+    {
+      "seed": 2,
+      "text": "This is a Go module: read go.mod, not package.json, to find build and dependency information (go-module).",
+      "good": true,
+      "why": "repairs missing-package-json",
+      "result": "pass",
+      "summary": "helps where it should and harms nothing: 8 wins, 0 losses, 0 ties over 8 relevant episodes; 0 regressions"
+    },
+    {
+      "seed": 2,
+      "text": "Only report tests as passing from a run made after the last edit (fresh-evidence).",
+      "good": true,
+      "why": "repairs stale-test-evidence",
+      "result": "pass",
+      "summary": "helps where it should and harms nothing: 8 wins, 0 losses, 0 ties over 8 relevant episodes; 0 regressions"
+    },
+    {
+      "seed": 2,
+      "text": "The user declines package upgrades without a named package; ask which package first (ask-package).",
+      "good": true,
+      "why": "repairs declined-upgrade",
+      "result": "pass",
+      "summary": "helps where it should and harms nothing: 3 wins, 0 losses, 5 ties over 8 relevant episodes; 0 regressions"
+    },
+    {
+      "seed": 2,
+      "text": "Before committing, review what is staged instead of running git add -A (review-staged).",
+      "good": true,
+      "why": "repairs undone-commit",
+      "result": "pass",
+      "summary": "helps where it should and harms nothing: 8 wins, 0 losses, 0 ties over 8 relevant episodes; 0 regressions"
+    },
+    {
+      "seed": 2,
+      "text": "Edit files with the file tool's exact-snippet edit, not in-place sed, which reports success when it changes nothing (file-edit).",
+      "good": true,
+      "why": "repairs sed-noop",
+      "result": "pass",
+      "summary": "helps where it should and harms nothing: 3 wins, 0 losses, 5 ties over 8 relevant episodes; 0 regressions"
+    },
+    {
+      "seed": 2,
+      "text": "Prefer tabs over spaces when writing YAML files.",
+      "good": false,
+      "why": "irrelevant: changes nothing",
+      "result": "fail",
+      "summary": "changes nothing where it should help: 0 wins, 0 losses, 8 ties over 8 relevant episodes; 0 regressions"
+    },
+    {
+      "seed": 2,
+      "text": "The user likes answers that start with a summary line.",
+      "good": false,
+      "why": "irrelevant to every simulated failure",
+      "result": "fail",
+      "summary": "changes nothing where it should help: 0 wins, 0 losses, 8 ties over 8 relevant episodes; 0 regressions"
+    },
+    {
+      "seed": 2,
+      "text": "Re-run the full test suite after every step to be safe (always-rerun).",
+      "good": false,
+      "why": "harmful: a failing extra step everywhere",
+      "result": "fail",
+      "summary": "harms past successes it is not about: 0 wins, 8 losses, 0 ties over 8 relevant episodes; 6 regressions"
+    },
+    {
+      "seed": 2,
+      "text": "Assume a Node project and read package.json first when building (node-first).",
+      "good": false,
+      "why": "plausible but wrong in a Go repository",
+      "result": "fail",
+      "summary": "harms past successes it is not about: 0 wins, 8 losses, 0 ties over 8 relevant episodes; 5 regressions"
+    },
+    {
+      "seed": 2,
+      "text": "Use in-place sed for quick renames; it is faster than the file tool (prefer-sed).",
+      "good": false,
+      "why": "reintroduces the sed no-op failure",
+      "result": "fail",
+      "summary": "harms past successes it is not about: 0 wins, 8 losses, 0 ties over 8 relevant episodes; 2 regressions"
+    },
+    {
+      "seed": 3,
+      "text": "When a glob or search comes back empty, treat that as the answer instead of loosening the pattern (empty-glob).",
+      "good": true,
+      "why": "repairs empty-glob-loop",
+      "result": "pass",
+      "summary": "helps where it should and harms nothing: 8 wins, 0 losses, 0 ties over 8 relevant episodes; 0 regressions"
+    },
+    {
+      "seed": 3,
+      "text": "This is a Go module: read go.mod, not package.json, to find build and dependency information (go-module).",
+      "good": true,
+      "why": "repairs missing-package-json",
+      "result": "pass",
+      "summary": "helps where it should and harms nothing: 8 wins, 0 losses, 0 ties over 8 relevant episodes; 0 regressions"
+    },
+    {
+      "seed": 3,
+      "text": "Only report tests as passing from a run made after the last edit (fresh-evidence).",
+      "good": true,
+      "why": "repairs stale-test-evidence",
+      "result": "pass",
+      "summary": "helps where it should and harms nothing: 8 wins, 0 losses, 0 ties over 8 relevant episodes; 0 regressions"
+    },
+    {
+      "seed": 3,
+      "text": "The user declines package upgrades without a named package; ask which package first (ask-package).",
+      "good": true,
+      "why": "repairs declined-upgrade",
+      "result": "pass",
+      "summary": "helps where it should and harms nothing: 3 wins, 0 losses, 5 ties over 8 relevant episodes; 0 regressions"
+    },
+    {
+      "seed": 3,
+      "text": "Before committing, review what is staged instead of running git add -A (review-staged).",
+      "good": true,
+      "why": "repairs undone-commit",
+      "result": "pass",
+      "summary": "helps where it should and harms nothing: 8 wins, 0 losses, 0 ties over 8 relevant episodes; 0 regressions"
+    },
+    {
+      "seed": 3,
+      "text": "Edit files with the file tool's exact-snippet edit, not in-place sed, which reports success when it changes nothing (file-edit).",
+      "good": true,
+      "why": "repairs sed-noop",
+      "result": "pass",
+      "summary": "helps where it should and harms nothing: 3 wins, 0 losses, 5 ties over 8 relevant episodes; 0 regressions"
+    },
+    {
+      "seed": 3,
+      "text": "Prefer tabs over spaces when writing YAML files.",
+      "good": false,
+      "why": "irrelevant: changes nothing",
+      "result": "fail",
+      "summary": "changes nothing where it should help: 0 wins, 0 losses, 8 ties over 8 relevant episodes; 0 regressions"
+    },
+    {
+      "seed": 3,
+      "text": "The user likes answers that start with a summary line.",
+      "good": false,
+      "why": "irrelevant to every simulated failure",
+      "result": "fail",
+      "summary": "changes nothing where it should help: 0 wins, 0 losses, 8 ties over 8 relevant episodes; 0 regressions"
+    },
+    {
+      "seed": 3,
+      "text": "Re-run the full test suite after every step to be safe (always-rerun).",
+      "good": false,
+      "why": "harmful: a failing extra step everywhere",
+      "result": "fail",
+      "summary": "harms past successes it is not about: 0 wins, 8 losses, 0 ties over 8 relevant episodes; 6 regressions"
+    },
+    {
+      "seed": 3,
+      "text": "Assume a Node project and read package.json first when building (node-first).",
+      "good": false,
+      "why": "plausible but wrong in a Go repository",
+      "result": "fail",
+      "summary": "harms past successes it is not about: 0 wins, 8 losses, 0 ties over 8 relevant episodes; 2 regressions"
+    },
+    {
+      "seed": 3,
+      "text": "Use in-place sed for quick renames; it is faster than the file tool (prefer-sed).",
+      "good": false,
+      "why": "reintroduces the sed no-op failure",
+      "result": "fail",
+      "summary": "harms past successes it is not about: 0 wins, 8 losses, 0 ties over 8 relevant episodes; 3 regressions"
+    },
+    {
+      "seed": 4,
+      "text": "When a glob or search comes back empty, treat that as the answer instead of loosening the pattern (empty-glob).",
+      "good": true,
+      "why": "repairs empty-glob-loop",
+      "result": "pass",
+      "summary": "helps where it should and harms nothing: 8 wins, 0 losses, 0 ties over 8 relevant episodes; 0 regressions"
+    },
+    {
+      "seed": 4,
+      "text": "This is a Go module: read go.mod, not package.json, to find build and dependency information (go-module).",
+      "good": true,
+      "why": "repairs missing-package-json",
+      "result": "pass",
+      "summary": "helps where it should and harms nothing: 8 wins, 0 losses, 0 ties over 8 relevant episodes; 0 regressions"
+    },
+    {
+      "seed": 4,
+      "text": "Only report tests as passing from a run made after the last edit (fresh-evidence).",
+      "good": true,
+      "why": "repairs stale-test-evidence",
+      "result": "pass",
+      "summary": "helps where it should and harms nothing: 8 wins, 0 losses, 0 ties over 8 relevant episodes; 0 regressions"
+    },
+    {
+      "seed": 4,
+      "text": "The user declines package upgrades without a named package; ask which package first (ask-package).",
+      "good": true,
+      "why": "repairs declined-upgrade",
+      "result": "pass",
+      "summary": "helps where it should and harms nothing: 3 wins, 0 losses, 5 ties over 8 relevant episodes; 0 regressions"
+    },
+    {
+      "seed": 4,
+      "text": "Before committing, review what is staged instead of running git add -A (review-staged).",
+      "good": true,
+      "why": "repairs undone-commit",
+      "result": "pass",
+      "summary": "helps where it should and harms nothing: 8 wins, 0 losses, 0 ties over 8 relevant episodes; 0 regressions"
+    },
+    {
+      "seed": 4,
+      "text": "Edit files with the file tool's exact-snippet edit, not in-place sed, which reports success when it changes nothing (file-edit).",
+      "good": true,
+      "why": "repairs sed-noop",
+      "result": "pass",
+      "summary": "helps where it should and harms nothing: 3 wins, 0 losses, 5 ties over 8 relevant episodes; 0 regressions"
+    },
+    {
+      "seed": 4,
+      "text": "Prefer tabs over spaces when writing YAML files.",
+      "good": false,
+      "why": "irrelevant: changes nothing",
+      "result": "fail",
+      "summary": "changes nothing where it should help: 0 wins, 0 losses, 8 ties over 8 relevant episodes; 0 regressions"
+    },
+    {
+      "seed": 4,
+      "text": "The user likes answers that start with a summary line.",
+      "good": false,
+      "why": "irrelevant to every simulated failure",
+      "result": "fail",
+      "summary": "changes nothing where it should help: 0 wins, 0 losses, 8 ties over 8 relevant episodes; 0 regressions"
+    },
+    {
+      "seed": 4,
+      "text": "Re-run the full test suite after every step to be safe (always-rerun).",
+      "good": false,
+      "why": "harmful: a failing extra step everywhere",
+      "result": "fail",
+      "summary": "harms past successes it is not about: 0 wins, 8 losses, 0 ties over 8 relevant episodes; 6 regressions"
+    },
+    {
+      "seed": 4,
+      "text": "Assume a Node project and read package.json first when building (node-first).",
+      "good": false,
+      "why": "plausible but wrong in a Go repository",
+      "result": "fail",
+      "summary": "harms past successes it is not about: 0 wins, 8 losses, 0 ties over 8 relevant episodes; 1 regressions"
+    },
+    {
+      "seed": 4,
+      "text": "Use in-place sed for quick renames; it is faster than the file tool (prefer-sed).",
+      "good": false,
+      "why": "reintroduces the sed no-op failure",
+      "result": "fail",
+      "summary": "harms past successes it is not about: 0 wins, 8 losses, 0 ties over 8 relevant episodes; 4 regressions"
+    },
+    {
+      "seed": 5,
+      "text": "When a glob or search comes back empty, treat that as the answer instead of loosening the pattern (empty-glob).",
+      "good": true,
+      "why": "repairs empty-glob-loop",
+      "result": "pass",
+      "summary": "helps where it should and harms nothing: 8 wins, 0 losses, 0 ties over 8 relevant episodes; 0 regressions"
+    },
+    {
+      "seed": 5,
+      "text": "This is a Go module: read go.mod, not package.json, to find build and dependency information (go-module).",
+      "good": true,
+      "why": "repairs missing-package-json",
+      "result": "pass",
+      "summary": "helps where it should and harms nothing: 8 wins, 0 losses, 0 ties over 8 relevant episodes; 0 regressions"
+    },
+    {
+      "seed": 5,
+      "text": "Only report tests as passing from a run made after the last edit (fresh-evidence).",
+      "good": true,
+      "why": "repairs stale-test-evidence",
+      "result": "pass",
+      "summary": "helps where it should and harms nothing: 8 wins, 0 losses, 0 ties over 8 relevant episodes; 0 regressions"
+    },
+    {
+      "seed": 5,
+      "text": "The user declines package upgrades without a named package; ask which package first (ask-package).",
+      "good": true,
+      "why": "repairs declined-upgrade",
+      "result": "pass",
+      "summary": "helps where it should and harms nothing: 3 wins, 0 losses, 5 ties over 8 relevant episodes; 0 regressions"
+    },
+    {
+      "seed": 5,
+      "text": "Before committing, review what is staged instead of running git add -A (review-staged).",
+      "good": true,
+      "why": "repairs undone-commit",
+      "result": "pass",
+      "summary": "helps where it should and harms nothing: 8 wins, 0 losses, 0 ties over 8 relevant episodes; 0 regressions"
+    },
+    {
+      "seed": 5,
+      "text": "Edit files with the file tool's exact-snippet edit, not in-place sed, which reports success when it changes nothing (file-edit).",
+      "good": true,
+      "why": "repairs sed-noop",
+      "result": "pass",
+      "summary": "helps where it should and harms nothing: 3 wins, 0 losses, 5 ties over 8 relevant episodes; 0 regressions"
+    },
+    {
+      "seed": 5,
+      "text": "Prefer tabs over spaces when writing YAML files.",
+      "good": false,
+      "why": "irrelevant: changes nothing",
+      "result": "fail",
+      "summary": "changes nothing where it should help: 0 wins, 0 losses, 8 ties over 8 relevant episodes; 0 regressions"
+    },
+    {
+      "seed": 5,
+      "text": "The user likes answers that start with a summary line.",
+      "good": false,
+      "why": "irrelevant to every simulated failure",
+      "result": "fail",
+      "summary": "changes nothing where it should help: 0 wins, 0 losses, 8 ties over 8 relevant episodes; 0 regressions"
+    },
+    {
+      "seed": 5,
+      "text": "Re-run the full test suite after every step to be safe (always-rerun).",
+      "good": false,
+      "why": "harmful: a failing extra step everywhere",
+      "result": "fail",
+      "summary": "harms past successes it is not about: 0 wins, 8 losses, 0 ties over 8 relevant episodes; 6 regressions"
+    },
+    {
+      "seed": 5,
+      "text": "Assume a Node project and read package.json first when building (node-first).",
+      "good": false,
+      "why": "plausible but wrong in a Go repository",
+      "result": "fail",
+      "summary": "harms past successes it is not about: 0 wins, 8 losses, 0 ties over 8 relevant episodes; 5 regressions"
+    },
+    {
+      "seed": 5,
+      "text": "Use in-place sed for quick renames; it is faster than the file tool (prefer-sed).",
+      "good": false,
+      "why": "reintroduces the sed no-op failure",
+      "result": "fail",
+      "summary": "harms past successes it is not about: 0 wins, 8 losses, 0 ties over 8 relevant episodes; 1 regressions"
+    }
+  ]
+}

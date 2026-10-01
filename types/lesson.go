@@ -91,6 +91,11 @@ type Lesson struct {
 	// Provenance is the least trusted provenance among the sources.
 	Provenance Provenance `json:"provenance"`
 
+	// Rationale is why the reflector proposed it, in its own words.
+	Rationale string `json:"rationale,omitempty"`
+	// Origin names what proposed it ("reflector:ollama/qwen3", "sim").
+	Origin string `json:"origin,omitempty"`
+
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
 }

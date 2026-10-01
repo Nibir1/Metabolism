@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Nibir1/metabolism/judge"
 	"github.com/Nibir1/metabolism/types"
 )
 
@@ -82,11 +83,11 @@ func TestReplayOnlyTheMatchingLessonHelps(t *testing.T) {
 	if !reflect.DeepEqual(base, unrelated) {
 		t.Error("an unrelated lesson changed the replay")
 	}
-	v, _ := Judge{}.Compare(ctx, glob, nil, fixed, base)
+	v, _ := judge.Heuristic{}.Compare(ctx, glob, nil, fixed, base)
 	if v.Prefer != types.PreferWith {
 		t.Errorf("judge did not prefer the fixed replay: %+v", v)
 	}
-	v, _ = Judge{}.Compare(ctx, glob, nil, unrelated, base)
+	v, _ = judge.Heuristic{}.Compare(ctx, glob, nil, unrelated, base)
 	if v.Prefer != types.PreferNeither {
 		t.Errorf("judge preferred an identical replay: %+v", v)
 	}
