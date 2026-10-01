@@ -105,6 +105,43 @@ The user's own workflow:
 
 Changes 3–7 remain for Phases 2–3.
 
+### First real run (2026-10-01)
+
+Seven planner turns through the Helix daemon, using DeepSeek and the user's
+real config, recorded and ingested into a scratch journal.
+
+**Worked:**
+- Every turn was recorded with a host outcome (labelled 100%).
+- The repeated request marked the *earlier* turn `repeated`.
+- `sk-…` in both the request and the shell subject was recorded as `[redacted]`.
+- Ingest, `doctor`, `curves`, `inspect` and `recall` ran on real records.
+- `recall-eval` correctly declined to score with fewer than 20 episodes.
+
+**Fixed on the branch:**
+1. File and web steps were recorded with no subject. Their target lives in
+   `step.Args`, not `Command`. `StepObservation.Subject` now carries it, for
+   the record only; the planner's report is unchanged.
+2. A lookup that hit its budget unanswered was recorded as `done`. One turn
+   globbed the same pattern four times and replied with nothing, and was
+   labelled a success. Run end now counts an unanswered retrieval at budget
+   as unfinished work. That turn shape is also the first real lesson
+   candidate: Helix's own "empty glob" failure, recorded in the wild.
+
+**Found in Helix, outside the integration (pre-existing on `main`):**
+- `executePlanSteps` sets `step.Trusted = !escalated[step.Command]` for every
+  planner step. Medium-risk file writes and shell commands therefore run
+  without the confirmation that `docs/harness.md` and the README promise
+  under the default `ask` posture. A write went through the daemon's
+  always-decline prompter. Consequence for Metabolism: the `declined` signal
+  will almost never fire until this is fixed.
+- The active-session lock stays "fresh" for 5 minutes after an interactive
+  session exits (no liveness check on its PID), so `helix remote submit` is
+  refused during that window.
+
+Cost observed: about 4 model calls and about 16.8k estimated tokens per
+finished turn. A file lookup earns a follow-up planner call to answer from
+its results.
+
 1. **Episode emission.** At the end of each planner turn and agentic run, build
    an Episode from the request, provenance, context digest, lesson IDs in
    context, StepObservations and run-end category, and hand it to the
