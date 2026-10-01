@@ -139,9 +139,24 @@ Delivered in three stages.
       eliminated).
 - [x] CLI: `digest`, `verify`, `lessons [-id]`, `nutrient-eval`.
 
-**2b: real reflectors and judges (next).** A `Model` port; adapters for Ollama
-(local, default) and DeepSeek (opt-in, explicit flag) under `adapters/remote/`;
-an LLM reflector with strict JSON parsing; an LLM judge.
+**2b: real reflectors and judges (built 2026-10-01).**
+- [x] `ports.Model`; `adapters/remote/llm` (Ollama, OpenAI-compatible
+      DeepSeek), tested against fake servers, key never in an error.
+- [x] `llmreflect`: a bounded, fenced, failure-first prompt; strict parsing
+      that drops malformed items; untrusted transcripts never shown. `digest`
+      and `immune` still validate everything.
+- [x] `judge.LLM` and `adapters/remote/jev` (one atomic `Choice` through
+      typesafe-go, clean under `typesafe-lint`). Both see A/B in a hashed
+      order (tested with an always-"a" judge).
+- [x] CLI opt-in (D-016): `digest -reflector ollama|deepseek`,
+      `verify -judge heuristic|ollama|deepseek|jev`, and `nutrient-eval -judge`,
+      which measures a judge against the simulator's ground truth.
+- [x] Live runs (2026-10-01): Jev and DeepSeek judges each 11/11 on the
+      simulator; DeepSeek reflector found 5 of 6 planted failure patterns
+      (`bench/results/README.md`). Fixes found by running live: realistic
+      simulator plans, identical replays tie without a judge, plain-words
+      presentation, judge thinking disabled, one retry on empty answers, and
+      the simulator refusing to judge lessons it cannot model.
 
 **2c: real Helix replay.** A plan-only `helix replay` command that injects
 lessons into a fenced `<learned_lessons>` block and returns the plan without

@@ -223,3 +223,31 @@ func TestBaselineReplaysAreCached(t *testing.T) {
 		}
 	}
 }
+
+type countingJudge struct {
+	judge.Heuristic
+	calls int
+}
+
+func (c *countingJudge) Compare(ctx context.Context, ep types.Episode, outs []types.Outcome, with, without types.ReplayResult) (types.Verdict, error) {
+	c.calls++
+	return c.Heuristic.Compare(ctx, ep, outs, with, without)
+}
+
+// A judge is only asked about pairs that differ. An irrelevant lesson changes
+// no plan, so it costs no judge calls and cannot fail on judge noise.
+func TestIdenticalReplaysAreTiesWithoutAJudge(t *testing.T) {
+	w := newWorld(t)
+	id := w.lessonFrom(t, "empty-glob-loop", spec(t, "YAML", false), types.ProvUserTyped)
+	j := &countingJudge{}
+	rep, err := (&Verifier{Host: helixsim.Host{}, Judge: j, History: w.h}).Test(context.Background(), w.m, id)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if j.calls != 0 {
+		t.Fatalf("the judge was asked %d times about identical plans", j.calls)
+	}
+	if rep.Evidence.Wins != 0 || rep.Evidence.Losses != 0 || rep.Evidence.Regressions != 0 || rep.Evidence.Ties == 0 {
+		t.Fatalf("evidence %+v", rep.Evidence)
+	}
+}

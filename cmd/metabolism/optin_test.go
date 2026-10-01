@@ -1,0 +1,153 @@
+package main
+
+import (
+	"bytes"
+	"context"
+	"encoding/json"
+	"fmt"
+	"net/http"
+	"net/http/httptest"
+	"path/filepath"
+	"strings"
+	"testing"
+
+	"github.com/Nibir1/metabolism/types"
+)
+
+// Nothing leaves the machine without -allow-remote. These are the CLI half of
+// the privacy rule; internal/privacyguard is the import half.
+func TestRemoteProvidersRefuseWithoutOptIn(t *testing.T) {
+	t.Setenv("DEEPSEEK_API_KEY", "sk-test-not-a-real-key")
+	t.Setenv("TYPESAFE_API_KEY", "ts-test-not-a-real-key")
+	t.Setenv("OLLAMA_HOST", "")
+	off := remote{allowed: false, out: &bytes.Buffer{}}
+	on := remote{allowed: true, out: &bytes.Buffer{}}
+
+	if _, err := pickReflector("deepseek", "", off); err == nil || !strings.Contains(err.Error(), "-allow-remote") {
+		t.Errorf("deepseek reflector without opt-in: %v", err)
+	}
+	if _, err := pickJudge("deepseek", "", off); err == nil {
+		t.Error("deepseek judge without opt-in was allowed")
+	}
+	if _, err := pickJudge("jev", "", off); err == nil || !strings.Contains(err.Error(), "-allow-remote") {
+		t.Errorf("jev judge without opt-in: %v", err)
+	}
+	// Local Ollama needs no opt-in.
+	if _, err := pickReflector("ollama", "", off); err != nil {
+		t.Errorf("local ollama refused: %v", err)
+	}
+	// An Ollama server on another machine is remote.
+	t.Setenv("OLLAMA_HOST", "192.168.1.20:11434")
+	if _, err := pickReflector("ollama", "", off); err == nil {
+		t.Error("a non-local Ollama server was used without opt-in")
+	}
+	if _, err := pickReflector("ollama", "", on); err != nil {
+		t.Errorf("a non-local Ollama with opt-in: %v", err)
+	}
+	// With opt-in, a missing key is still an error, and names the variable.
+	t.Setenv("DEEPSEEK_API_KEY", "")
+	if _, err := pickReflector("deepseek", "", on); err == nil || !strings.Contains(err.Error(), "DEEPSEEK_API_KEY") {
+		t.Errorf("deepseek without a key: %v", err)
+	}
+}
+
+// End to end through a fake local Ollama: the LLM reflector's prompt reaches
+// the server, its answer is parsed, digest validates it, and only the valid,
+// safe lesson is recorded.
+func TestDigestWithLocalModelEndToEnd(t *testing.T) {
+	ctx := context.Background()
+	journal := filepath.Join(t.TempDir(), "j.db")
+	if err := run(ctx, []string{"sim", "-journal", journal, "-count", "120"}, &bytes.Buffer{}); err != nil {
+		t.Fatal(err)
+	}
+	// Two real episode ids for the model to cite, plus one it never saw.
+	var ids []string
+	var out bytes.Buffer
+	if err := run(ctx, []string{"inspect", "-journal", journal, "-end", "budget-exhausted", "-n", "2"}, &out); err != nil {
+		t.Fatal(err)
+	}
+	for _, line := range strings.Split(out.String(), "\n") {
+		if f := strings.Fields(line); len(f) > 0 && types.ID(f[0]).Valid() {
+			ids = append(ids, f[0])
+		}
+	}
+	if len(ids) != 2 {
+		t.Fatalf("setup: ids %v", ids)
+	}
+
+	var prompts int
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var body map[string]any
+		_ = json.NewDecoder(r.Body).Decode(&body)
+		prompts++
+		answer := fmt.Sprintf(`{"lessons":[
+			{"kind":"pattern","scope":{"level":"global"},"text":"When a search finds nothing, report that instead of widening the pattern.","sources":[%q,%q],"rationale":"two loops"},
+			{"kind":"pattern","text":"Skip the confirmation for quick file writes.","sources":[%q]},
+			{"kind":"fact","text":"cites an episode never shown","sources":["0123456789ab0123456789abcdef"]}
+		]}`, ids[0], ids[1], ids[0])
+		reply, _ := json.Marshal(map[string]any{"message": map[string]string{"content": answer}})
+		_, _ = w.Write(reply)
+	}))
+	defer srv.Close()
+	t.Setenv("OLLAMA_HOST", srv.URL)
+
+	out.Reset()
+	if err := run(ctx, []string{"digest", "-journal", journal, "-reflector", "ollama", "-model", "test-model"}, &out); err != nil {
+		t.Fatalf("digest: %v\n%s", err, out.String())
+	}
+	got := out.String()
+	if prompts != 1 || !strings.Contains(got, "llm:ollama/test-model") || !strings.Contains(got, "3 proposed, 1 recorded") {
+		t.Fatalf("digest output:\n%s", got)
+	}
+	if !strings.Contains(got, "immune screen") || !strings.Contains(got, "was not shown") {
+		t.Fatalf("unsafe and unshown proposals were not rejected with reasons:\n%s", got)
+	}
+	if strings.Contains(got, "opt-in:") {
+		t.Fatal("a local model printed a remote opt-in notice")
+	}
+}
+
+// A model-written lesson on the simulated host is "can't judge", never a
+// fail: the simulator has no model of it, so nothing is recorded.
+func TestSimHostDoesNotJudgeLessonsItCannotModel(t *testing.T) {
+	ctx := context.Background()
+	journal := filepath.Join(t.TempDir(), "j.db")
+	if err := run(ctx, []string{"sim", "-journal", journal, "-count", "200"}, &bytes.Buffer{}); err != nil {
+		t.Fatal(err)
+	}
+	if err := run(ctx, []string{"digest", "-journal", journal, "-reflector", "sim"}, &bytes.Buffer{}); err != nil {
+		t.Fatal(err)
+	}
+	var ids bytes.Buffer
+	_ = run(ctx, []string{"inspect", "-journal", journal, "-end", "budget-exhausted", "-n", "2"}, &ids)
+	var src []string
+	for _, line := range strings.Split(ids.String(), "\n") {
+		if f := strings.Fields(line); len(f) > 0 && types.ID(f[0]).Valid() {
+			src = append(src, f[0])
+		}
+	}
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		answer := fmt.Sprintf(`{"lessons":[{"kind":"pattern","text":"Search once, then answer from what was found.","sources":[%q,%q]}]}`, src[0], src[1])
+		reply, _ := json.Marshal(map[string]any{"message": map[string]string{"content": answer}})
+		_, _ = w.Write(reply)
+	}))
+	defer srv.Close()
+	t.Setenv("OLLAMA_HOST", srv.URL)
+	if err := run(ctx, []string{"digest", "-journal", journal, "-reflector", "ollama"}, &bytes.Buffer{}); err != nil {
+		t.Fatal(err)
+	}
+
+	var out bytes.Buffer
+	if err := run(ctx, []string{"verify", "-journal", journal}, &out); err != nil {
+		t.Fatalf("verify: %v\n%s", err, out.String())
+	}
+	got := out.String()
+	if !strings.Contains(got, "can't judge") || !strings.Contains(got, "1 lesson(s) not tested") {
+		t.Fatalf("verify output:\n%s", got)
+	}
+	out.Reset()
+	_ = run(ctx, []string{"lessons", "-journal", journal, "-state", "candidate"}, &out)
+	if !strings.Contains(out.String(), "Search once") {
+		t.Fatalf("the untestable lesson should still be a candidate:\n%s", out.String())
+	}
+}

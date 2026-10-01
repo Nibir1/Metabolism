@@ -53,3 +53,52 @@ base rate of earlier episodes, and from the cases recalled for it (using only
 outcomes known at the time). The Brier score is the mean squared error of each
 prediction. **Skill** = 1 − Brier(memory) ÷ Brier(base): 0 means memory adds
 nothing, and negative means it misleads.
+
+## Live judge runs on the simulator
+
+`metabolism nutrient-eval -seeds 1 -judge <judge> -allow-remote`, 6 correct and
+5 wrong planted lessons. Each run is kept, including the misses, because what
+changed between runs is part of the result.
+
+| # | Date | Judge | Wrong rejected | Correct accepted | What changed before this run |
+|---|---|---|---|---|---|
+| 1 | 2026-10-01 | jev | 5/5 | 2/6 | first run |
+| 2 | 2026-10-01 | jev | 5/5 | 4/6 | Repaired plans became realistic (they were the placeholder `file edit: fixed`, which reads as an unrequested change). Identical replays became ties without asking the judge |
+| 3 | 2026-10-01 | jev | 5/5 | 6/6 | The original attempt is described in plain words ("ran out of its step budget before finishing", not `budget-exhausted`). A plan with no answer says `reply to the user: (none)`. Fixed a simulator bug where a request for settings.py was "repaired" by searching for config files |
+| 4 | 2026-10-01 | deepseek-flash (LLM judge) | 5/5 | 6/6 | First DeepSeek run returned empty answers: `deepseek-flash` thinks by default and spent the whole budget reasoning (`finish_reason="length" reasoning=true`). The judge now disables thinking; errors report the finish reason; one retry on an empty answer |
+
+**What run 3 does and doesn't show.**
+- It is one seed: 11 lessons, decided by about 60 judged comparisons.
+- The two *irrelevant* wrong lessons are rejected without any judge call,
+  since identical replays are ties. Jev's own contribution is the 3 harmful
+  lessons and the 6 correct ones, 9/9.
+- Runs 3 and 4 agree: both judges get every simulated lesson right. That
+  says the simulator is now fair to a reading judge. It does not separate
+  the two judges; real Helix replays (Phase 2c) are needed for that.
+
+**Caution about these fixes.** They change what the judge is *shown*, tuned
+against the simulator. Each one is justified on its own terms: plain words
+instead of jargon, an absence made visible, a bug fixed. None of them encodes
+the right answer. Still, a judge calibrated on simulated plans has to be
+re-checked on real Helix replays (Phase 2c) before its numbers mean anything.
+
+## Live reflector run on the simulator
+
+2026-10-01: `digest -reflector deepseek` (deepseek-flash, thinking on) on 300
+simulated episodes. It was shown 40 of them, failures first.
+
+- It proposed 5 lessons, and all 5 passed validation and the immune screen.
+- It found **5 of the 6** planted failure patterns, in its own words, each
+  citing 3 source episodes:
+  - the rename lesson: grep for the definition and every reference, edit
+    every file, then build (deeper than the catalogue's "don't use sed");
+  - the glob loop;
+  - `git add -A` being undone;
+  - blanket upgrades being declined;
+  - Go modules, not package.json.
+- It missed the subtlest one: reporting tests from a run made *before* the
+  edit, where the only signal is the request being repeated.
+- These lessons cannot be nutrient-tested on the simulator, which models only
+  its own catalogue. `verify -host sim` reports them as "can't judge" and
+  records nothing (`ports.ErrCannotReplay`). They need real Helix replays
+  (Phase 2c).

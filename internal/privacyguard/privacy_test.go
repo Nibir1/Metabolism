@@ -13,6 +13,11 @@ import (
 // configured a hosted model (Phase 2's DeepSeek and Jev adapters).
 const remotePrefix = "github.com/Nibir1/metabolism/adapters/remote/"
 
+// optInPoint is the one package allowed to import remote adapters: the CLI,
+// where a person passes -allow-remote. cmd/metabolism's tests check that every
+// remote provider refuses without it.
+const optInPoint = "github.com/Nibir1/metabolism/cmd/metabolism"
+
 // directlyForbidden may not be imported by any Metabolism package outside
 // remotePrefix.
 var directlyForbidden = map[string]bool{
@@ -60,15 +65,13 @@ func listPackages(t *testing.T) []pkg {
 
 func TestNothingOutsideRemoteAdaptersCanReachTheNetwork(t *testing.T) {
 	for _, p := range listPackages(t) {
-		if strings.HasPrefix(p.ImportPath, remotePrefix) {
+		if strings.HasPrefix(p.ImportPath, remotePrefix) || p.ImportPath == optInPoint {
 			continue
 		}
 		for _, imp := range p.Imports {
 			if directlyForbidden[imp] {
 				t.Errorf("%s imports %s; network code belongs under %s", p.ImportPath, imp, remotePrefix)
 			}
-			// Phase 2 will let cmd/metabolism import remote adapters behind an
-			// explicit opt-in flag; relax this for that one package then.
 			if strings.HasPrefix(imp, remotePrefix) {
 				t.Errorf("%s imports the remote adapter %s; wire remote adapters only where a user opts in",
 					p.ImportPath, imp)

@@ -11,6 +11,7 @@ import (
 	"github.com/Nibir1/metabolism/hosts/helixsim"
 	"github.com/Nibir1/metabolism/judge"
 	"github.com/Nibir1/metabolism/metabolome"
+	"github.com/Nibir1/metabolism/ports"
 	"github.com/Nibir1/metabolism/types"
 	"github.com/Nibir1/metabolism/verify"
 )
@@ -48,8 +49,15 @@ type NutrientResult struct {
 // in a fresh simulated history per seed, and runs the nutrient test on each.
 // Inconclusive results count against both rates: a test that cannot decide
 // has neither rejected the wrong lesson nor accepted the right one.
-func EvaluateNutrient(ctx context.Context, seeds []uint64, count int, cfg verify.Config) (NutrientResult, error) {
-	res := NutrientResult{Seeds: len(seeds), Count: count, Judge: judge.Heuristic{}.Name()}
+//
+// With a model judge (jd non-nil) it doubles as a judge check: the simulator
+// knows which lessons are right, so the rates say how often the judge's
+// verdicts lead the test to the right decision.
+func EvaluateNutrient(ctx context.Context, seeds []uint64, count int, cfg verify.Config, jd ports.Judge) (NutrientResult, error) {
+	if jd == nil {
+		jd = judge.Heuristic{}
+	}
+	res := NutrientResult{Seeds: len(seeds), Count: count, Judge: jd.Name()}
 	dir, err := os.MkdirTemp("", "metabolism-nutrient-")
 	if err != nil {
 		return res, err
@@ -81,7 +89,7 @@ func EvaluateNutrient(ctx context.Context, seeds []uint64, count int, cfg verify
 		if err != nil {
 			return res, err
 		}
-		v := &verify.Verifier{Host: helixsim.Host{}, Judge: judge.Heuristic{}, History: h, Config: cfg}
+		v := &verify.Verifier{Host: helixsim.Host{}, Judge: jd, History: h, Config: cfg}
 
 		specs := append(helixsim.CorrectLessons(), helixsim.WrongLessons()...)
 		for _, s := range specs {

@@ -64,7 +64,7 @@ func TestRecallNeedsHistory(t *testing.T) {
 }
 
 func TestNutrientTestSeparatesGoodFromWrongLessons(t *testing.T) {
-	r, err := EvaluateNutrient(context.Background(), []uint64{1, 2, 3}, 400, verify.Config{})
+	r, err := EvaluateNutrient(context.Background(), []uint64{1, 2, 3}, 400, verify.Config{}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

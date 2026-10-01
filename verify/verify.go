@@ -247,6 +247,13 @@ func (v *Verifier) compare(ctx context.Context, eid types.ID, lesson types.Lesso
 	if err != nil {
 		return types.Verdict{}, fmt.Errorf("replay %s with lesson %s: %w", eid, lesson.ID, err)
 	}
+	// The lesson changed nothing here. That is a tie by definition, so no
+	// judge is asked: a model shown two identical plans can only add noise,
+	// and one confident coin-flip on a regression episode would fail a good
+	// lesson. It also saves a judge call for most regression episodes.
+	if sameReplay(with, without) {
+		return types.Verdict{Prefer: types.PreferNeither, Confidence: 1, Reason: "identical plans"}, nil
+	}
 	verdict, err := v.Judge.Compare(ctx, ep, v.History.outcomes[eid], with, without)
 	if err != nil {
 		return types.Verdict{}, fmt.Errorf("judge %s: %w", eid, err)
@@ -327,4 +334,8 @@ func mix(a, b types.ID) uint64 {
 	_, _ = h.Write([]byte(a))
 	_, _ = h.Write([]byte(b))
 	return h.Sum64()
+}
+
+func sameReplay(a, b types.ReplayResult) bool {
+	return a.Text == b.Text && slices.Equal(a.Steps, b.Steps)
 }

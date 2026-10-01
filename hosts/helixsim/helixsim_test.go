@@ -3,11 +3,13 @@ package helixsim
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"reflect"
 	"testing"
 	"time"
 
 	"github.com/Nibir1/metabolism/judge"
+	"github.com/Nibir1/metabolism/ports"
 	"github.com/Nibir1/metabolism/types"
 )
 
@@ -101,7 +103,9 @@ func TestReplayCannotFixWhatIsNotThePlannersFault(t *testing.T) {
 		}
 		all := []types.Lesson{}
 		for _, s := range scenarios {
-			all = append(all, types.Lesson{Text: s.fix})
+			if s.fix != "" {
+				all = append(all, types.Lesson{Text: s.fix})
+			}
 		}
 		got, _ := Host{}.Replay(context.Background(), ep, all)
 		if !reflect.DeepEqual(got.Steps, ep.Steps) {
@@ -110,4 +114,17 @@ func TestReplayCannotFixWhatIsNotThePlannersFault(t *testing.T) {
 		return
 	}
 	t.Fatal("no unreliable-voice episode generated")
+}
+
+func TestReplayRefusesLessonsItCannotModel(t *testing.T) {
+	eps, _ := Generate(cfg)
+	_, err := Host{}.Replay(context.Background(), eps[0], []types.Lesson{{Text: "Search once, then answer."}})
+	if !errors.Is(err, ports.ErrCannotReplay) {
+		t.Fatalf("err = %v, want ErrCannotReplay", err)
+	}
+	for _, s := range append(CorrectLessons(), WrongLessons()...) {
+		if !Knows(s.Text) {
+			t.Errorf("catalogue lesson unknown to the simulator: %q", s.Text)
+		}
+	}
 }

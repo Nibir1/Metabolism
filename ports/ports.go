@@ -10,7 +10,9 @@ package ports
 import (
 	"context"
 	"errors"
+	"fmt"
 	"iter"
+	"strings"
 
 	"github.com/Nibir1/metabolism/types"
 )
@@ -26,6 +28,11 @@ var (
 	ErrUnknownEpisode = errors.New("outcome for an unknown episode")
 	// ErrUnknownLesson: an event or evidence names a lesson the journal never saw.
 	ErrUnknownLesson = errors.New("record for an unknown lesson")
+	// ErrCannotReplay: a host cannot replay with this lesson in any way that
+	// would mean something (a simulator shown a lesson it has no model of).
+	// The nutrient test is not run, rather than recording a verdict the host
+	// could not support.
+	ErrCannotReplay = errors.New("host cannot replay this lesson")
 )
 
 // Journal is the durable, append-only record of everything the engine
@@ -90,4 +97,55 @@ type Store interface {
 // budget (Phase 3).
 type Selector interface {
 	Select(ctx context.Context, req types.Request, scope types.Scope, budget types.Budget) (types.Selection, error)
+}
+
+// ModelRequest is one completion request to a language model.
+type ModelRequest struct {
+	System string
+	User   string
+	// JSON asks the model for a single JSON object.
+	JSON        bool
+	MaxTokens   int
+	Temperature float64
+	// DisableThinking asks a model with a hidden-reasoning mode to answer
+	// directly. Judges set it: one small question needs no reasoning, and a
+	// reasoning model can otherwise spend the whole budget thinking and
+	// return nothing (DeepSeek's deepseek-flash thinks by default).
+	DisableThinking bool
+}
+
+// ModelResponse is a model's reply.
+type ModelResponse struct {
+	Text         string
+	InputTokens  int
+	OutputTokens int
+	// FinishReason is the provider's reason for stopping ("stop",
+	// "length", ...), when it reports one.
+	FinishReason string
+	// Reasoned is true when the model produced hidden reasoning, which can
+	// consume the token budget and leave Text empty.
+	Reasoned bool
+}
+
+// Model is a language model, local or remote. The engine's reflectors and
+// judges speak only to this port; which model answers, and whether anything
+// leaves the machine, is decided where adapters are wired (cmd/metabolism),
+// behind an explicit opt-in (docs/decisions.md, D-008).
+type Model interface {
+	// Name identifies provider and model, e.g. "ollama/qwen3:8b".
+	Name() string
+	Complete(ctx context.Context, req ModelRequest) (ModelResponse, error)
+}
+
+// Describe says what came back, for error messages: the stop reason, whether
+// hidden reasoning was produced, and an excerpt of the text.
+func (r ModelResponse) Describe() string {
+	text := strings.TrimSpace(r.Text)
+	if len(text) > 160 {
+		text = text[:160] + "…"
+	}
+	if text == "" {
+		text = "(empty)"
+	}
+	return fmt.Sprintf("finish_reason=%q reasoning=%v output_tokens=%d text=%q", r.FinishReason, r.Reasoned, r.OutputTokens, text)
 }

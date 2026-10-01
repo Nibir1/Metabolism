@@ -104,6 +104,46 @@ A few turns aren't enough for `recall-eval`: it needs at least 20 earlier
 episodes before it evaluates anything, and says so. That is expected until
 you have used Helix for a while.
 
+## 2b. Live models
+
+Keys go in your environment, never in a command line or a chat:
+
+```bash
+export DEEPSEEK_API_KEY=...   # in your shell profile or a secrets manager
+export TYPESAFE_API_KEY=...
+```
+
+**Check a judge against ground truth.** On the simulator the right answer for
+every planted lesson is known, so this measures how often a real judge's
+verdicts lead the nutrient test to the right decision. It sends only simulated
+data. About 150 comparisons per seed:
+
+```bash
+make build && bin/metabolism nutrient-eval -seeds 1 -judge jev -allow-remote
+```
+
+```bash
+bin/metabolism nutrient-eval -seeds 1 -judge deepseek -allow-remote
+```
+
+The heuristic judge scores 100% here by construction. A model judge scores
+lower; anything at or above 90% for wrong-lesson rejection meets the Phase 2
+bar on the simulator.
+
+**Reflect with a real model on simulated episodes:**
+
+```bash
+bin/metabolism sim -journal .demo/live.db -count 300 && bin/metabolism digest -journal .demo/live.db -reflector deepseek -allow-remote
+```
+
+Then `bin/metabolism verify -journal .demo/live.db` tests what it proposed.
+
+**Local instead of remote:** start Ollama (`ollama serve`), pull a model (for
+example `ollama pull qwen3:8b`), and use `-reflector ollama` or
+`-judge ollama`. No opt-in is needed for a local model.
+
+Share the output of `nutrient-eval` with each judge.
+
 ## 3. Once there are weeks of data
 
 ```bash

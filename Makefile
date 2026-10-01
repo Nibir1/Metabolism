@@ -71,7 +71,7 @@ demo: build ## run every CLI command end to end on simulated Helix (in .demo/)
 	@echo "━━ 6/9 recall-eval: does memory predict outcomes? (synthetic: expect high skill)"
 	@$(BIN) recall-eval -journal $(DEMO)/journal.db -label scenario
 	@echo "━━ 7/9 digest: reflect on the episodes and record candidate lessons"
-	@$(BIN) digest -journal $(DEMO)/journal.db
+	@$(BIN) digest -journal $(DEMO)/journal.db -reflector sim
 	@echo "━━ 8/9 verify: the nutrient test, then a lesson's history and evidence"
 	@$(BIN) verify -journal $(DEMO)/journal.db
 	@$(BIN) lessons -journal $(DEMO)/journal.db -id $$($(BIN) lessons -journal $(DEMO)/journal.db -state trial | awk 'NR>2{print $$1; exit}')

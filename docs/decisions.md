@@ -5,6 +5,24 @@ change it. Don't reverse a decision without adding a new entry that says why.
 
 ---
 
+### D-016 · 2026-10-01 · Models: local by default, remote by flag, keys only from the environment
+**Decision:**
+- Reflectors and judges speak to a `Model` port. Adapters live under
+  `adapters/remote/`; the CLI is the only package allowed to import them
+  (`internal/privacyguard`).
+- Ollama on loopback is the default and needs no opt-in. An Ollama server on
+  another host, DeepSeek and Jev all need `-allow-remote`, and print what they
+  are about to send.
+- Keys come only from `DEEPSEEK_API_KEY` and `TYPESAFE_API_KEY`. They are
+  never flags, never logged, never in an error (tested).
+- Model judges see the two plans as A and B in a per-episode hashed order, so a
+  judge that favours the first option cannot pass as one that favours lessons.
+
+**Why:** D-008 made local-first a rule. This is where it is enforced in code,
+and where key handling is made boring.
+
+---
+
 ### D-015 · 2026-10-01 · The nutrient test's decision rule
 **Decision:** replay *relevant* episodes (the lesson's sources plus similar ones
 found by episodic memory, up to 8) and a *regression* sample (up to 6 past

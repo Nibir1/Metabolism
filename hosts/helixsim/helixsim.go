@@ -287,14 +287,21 @@ func (Host) Replay(ctx context.Context, ep types.Episode, lessons []types.Lesson
 	if !ok {
 		return types.ReplayResult{}, fmt.Errorf("helixsim: episode %s has unknown scenario %q", ep.ID, ep.Attrs["scenario"])
 	}
+	for _, l := range lessons {
+		if !Knows(l.Text) {
+			return types.ReplayResult{}, fmt.Errorf("%w: the simulator models only its own catalogue of lessons; %q needs a real host",
+				ports.ErrCannotReplay, l.Text)
+		}
+	}
 	res := types.ReplayResult{EpisodeID: ep.ID, Steps: slices.Clone(ep.Steps), Usage: ep.Usage}
 	if sc.fix != "" {
 		for _, l := range lessons {
 			if strings.Contains(l.Text, sc.fix) {
-				res.Steps = []types.Step{{Tool: "file", Action: "edit", Subject: "fixed", OK: true}}
+				fp := fixedPlanFor(sc.name, ep)
+				res.Steps = slices.Clone(fp.steps)
+				res.Text = fp.reply
 				res.Usage = types.Usage{ModelCalls: 1, InputChars: ep.Usage.InputChars / max(ep.Usage.ModelCalls, 1),
 					OutputChars: ep.Usage.OutputChars / max(ep.Usage.ModelCalls, 1)}
-				res.Text = "applied lesson " + string(l.ID)
 				break
 			}
 		}
@@ -406,4 +413,90 @@ func (Reflector) Reflect(_ context.Context, batch []types.Experience, _ []types.
 		}
 	}
 	return out, nil
+}
+
+// fixedPlan is what a repaired scenario plans instead: the plan a capable
+// assistant would make had it known the lesson. It must read as a sensible
+// answer to the scenario's requests, because model judges read it; a
+// placeholder like "edit: fixed" reads as an unrequested change and is
+// rightly judged worse than the broken original.
+type fixedPlan struct {
+	steps []types.Step
+	reply string
+}
+
+// fixedPlanFor answers the episode's actual request. The first live judge run
+// caught a request for settings.py being "repaired" with a search for
+// *config*.py; the judge was right to reject it.
+func fixedPlanFor(scenario string, ep types.Episode) fixedPlan {
+	if scenario == "empty-glob-loop" && strings.Contains(ep.Request.Text, "settings") {
+		return fixedPlan{
+			steps: []types.Step{{Tool: "file", Action: "glob", Subject: "**/settings*.py", OK: true}},
+			reply: "There is no settings.py in this repository; the search for settings*.py found nothing.",
+		}
+	}
+	return fixedPlans[scenario]
+}
+
+var fixedPlans = map[string]fixedPlan{
+	"empty-glob-loop": {
+		steps: []types.Step{{Tool: "file", Action: "glob", Subject: "**/*config*.py", OK: true}},
+		reply: "There is no Python config loader in this repository; the search for *config*.py found nothing.",
+	},
+	"missing-package-json": {
+		steps: []types.Step{
+			{Tool: "file", Action: "read", Subject: "go.mod", OK: true},
+			{Tool: "shell", Subject: "go build ./...", OK: true},
+		},
+		reply: "Built the Go module; it compiles cleanly.",
+	},
+	"stale-test-evidence": {
+		steps: []types.Step{
+			{Tool: "file", Action: "edit", Subject: "retry.go", OK: true},
+			{Tool: "shell", Subject: "go test ./...", OK: true},
+		},
+		reply: "Made the change, then ran the tests after it: they pass.",
+	},
+	"declined-upgrade": {
+		steps: []types.Step{{Tool: "response", OK: true}},
+		reply: "Which package would you like me to upgrade? I can list the outdated ones first.",
+	},
+	"undone-commit": {
+		steps: []types.Step{
+			{Tool: "shell", Subject: "git status --short", OK: true},
+			{Tool: "shell", Subject: "git diff --staged --stat", OK: true},
+		},
+		reply: "These files are staged. Should I commit exactly these, or add the others too?",
+	},
+	"sed-noop": {
+		steps: []types.Step{
+			{Tool: "file", Action: "edit", Subject: "main.go", OK: true},
+			{Tool: "shell", Subject: "go build ./...", OK: true},
+		},
+		reply: "Renamed it with an exact edit; the build passes.",
+	},
+}
+
+// Knows reports whether the simulator has a model of what a lesson does: it
+// carries a fix or harm tag, or is one of the catalogued lessons. Anything
+// else, such as a lesson a real model wrote in its own words, the simulator
+// cannot replay meaningfully: treating it as "changes nothing" would fail
+// good lessons for the simulator's ignorance.
+func Knows(text string) bool {
+	for _, sc := range scenarios {
+		if sc.fix != "" && strings.Contains(text, sc.fix) {
+			return true
+		}
+	}
+	for _, h := range harms {
+		if strings.Contains(text, h.tag) {
+			return true
+		}
+	}
+	for _, s := range append(CorrectLessons(), WrongLessons()...) {
+		if s.Text == text {
+			return true
+		}
+	}
+	return false
 }

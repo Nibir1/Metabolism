@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"flag"
 	"fmt"
 	"io"
@@ -11,27 +12,91 @@ import (
 	"text/tabwriter"
 	"time"
 
+	"github.com/Nibir1/metabolism/adapters/remote/jev"
+	"github.com/Nibir1/metabolism/adapters/remote/llm"
 	"github.com/Nibir1/metabolism/bench"
 	"github.com/Nibir1/metabolism/digest"
 	"github.com/Nibir1/metabolism/hosts/helixsim"
 	"github.com/Nibir1/metabolism/judge"
+	"github.com/Nibir1/metabolism/llmreflect"
 	"github.com/Nibir1/metabolism/metabolome"
 	"github.com/Nibir1/metabolism/ports"
 	"github.com/Nibir1/metabolism/types"
 	"github.com/Nibir1/metabolism/verify"
 )
 
-// Phase 2a wires only the simulator's reflector and host and the heuristic
-// judge. Real ones arrive as adapters (Ollama and DeepSeek reflectors, Helix
-// plan-only replay, a Jev judge); the flags exist now so the commands do not
-// change shape when they do.
+// Reflectors, judges and the models behind them are chosen here, and this is
+// the only place a remote one can be switched on. Local is the default:
+// Ollama on this machine. DeepSeek and Jev send data off the machine, so they
+// need -allow-remote, and say what they are about to send (D-008).
 
-func pickReflector(name string) (ports.Reflector, error) {
+// remote is the opt-in a command was given.
+type remote struct {
+	allowed bool
+	out     io.Writer
+}
+
+func (r remote) require(what, where string) error {
+	if !r.allowed {
+		return fmt.Errorf("%s sends data to %s; pass -allow-remote to opt in", what, where)
+	}
+	return nil
+}
+
+func (r remote) notice(format string, a ...any) {
+	say(r.out, "opt-in: "+format+"\n", a...)
+}
+
+func ollamaURL() string {
+	u := os.Getenv("OLLAMA_HOST")
+	if u == "" {
+		return llm.DefaultOllamaURL
+	}
+	if !strings.Contains(u, "://") {
+		u = "http://" + u
+	}
+	return u
+}
+
+// pickModel returns a model by provider. Local is free; remote needs opt-in.
+func pickModel(provider, model string, r remote) (ports.Model, error) {
+	switch provider {
+	case "ollama":
+		u := ollamaURL()
+		if !llm.IsLoopback(u) {
+			if err := r.require("an Ollama server at "+u, u); err != nil {
+				return nil, err
+			}
+		}
+		if model == "" {
+			model = "qwen3:8b"
+		}
+		return llm.Ollama{BaseURL: u, Model: model}, nil
+	case "deepseek":
+		if err := r.require("DeepSeek", "api.deepseek.com"); err != nil {
+			return nil, err
+		}
+		key := os.Getenv("DEEPSEEK_API_KEY")
+		if key == "" {
+			return nil, fmt.Errorf("DEEPSEEK_API_KEY is not set")
+		}
+		return llm.DeepSeek(model, key), nil
+	}
+	return nil, fmt.Errorf("unknown model provider %q (have: ollama, deepseek)", provider)
+}
+
+func pickReflector(name, model string, r remote) (ports.Reflector, error) {
 	switch name {
 	case "sim", "helixsim":
 		return helixsim.Reflector{}, nil
+	case "ollama", "deepseek":
+		m, err := pickModel(name, model, r)
+		if err != nil {
+			return nil, err
+		}
+		return &llmreflect.Reflector{Model: m}, nil
 	}
-	return nil, fmt.Errorf("-reflector %q is not available yet (have: sim)", name)
+	return nil, fmt.Errorf("-reflector %q is not available (have: sim, ollama, deepseek)", name)
 }
 
 func pickHost(name string) (ports.Host, error) {
@@ -39,16 +104,29 @@ func pickHost(name string) (ports.Host, error) {
 	case "sim", "helixsim":
 		return helixsim.Host{}, nil
 	}
-	return nil, fmt.Errorf("-host %q is not available yet (have: sim)", name)
+	return nil, fmt.Errorf("-host %q is not available yet (have: sim; real Helix replay arrives in Phase 2c)", name)
 }
 
-func pickJudge(name string) (ports.Judge, error) {
+func pickJudge(name, model string, r remote) (ports.Judge, error) {
 	switch name {
 	case "heuristic":
 		return judge.Heuristic{}, nil
+	case "ollama", "deepseek":
+		m, err := pickModel(name, model, r)
+		if err != nil {
+			return nil, err
+		}
+		return judge.LLM{Model: m}, nil
+	case "jev":
+		if err := r.require("the Jev judge", "TypeSafe's API"); err != nil {
+			return nil, err
+		}
+		return jev.New(model)
 	}
-	return nil, fmt.Errorf("-judge %q is not available yet (have: heuristic)", name)
+	return nil, fmt.Errorf("-judge %q is not available (have: heuristic, ollama, deepseek, jev)", name)
 }
+
+func isRemote(name string) bool { return name == "deepseek" || name == "jev" }
 
 func parseDay(flagName, s string) (time.Time, error) {
 	if s == "" {
@@ -65,14 +143,17 @@ func cmdDigest(ctx context.Context, args []string, out io.Writer) error {
 	fs := flag.NewFlagSet("digest", flag.ContinueOnError)
 	fs.SetOutput(out)
 	path := fs.String("journal", defaultJournal(), "journal file")
-	refl := fs.String("reflector", "sim", "what proposes lessons (sim)")
+	refl := fs.String("reflector", "ollama", "what proposes lessons: ollama (local), deepseek (remote), sim")
+	model := fs.String("model", "", "model name (ollama default qwen3:8b, deepseek default deepseek-flash)")
+	allowRemote := fs.Bool("allow-remote", false, "allow a remote reflector to receive episodes")
 	since := fs.String("since", "", "only episodes started on or after this day (YYYY-MM-DD)")
 	until := fs.String("until", "", "only episodes started before this day (YYYY-MM-DD)")
 	maxLessons := fs.Int("max", 10, "most lessons one run may record")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
-	r, err := pickReflector(*refl)
+	rem := remote{allowed: *allowRemote, out: out}
+	r, err := pickReflector(*refl, *model, rem)
 	if err != nil {
 		return err
 	}
@@ -96,6 +177,9 @@ func cmdDigest(ctx context.Context, args []string, out io.Writer) error {
 	batch, err := digest.Batch(ctx, j, from, to)
 	if err != nil {
 		return err
+	}
+	if isRemote(*refl) {
+		rem.notice("up to 40 of %d episodes (requests and steps, already masked by the host) go to %s", len(batch), r.Name())
 	}
 	res, err := digest.Run(ctx, m, r, batch, digest.Config{MaxLessons: *maxLessons})
 	if err != nil {
@@ -122,7 +206,9 @@ func cmdVerify(ctx context.Context, args []string, out io.Writer) error {
 	fs.SetOutput(out)
 	path := fs.String("journal", defaultJournal(), "journal file")
 	hostName := fs.String("host", "sim", "what replays episodes without side effects (sim)")
-	judgeName := fs.String("judge", "heuristic", "what compares replays (heuristic)")
+	judgeName := fs.String("judge", "heuristic", "what compares replays: heuristic, ollama, deepseek, jev")
+	judgeModel := fs.String("judge-model", "", "model for an ollama, deepseek or jev judge")
+	allowRemote := fs.Bool("allow-remote", false, "allow a remote judge to receive replayed plans")
 	only := fs.String("lesson", "", "test one lesson (default: every candidate and quarantined lesson)")
 	if err := fs.Parse(args); err != nil {
 		return err
@@ -131,9 +217,13 @@ func cmdVerify(ctx context.Context, args []string, out io.Writer) error {
 	if err != nil {
 		return err
 	}
-	jd, err := pickJudge(*judgeName)
+	rem := remote{allowed: *allowRemote, out: out}
+	jd, err := pickJudge(*judgeName, *judgeModel, rem)
 	if err != nil {
 		return err
+	}
+	if isRemote(*judgeName) {
+		rem.notice("each comparison (the request, how it went, and both plans) goes to %s", jd.Name())
 	}
 	j, err := openExisting(ctx, *path)
 	if err != nil {
@@ -163,8 +253,15 @@ func cmdVerify(ctx context.Context, args []string, out io.Writer) error {
 	v := &verify.Verifier{Host: host, Judge: jd, History: h}
 	tw := tabwriter.NewWriter(out, 0, 0, 2, ' ', 0)
 	say(tw, "  result\tmove\tW/L/T\treg\tlesson\n")
+	skipped := 0
 	for _, id := range ids {
 		rep, err := v.Test(ctx, m, id)
+		if errors.Is(err, ports.ErrCannotReplay) {
+			e, _ := m.Get(id)
+			say(tw, "  can't judge\t%s (unchanged)\t-\t-\t%s\n", e.Lesson.State, truncate(e.Lesson.Text, 60))
+			skipped++
+			continue
+		}
 		if err != nil {
 			return err
 		}
@@ -175,6 +272,9 @@ func cmdVerify(ctx context.Context, args []string, out io.Writer) error {
 	}
 	_ = tw.Flush()
 	say(out, "\njudge: %s · details: metabolism lessons -id <ID>\n", jd.Name())
+	if skipped > 0 {
+		say(out, "%d lesson(s) not tested: host %q cannot replay them meaningfully (the simulator only models its own catalogue). Nothing was recorded for them.\n", skipped, *hostName)
+	}
 	return nil
 }
 
@@ -267,14 +367,25 @@ func cmdNutrientEval(ctx context.Context, args []string, out io.Writer) error {
 	seeds := fs.Int("seeds", 5, "simulated histories to plant lessons in")
 	count := fs.Int("count", 400, "episodes per history")
 	outDir := fs.String("out", "", "directory to write nutrient.json (optional)")
+	judgeName := fs.String("judge", "heuristic", "judge to evaluate: heuristic, ollama, deepseek, jev")
+	judgeModel := fs.String("judge-model", "", "model for an ollama, deepseek or jev judge")
+	allowRemote := fs.Bool("allow-remote", false, "allow a remote judge to receive simulated plans")
 	if err := fs.Parse(args); err != nil {
 		return err
+	}
+	rem := remote{allowed: *allowRemote, out: out}
+	jd, err := pickJudge(*judgeName, *judgeModel, rem)
+	if err != nil {
+		return err
+	}
+	if isRemote(*judgeName) {
+		rem.notice("simulated comparisons (no real data) go to %s", jd.Name())
 	}
 	var ss []uint64
 	for i := 1; i <= *seeds; i++ {
 		ss = append(ss, uint64(i))
 	}
-	r, err := bench.EvaluateNutrient(ctx, ss, *count, verify.Config{})
+	r, err := bench.EvaluateNutrient(ctx, ss, *count, verify.Config{}, jd)
 	if err != nil {
 		return err
 	}
@@ -304,6 +415,12 @@ func cmdNutrientEval(ctx context.Context, args []string, out io.Writer) error {
 			kind = "good"
 		}
 		say(tw, "  %s\t%d/%d right\t%s\t%s\n", kind, agree, total, truncate(row.Text, 60), row.Why)
+		for _, x := range r.Rows {
+			wrong := (x.Good && x.Result != types.ResultPass) || (!x.Good && x.Result != types.ResultFail)
+			if x.Text == row.Text && wrong {
+				say(tw, "  \t\t  ↳ seed %d: %s\t\n", x.Seed, truncate(x.Summary, 110))
+			}
+		}
 	}
 	_ = tw.Flush()
 	if *outDir != "" {

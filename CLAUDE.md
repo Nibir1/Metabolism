@@ -7,9 +7,10 @@ lessons, verifies each lesson before keeping it, delivers kept lessons to
 future work, credits or blames them by outcome, and eliminates what stops
 earning its place.
 
-Status (2026-10-01): **Phases 0 and 1 built; Phase 2a (engine core of
-reflection and the nutrient test) built.** Next: 2b (Ollama and DeepSeek
-reflectors, LLM judge), then 2c (real Helix plan-only replay, Jev judge).
+Status (2026-10-01): **Phases 0 and 1 built; Phase 2a (reflection and nutrient
+test core) and 2b (Ollama/DeepSeek reflectors, LLM and Jev judges, opt-in)
+built.** Next: live judge checks with the user's keys, then 2c (real Helix
+plan-only replay, judge-agreement labelling).
 Phase 0 and 1 exit criteria wait on real Helix data. See
 [docs/roadmap.md](docs/roadmap.md). The docs below are the source
 of truth for what, why and how.
@@ -36,7 +37,9 @@ of truth for what, why and how.
   | `immune/` | deterministic screen: no lesson may weaken a safety gate |
   | `digest/` | reflection: reflector output is untrusted until validated |
   | `verify/` | the nutrient test (D-015) |
-  | `judge/` | judges for the nutrient test |
+  | `judge/` | judges: heuristic, LLM (via `ports.Model`) |
+  | `llmreflect/` | LLM reflector (via `ports.Model`) |
+  | `adapters/remote/` | the only network code: `llm` (Ollama, DeepSeek), `jev` (typesafe-go). Imported only by the CLI, behind `-allow-remote` (D-016) |
   | `internal/privacyguard` | test: no network code outside `adapters/remote/` |
   | `hosts/helixsim` | simulated Helix |
   | `bench/` | metrics and curves |
