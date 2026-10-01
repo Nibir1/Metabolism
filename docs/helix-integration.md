@@ -138,6 +138,17 @@ real config, recorded and ingested into a scratch journal.
   session exits (no liveness check on its PID), so `helix remote submit` is
   refused during that window.
 
+**Fixed afterwards:**
+- The planner-trust bug was fixed on Helix branch `fix/planner-step-trust`
+  (commit `a0f280a`). It is not yet merged into `main` or into this branch.
+- **Declined steps were reported as OK** (fixed on this branch). Handlers
+  print "skipped" and return nil, so the planner and the record both saw
+  success for work the user refused. The dispatcher now compares
+  `commands.RefusedConfirmations()` across each step. A refused step is
+  `Declined`, not OK, the plan stops, and the agentic loop ends instead of
+  replanning around the refusal. The turn is recorded as `open-work` with a
+  `declined` outcome when a person said no.
+
 Cost observed: about 4 model calls and about 16.8k estimated tokens per
 finished turn. A file lookup earns a follow-up planner call to answer from
 its results.
