@@ -141,3 +141,32 @@ printed "26.5% agreement, κ −0.38" measured only how often Jev also picked A.
 It is **not** a judge-agreement result. `label -score` now refuses to grade a
 sample where at least 90% of labels are one letter, and `label -redo` starts
 a fresh pass and keeps the old labels.
+
+### Judge cross-check: Jev against DeepSeek
+
+2026-10-02: `crosscheck -judge deepseek` re-judged the 34 saved comparisons
+with exactly the view Jev had.
+
+| Set | Agreement | Cohen's κ |
+|---|---|---|
+| All | 18/34 (53%) | 0.19 |
+| Episodes the lesson is about | 9/19 (47%) | 0.00 |
+| Past successes | 9/15 (60%) | 0.37 |
+
+**By lesson:**
+- **The lesson that passed** ("don't call `todo add` with no task list"):
+  agreement **7/9**. On all 3 core episodes, where the without-lesson plan
+  opens with the failing `todo add`, the judges agree, two of them "with is
+  better" at 0.9. The trial decision is supported by both judges where it
+  matters.
+- **Path lesson:** 7/14. **Re-reading lesson:** 4/11. About chance. These
+  pairs are two different but reasonable plans (two answers to "what is a
+  Brier score?", two ways to search a folder), and no judge reads that
+  difference reliably. The nutrient test left both inconclusive rather than
+  trusting either judge's call: D-018 working as designed.
+
+**Reading:** the low overall κ comes from noise pairs, not from the judges
+disagreeing where a lesson changes the plan. Two models can still agree on
+the same mistake, so this is weaker than human labels, and the
+human-labelled Phase 2 criterion stays open. It points to where labelling
+effort is worth spending: pairs where the plans differ in substance.

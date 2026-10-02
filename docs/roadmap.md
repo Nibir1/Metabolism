@@ -182,8 +182,12 @@ Delivered in three stages.
       trial: "don't call todo add with no task list loaded", p_help 0.011
       against measured noise r = 0.25, no harm. Two were inconclusive. 34
       judged comparisons were saved.
-- [ ] Blind-label the saved comparisons (`metabolism label`) for judge
-      agreement.
+- [x] Judge cross-check (Jev against DeepSeek, `metabolism crosscheck`):
+      κ 0.19 overall, but 7/9 agreement on the lesson that passed, and
+      chance only on noise pairs (`bench/results/README.md`).
+- [ ] Blind-label a human sample for judge agreement. Two labelling passes
+      were not usable (uniform answers); `label -score` now refuses those.
+      Best done on real-usage comparisons, where the labeller has context.
 
 Exit criteria:
 
