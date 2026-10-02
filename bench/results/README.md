@@ -308,3 +308,34 @@ jev` replayed up to 4 rounds per episode (about 25 minutes).
   loosening the search until the rounds ran out. Most of its wins are on the
   scripted session's planted questions about missing files, so its value in
   real use is narrower than these counts.
+
+### Re-test after the glob/grep path fix
+
+The three inconclusive lessons, replayed again on fixed Helix
+(`comparisons-pathfix.ndjson`):
+
+| Lesson | Before the fix W/L/T (noise) | After the fix W/L/T (noise) |
+|---|---|---|
+| Don't repeat an identical grep, glob or read | 5/2/1 (11/14) | 1/3/4 (8/14) |
+| Scope searches to the package directory | 3/1/4 (6/14) | 1/3/4 (8/14) |
+| "What does package X do" procedure | 4/0/4 (8/14) | 3/4/1 (7/14) |
+
+On the repeated-step lesson's 8 relevant episodes, how often each plan
+answered within the 4 rounds:
+
+| | Without the lesson | With the lesson |
+|---|---|---|
+| Before the path fix | 0 of 8 | 4 of 8 |
+| After the path fix | 3 of 8 | 3 of 8 |
+
+- **The path fix helped Helix itself:** with no lesson, 3 of these 8 hard
+  questions are now answered within the live budget, up from none.
+- **The lesson's earlier wins did not hold.** With one replay per episode and
+  a planner that varies run to run, single comparisons flip between runs (the
+  decisions.md question went from a win to a loss). About 8 relevant episodes
+  per lesson cannot separate an effect this size from that noise.
+  Inconclusive is the right result, and D-018 left all three in place rather
+  than eliminating them on a guess.
+- 5 of the 8 still run out of rounds either way. The live follow-up budget
+  for a file lookup (3 rounds) is tight for explanatory questions that need
+  several windows of a file; that is a Helix design question, not a lesson.
