@@ -113,3 +113,22 @@ planner planning the same request differently each time, read by the judge
 as preference. The rule was replaced: D-018 adds a noise floor, calibrated
 tests and asymmetric bars. Also observed: one plain judge error, where Jev
 preferred a plan that misused the task-list tool for "add a TODO comment".
+
+### Re-run under D-018
+
+2026-10-02, on a fresh journal (`.demo/helix-d018.db`, the same 42 episodes).
+DeepSeek proposed 3 lessons, the same themes as before; the suspect "wait for
+go-ahead" lesson did not recur. Jev judged.
+
+| Lesson | Result | Relevant W/L/T | Past successes worse/better | A/A noise |
+|---|---|---|---|---|
+| Don't call `todo add` with no task list loaded | **pass → trial** (p_help 0.011) | 4/1/3 | 0/2 | 3/14 |
+| Relative paths resolve under the drifted folder | inconclusive | 2/4/2 | 1/3 | 6/14 |
+| Don't re-read the same file | inconclusive | 2/2/4 | 2/0 | 5/14 |
+
+**The first lesson learned from real Helix episodes and validated on real
+Helix replays.** The measured noise (3–6 of 14 A/A pairs decisive) is what
+eliminated everything under D-015. The path lesson cannot show value when
+replayed from `~`, where there is no drift to fix, and is correctly left
+undecided rather than eliminated. 34 judged comparisons were saved for blind
+labelling.

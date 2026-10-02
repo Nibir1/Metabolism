@@ -178,8 +178,12 @@ Delivered in three stages.
       to D-018: an A/A noise floor, tests calibrated to it, and asymmetric
       bars (permanent elimination needs p ≤ 0.02). Accepted by a 20-trial
       noisy-host test.
-- [ ] Re-run under D-018 on a fresh journal, then a labelled sample (see
-      docs/verifying.md, "Real Helix replay").
+- [x] Re-run under D-018 (2026-10-02). The first real lesson passed to
+      trial: "don't call todo add with no task list loaded", p_help 0.011
+      against measured noise r = 0.25, no harm. Two were inconclusive. 34
+      judged comparisons were saved.
+- [ ] Blind-label the saved comparisons (`metabolism label`) for judge
+      agreement.
 
 Exit criteria:
 
@@ -190,7 +194,8 @@ Exit criteria:
         (`bench/results/baseline-helixsim/nutrient.*`). **This proves the
         test's logic, not its power.** The simulator's host knows which
         lesson fixes which failure.
-  - [ ] On real Helix replays (2c).
+  - [ ] On real Helix replays (2c). There are no planted wrong lessons in
+        real data yet; the noisy-host test (D-018) is the proxy so far.
 - [ ] Judge agreement with a human-labelled sample is ≥ 80%, or the judge is
       replaced (2c).
 
