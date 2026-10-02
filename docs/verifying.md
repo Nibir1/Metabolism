@@ -15,11 +15,11 @@ This runs, in order:
 | Step | Target | Proves |
 |---|---|---|
 | gofmt, vet, golangci-lint | `lint` | the code is clean |
-| every test, race detector on | `race` | the engine: journal durability and crash safety, append-only triggers, retrieval, the recall evaluation (signal *and* noise), the privacy guard, the CLI |
-| golden files match | `check-wire` | Helix and the engine agree on the wire format byte for byte |
+| every test, race detector on | `race` | the engine: journal durability and crash safety, append-only triggers, retrieval, the recall evaluation (signal *and* noise), the immune screen, digest validation, the nutrient test (including the 20-trial noisy-host test, D-018), the judges and remote adapters against fakes, the privacy guard, the CLI and its opt-in rules |
+| golden files match | `check-wire` | Helix and the engine agree on both wire formats (recording and replay) byte for byte |
 | Helix on the integration branch | `helix-branch` | you are testing the right Helix |
-| Helix vet + integration tests + full suite + lint | `helix-verify` | the recorder, the agent hooks, decline counting, the undo link, the daemon wiring, and that nothing else in Helix broke |
-| every CLI command end to end | `demo` | sim → ingest → inspect → curves → recall → recall-eval → doctor all run on real files |
+| Helix vet + integration tests + full suite + lint | `helix-verify` | the recorder, the agent hooks, decline counting, refused steps, untrusted planner steps, exit codes on every turn, the undo link, the daemon wiring (pagers off, a fresh working directory per request), `helix replay`, and that nothing else in Helix broke |
+| the CLI end to end | `demo` | sim → ingest → inspect → curves → recall → recall-eval → digest → verify → lessons → doctor all run on real files |
 
 It ends with `✔ verify passed`. Anything else, share the output.
 
@@ -185,9 +185,26 @@ bin/metabolism label -from comparisons.ndjson -score
 
 `label` shows each judged comparison **blind**: the request, how it went, and
 plans A and B, never which one had the lesson or what the judge said. It saves
-as you go; `q` quits and the same command resumes. `-score` reports agreement
-and Cohen's κ. The Phase 2 bar is ≥ 80% agreement, and fewer than 30 labels
-is an early reading.
+as you go; `q` quits and the same command resumes. `-redo` starts a fresh pass
+and keeps the earlier labels. `-score` reports agreement and Cohen's κ, and
+refuses a sample where at least 90% of the labels are one letter. The Phase 2
+bar is ≥ 80% agreement, and fewer than 30 labels is an early reading.
+
+**Cost of a run.** Each replay is one planner call or more. Under D-018 every
+episode's baseline is replayed twice (once per run, shared by all lessons) for
+the A/A noise floor. Each lesson then adds one replay per episode it is tested
+on (up to 8 relevant and 6 past successes) and one judge call per pair whose
+plans differ.
+
+**A second judge on the same comparisons** (no replays; the saved view is
+sent to the second judge):
+
+```bash
+bin/metabolism crosscheck -from comparisons.ndjson -judge deepseek -allow-remote
+```
+
+It reports agreement and κ overall, on relevant episodes, on past successes
+and per lesson. Two models agreeing is weaker evidence than human labels.
 
 ## 3. Once there are weeks of data
 

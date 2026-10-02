@@ -7,15 +7,16 @@ lessons, verifies each lesson before keeping it, delivers kept lessons to
 future work, credits or blames them by outcome, and eliminates what stops
 earning its place.
 
-Status (2026-10-01): **Phases 0 and 1 built; Phase 2 built in all three stages**:
-2a engine core, 2b real reflectors and judges (live-checked: Jev and DeepSeek
-11/11 on the simulator), 2c real Helix replay (`helix replay` plus blind
-labelling). Remaining Phase 2 exit evidence needs real data: lessons tested on
-real Helix episodes, and a labelled sample for judge agreement. Next: Phase 3
-(distribution and the credit ledger).
-Phase 0 and 1 exit criteria wait on real Helix data. See
-[docs/roadmap.md](docs/roadmap.md). The docs below are the source
-of truth for what, why and how.
+Status (2026-10-02): **Phases 0, 1 and 2 built; Phase 3 (distribution and the
+credit ledger) is next.** Phase 2 has three stages: 2a engine core, 2b real
+reflectors and judges (Jev and DeepSeek 11/11 on the simulator), 2c real Helix
+replay (`helix replay`, blind labelling, judge cross-check). Under D-018 the
+first lesson learned from real Helix episodes passed the nutrient test on real
+replays. Open exit criteria, all waiting on real data: the real Helix baseline
+(weeks of use), a public benchmark, planted wrong lessons on real replays, and
+a human-labelled sample for judge agreement. See
+[docs/roadmap.md](docs/roadmap.md). The docs below are the source of truth for
+what, why and how.
 
 ## Working in this repo
 
@@ -38,19 +39,22 @@ of truth for what, why and how.
   | `metabolome/` | event-sourced lessons; the only code that changes lesson state (D-014) |
   | `immune/` | deterministic screen: no lesson may weaken a safety gate |
   | `digest/` | reflection: reflector output is untrusted until validated |
-  | `verify/` | the nutrient test (D-015) |
-  | `judge/` | judges: heuristic, LLM (via `ports.Model`) |
+  | `verify/` | the nutrient test: replays, A/A noise floor, calibrated decision rule (D-015, D-018) |
+  | `judge/` | judges: heuristic, LLM (via `ports.Model`), and the plain-words pair view every model judge sees |
   | `llmreflect/` | LLM reflector (via `ports.Model`) |
   | `adapters/remote/` | the only code that reaches beyond the machine: `llm` (Ollama, DeepSeek), `jev` (typesafe-go), `helix` (drives `helix replay`). Imported only by the CLI, behind `-allow-remote` (D-016, D-017) |
   | `internal/privacyguard` | test: no network code outside `adapters/remote/` |
   | `hosts/helixsim` | simulated Helix |
-  | `bench/` | metrics and curves |
+  | `bench/` | metrics, curves, recall evaluation, nutrient-test evaluation, judge agreement (κ) |
   | `cmd/metabolism` | CLI |
 
 - Helix integration work happens in `../Helix` on branch
   `feat/metabolism-integration` (the same branch name in typesafe-go). Never
-  on main. Helix ↔ engine contract: wire-v1 NDJSON, pinned by a golden file in
-  both repos; `make check-wire` compares them (D-013).
+  on main. Two Helix ↔ engine contracts, each pinned by a golden file in both
+  repos: recording wire v1 (D-013) and replay wire v1 (D-017).
+  `make check-wire` compares both.
+- Helix is built and tested with `CGO_ENABLED=0` on this machine (the cgo
+  linker fails; see [docs/verifying.md](docs/verifying.md)).
 - The journal is append-only by database trigger. Never add a code path that
   updates or deletes records. Forget-with-proof is a planned, audited Phase 4
   migration.

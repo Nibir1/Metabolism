@@ -112,7 +112,9 @@ and the index is derived from it (`TestRebuildFromJournalAfterRestart`).
 
 ## Phase 2: Digestion and the nutrient test (about 4 weeks). C2, C6
 
-Delivered in three stages.
+**Status (2026-10-02): built in all three stages.** The first real lesson has
+passed the nutrient test on real Helix replays. Two exit criteria stay open
+and need real data (below). Delivered in three stages.
 
 **2a: engine core (built 2026-10-01).**
 - [x] Lessons, lifecycle events and evidence as journal records. The
@@ -130,7 +132,8 @@ Delivered in three stages.
       was shown, scopes must match a source, it must pass the screen, and it
       must not duplicate a known lesson (eliminated ones included). Recorded
       as candidate, or quarantined when learned from untrusted content.
-- [x] `verify`, the nutrient test (D-015): relevant and regression replays,
+- [x] `verify`, the nutrient test (D-015; its decision rule is now D-018):
+      relevant and regression replays,
       judged, with evidence recorded and the lesson moved to trial,
       eliminated, or nowhere when inconclusive. Baseline replays are cached.
 - [x] `judge.Heuristic`: deterministic (fewer failed steps, then fewer
@@ -185,6 +188,12 @@ Delivered in three stages.
 - [x] Judge cross-check (Jev against DeepSeek, `metabolism crosscheck`):
       κ 0.19 overall, but 7/9 agreement on the lesson that passed, and
       chance only on noise pairs (`bench/results/README.md`).
+- [x] Helix fixes found by the daemon-driven session (Helix branch): the
+      daemon no longer waits on a pager; each daemon request starts in the
+      daemon's home directory (a `cd` used to carry into later requests);
+      shell exit codes are kept on every turn, so a failing command is
+      recorded as failed outside `/agentic` too
+      ([helix-integration.md](helix-integration.md), "Driven session").
 - [ ] Blind-label a human sample for judge agreement. Two labelling passes
       were not usable (uniform answers); `label -score` now refuses those.
       Best done on real-usage comparisons, where the labeller has context.
@@ -207,12 +216,31 @@ Exit criteria:
 
 Deliverables:
 
-- The Selector, which delivers lessons within Helix's budget as a new
-  `<learned_lessons authority="data-only">` block.
-- Exposure logging, trial randomisation, and Beta-Bernoulli credit per lesson.
+- The Selector, which delivers trial and accepted lessons within Helix's
+  budget in the `<learned_lessons authority="data-only">` block. Helix already
+  builds that block, bounded and fence-proof, for `helix replay` (2c); Phase 3
+  puts it into live turns.
+- A live call between Helix and the engine for delivery (D-013 named this the
+  point to revisit the file-only contract).
+- Exposure logging: `exposure` is already in recording wire v1 and in
+  `types.Episode`, and is always empty so far; Helix fills it with the
+  lessons it delivered. Then trial randomisation, and Beta-Bernoulli credit per lesson
+  (`types.Credit` exists; nothing writes it yet).
 - The lifecycle moves on to trial → accepted.
-- A learning-curve report: `metabolism bench curves`.
+- A learning-curve report comparing turns with and without lessons
+  (`metabolism curves` measures one journal today).
 - The `/lessons` command in Helix.
+
+Known issues carried in from Phase 2 (they distort the data Phase 3 measures):
+
+- Helix: plain English starting with a command word ("summarise", "find")
+  is sent to the shell and never reaches the planner, so it is not recorded.
+- Helix: the daemon offers the planner the task-list tool with no task list
+  loaded.
+- Helix: `helix remote manual` leaves the daemon's microphone stream open
+  (listening by default is an owner decision, Helix threat model V2b).
+- Metabolism: repeat detection compares a request only with the immediately
+  preceding turn.
 
 **GO / NO-GO gate.** Compare with the Phase 0 baseline after at least 4 weeks
 of real Helix use plus the public benchmark:

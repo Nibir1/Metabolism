@@ -133,6 +133,7 @@ its claims were wrong. **Don't reuse them:**
       classifier or typed-gate set? This decides whether habit compilation is novel.
 - [ ] Close read of Relai and Harness Continual Learning (the closest
       competitors): what exactly do they verify, and how?
-- [ ] Pick the public benchmark for Phase 3: τ-bench, ContinualSkillBench or
-      LongMemEval-V2.
+- [ ] Pick the public benchmark: τ-bench, ContinualSkillBench or
+      LongMemEval-V2. It is an open Phase 0 exit criterion, and the Phase 3
+      go/no-go gate needs it.
 - [ ] Check Together, Fireworks and Tinker for LoRA on small open models over HTTP.

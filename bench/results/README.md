@@ -5,7 +5,10 @@ Each directory is one measured curve: `curve.json` (full precision),
 
 | Directory | What it is | Real? |
 |---|---|---|
-| `baseline-helixsim/` | Simulated Helix, no lessons, 1000 episodes over 8 weeks (`make baseline-sim`, seed 1). `curve.*` is the learning curve; `recall.*` is the episodic-recall evaluation | **No.** Synthetic |
+| `baseline-helixsim/` | Simulated Helix, no lessons, 1000 episodes over 8 weeks (`make baseline-sim`, seed 1). `curve.*` is the learning curve; `recall.*` is the episodic-recall evaluation; `nutrient.*` is the nutrient test on planted lessons (5 seeds) | **No.** Synthetic |
+
+The live runs below (judges, reflector, real Helix replays) are logged in this
+file only. Their journals live in `.demo/`, which is not committed.
 
 ## Read this before quoting any number
 
@@ -25,10 +28,12 @@ Each directory is one measured curve: `curve.json` (full precision),
   if it carries that scenario's fix tag, and harmful lessons carry harm tags.
   The score shows the decision rule, the replay sets and the evidence wiring
   do what they should. Whether the test separates good from bad lessons on
-  real plans depends on real Helix replays and a real judge (Phase 2c).
-- **The real Helix baseline doesn't exist yet.** It needs Helix to emit
-  episodes (see `docs/helix-integration.md`) and a few weeks of real use with
-  learning off. It will be committed as `baseline-helix/`.
+  real plans depends on real Helix replays and a real judge. The first such
+  results are below; there are no planted wrong lessons in real data yet.
+- **The real Helix baseline doesn't exist yet.** Helix records episodes now
+  (`/metabolism on`); the baseline needs a few weeks of real use with
+  learning off, and will be committed as `baseline-helix/`. The 42
+  daemon-driven episodes used below are scripted work, not a baseline.
 - **The public-benchmark baseline doesn't exist yet.** The benchmark is still
   to be chosen (`docs/research.md`, open tasks).
 - Token figures are estimates at 4 characters per token, as Helix's `/cost` labels them.

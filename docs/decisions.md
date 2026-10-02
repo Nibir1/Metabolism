@@ -137,6 +137,9 @@ import the engine's module.
 engine) and Phase 3 needs lessons delivered into Helix's prompt. Both need a
 live call. The likely shape is Helix importing a small, stable `ports`/`types`
 module once it is published, or a local socket through Helix's daemon.
+**Update (2026-10-01):** replay was settled by D-017 without an import: the
+engine runs `helix replay` as a subprocess speaking NDJSON, with its own
+golden file. Delivering lessons into live turns (Phase 3) is still open.
 
 ---
 
