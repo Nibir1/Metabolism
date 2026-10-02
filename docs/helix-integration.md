@@ -256,6 +256,13 @@ yielded 42 planner episodes, 100% labelled: 30 done, 4 budget-exhausted,
   `Metabolism/episodic`. 7 of the 12 failures and budget exhaustions trace to
   it. Each request (submitted or spoken) now starts in the daemon's home
   directory. The interactive shell keeps `cd` across turns.
+- **Reading a long file showed the planner a slice from its middle.** A read
+  returned the first 20 KB and the report kept the last 60 lines of that, so
+  an explanatory question about a later section reread and re-grepped until
+  the budget ran out (8 of 42 turns in the re-run). Found with multi-round
+  replay (D-021). A read is now a window of up to 80 lines with a header
+  (`[path: lines A-B of N]`), kept from its start, and takes `start_line`
+  and `end_line`.
 - **Shell failures outside agentic mode were recorded as OK.** Exit codes were
   kept only when `/agentic` was on, so `go test ./internal/immune/...` (a
   wrong path, setup failed) was recorded as done. The exit status is now kept

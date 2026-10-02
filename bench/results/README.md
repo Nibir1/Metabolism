@@ -246,5 +246,10 @@ log). Scripted work, **not a usage baseline**.
   of `judge`.
 - **More budget exhaustions (8):** explanatory questions ("explain the
   difference between candidate and quarantined lessons") spend the file
-  lookup's three follow-up iterations on grep and read without answering. This is a candidate for a
-  lesson about answering from what was read.
+  lookup's three follow-up iterations on grep and read without answering.
+  DeepSeek proposed three lessons about it; the nutrient test left all three
+  inconclusive. Multi-round replay (D-021) then showed the cause was a Helix
+  bug, not something a lesson can fix. A read of a long file showed the
+  planner a slice from the middle (the last 60 lines of the first 20 KB), so
+  it could never reach the section asked about. Fixed in Helix: a read is a
+  window of up to 80 lines with a header, and takes `start_line`.
