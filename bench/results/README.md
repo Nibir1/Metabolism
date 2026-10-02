@@ -279,3 +279,32 @@ log). Scripted work, **not a usage baseline**.
   list loaded; one is the deliberately missing scratch.go.
 - One run each, scripted, with a nondeterministic planner: the direction is
   clear, but the size of the change is not measured to any precision.
+
+### Nutrient test with multi-round replays (D-021)
+
+DeepSeek proposed 5 lessons from the run above; `verify -host helix -judge
+jev` replayed up to 4 rounds per episode (about 25 minutes).
+
+| Lesson | Result | Relevant W/L/T | Past successes worse/better | A/A noise |
+|---|---|---|---|---|
+| Don't open with `todo` tools (this machine) | **pass → trial** | 5/0/3 | 1/2 | 7/14 |
+| Don't repeat an identical grep, glob or read | inconclusive | 5/2/1 | 2/3 | 11/14 |
+| Scope searches to the package directory | inconclusive | 3/1/4 | 1/1 | 6/14 |
+| These two repos are Go; nothing to hunt for (this machine) | **pass → trial** | 6/1/1 | 0/4 | 9/14 |
+| "What does package X do": list, grep, read the first file | inconclusive | 4/0/4 | 0/3 | 8/14 |
+
+- **Multi-round replay shows what first plans could not.** With the
+  repeated-step lesson, questions about decisions.md, the verify package and
+  the Makefile were answered in 3 rounds; without it, they reread until the
+  rounds ran out.
+- **Multi-round replays are much noisier** (up to 11 of 14 A/A pairs
+  decisive), so a lesson needs a clearer win to pass.
+- **Part of the noise was a Helix bug, since fixed:** glob and grep reported
+  paths relative to the searched folder, so reading a result often failed,
+  at random in both arms. Re-testing the three inconclusive lessons on fixed
+  Helix is the next step.
+- **The Go-projects lesson behaves well.** With it, Helix still searched,
+  then said "there isn't one, it's a Go project" in 2 rounds instead of
+  loosening the search until the rounds ran out. Most of its wins are on the
+  scripted session's planted questions about missing files, so its value in
+  real use is narrower than these counts.

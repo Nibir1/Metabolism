@@ -263,6 +263,11 @@ yielded 42 planner episodes, 100% labelled: 30 done, 4 budget-exhausted,
   replay (D-021). A read is now a window of up to 80 lines with a header
   (`[path: lines A-B of N]`), kept from its start, and takes `start_line`
   and `end_line`.
+- **Search results were relative to the searched folder.** A glob in
+  `Development/Personal/Metabolism` reported `judge/pair.go`, and reading
+  that from the working directory failed, in both arms of several replays.
+  Found in the nutrient-test replays after the read fix. Glob and grep now
+  report paths with the folder in front, so they can be read as reported.
 - **Shell failures outside agentic mode were recorded as OK.** Exit codes were
   kept only when `/agentic` was on, so `go test ./internal/immune/...` (a
   wrong path, setup failed) was recorded as done. The exit status is now kept

@@ -104,6 +104,15 @@ func pickReflector(name, model string, r remote) (ports.Reflector, error) {
 // turn gets for a file lookup (D-021).
 const defaultRounds = 4
 
+// replayNotice says what a Helix replay sends, for the opt-in notice.
+func replayNotice(rounds int) string {
+	if rounds > 1 {
+		return fmt.Sprintf("each replay sends a past request (and the lesson) to Helix's configured model provider, "+
+			"for up to %d rounds, with what read-only file steps read under the replay directory", rounds)
+	}
+	return "each replay sends a past request (and the lesson) to Helix's configured model provider"
+}
+
 func pickHost(name, bin, dir string, rounds int, r remote) (ports.Host, error) {
 	switch name {
 	case "sim", "helixsim":
@@ -257,7 +266,7 @@ func cmdVerify(ctx context.Context, args []string, out io.Writer) error {
 	}
 	defer closeHost(host)
 	if *hostName == "helix" {
-		rem.notice("each replay sends a past request (and the lesson) to Helix's configured model provider")
+		rem.notice("%s", replayNotice(*rounds))
 	}
 	jd, err := pickJudge(*judgeName, *judgeModel, rem)
 	if err != nil {
