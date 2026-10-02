@@ -92,7 +92,7 @@ func EvaluateNutrient(ctx context.Context, seeds []uint64, count int, cfg verify
 		v := &verify.Verifier{Host: helixsim.Host{}, Judge: jd, History: h, Config: cfg}
 
 		specs := append(helixsim.CorrectLessons(), helixsim.WrongLessons()...)
-		for _, s := range specs {
+		for i, s := range specs {
 			var src []types.ID
 			for _, ep := range eps {
 				if ep.Attrs["scenario"] == s.From && ep.Request.Provenance == types.ProvUserTyped && len(src) < 3 {
@@ -102,7 +102,7 @@ func EvaluateNutrient(ctx context.Context, seeds []uint64, count int, cfg verify
 			if len(src) == 0 {
 				continue
 			}
-			l, err := m.Create(ctx, types.Lesson{Kind: s.Kind, Scope: types.Scope{Level: types.ScopeGlobal},
+			l, err := m.Create(ctx, types.Lesson{ID: plantedID(seed, i), Kind: s.Kind, Scope: types.Scope{Level: types.ScopeGlobal},
 				Text: s.Text, Sources: src, Provenance: types.ProvUserTyped, Origin: "planted"}, "planted by nutrient-eval")
 			if err != nil {
 				return res, err
@@ -134,4 +134,14 @@ func EvaluateNutrient(ctx context.Context, seeds []uint64, count int, cfg verify
 	res.WrongRejectRate = float64(res.WrongRejected) / float64(max(res.WrongTotal, 1))
 	res.CorrectAcceptRate = float64(res.CorrectAccepted) / float64(max(res.CorrectTotal, 1))
 	return res, nil
+}
+
+// plantedID is a planted lesson's ID, fixed by the seed and the lesson's
+// place in the catalogue. The nutrient test orders its sample of past
+// successes by a hash of the lesson's ID (verify.mix), so a random ID would
+// draw a different sample on every run: the decisions held, but the counts
+// in nutrient.json changed each time it was regenerated. Real lessons keep
+// random IDs.
+func plantedID(seed uint64, i int) types.ID {
+	return types.ID(fmt.Sprintf("%012x%016x", seed&0xffffffffffff, uint64(i)))
 }

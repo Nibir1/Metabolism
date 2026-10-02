@@ -13,7 +13,7 @@
       "expect": "accept",
       "final": "accepted",
       "tally": {
-        "lesson_id": "019fc6d9f280934c1f893aa72d59",
+        "lesson_id": "0000000000010000000000000000",
         "exposed": 1608,
         "exposed_successes": 1263,
         "withheld": 188,
@@ -30,7 +30,7 @@
       "expect": "keep",
       "final": "trial",
       "tally": {
-        "lesson_id": "019fc6d9f2805e94387955fba758",
+        "lesson_id": "0000000000010000000000000001",
         "exposed": 1461,
         "exposed_successes": 1028,
         "withheld": 1418,
@@ -46,7 +46,7 @@
       "expect": "accept",
       "final": "accepted",
       "tally": {
-        "lesson_id": "019fc6d9f280cdade58791f9bce2",
+        "lesson_id": "0000000000010000000000000002",
         "exposed": 357,
         "exposed_successes": 302,
         "withheld": 39,
@@ -80,7 +80,7 @@
       "expect": "accept",
       "final": "trial",
       "tally": {
-        "lesson_id": "019fc6d9f28093976ed38b7275f3",
+        "lesson_id": "0000000000010000000000000004",
         "exposed": 1422,
         "exposed_successes": 1061,
         "withheld": 1448,
@@ -96,7 +96,7 @@
       "expect": "accept",
       "final": "accepted",
       "tally": {
-        "lesson_id": "019fc6d9f280761ba33355f80eba",
+        "lesson_id": "0000000000010000000000000005",
         "exposed": 272,
         "exposed_successes": 230,
         "withheld": 24,
@@ -113,7 +113,7 @@
       "expect": "keep",
       "final": "trial",
       "tally": {
-        "lesson_id": "019fc6d9f280d1f87ecae886a5ac",
+        "lesson_id": "0000000000010000000000000006",
         "exposed": 1443,
         "exposed_successes": 1030,
         "withheld": 1435,
@@ -129,7 +129,7 @@
       "expect": "keep",
       "final": "trial",
       "tally": {
-        "lesson_id": "019fc6d9f280eb8e26a227f69173",
+        "lesson_id": "0000000000010000000000000007",
         "exposed": 1402,
         "exposed_successes": 1000,
         "withheld": 1482,
@@ -145,7 +145,7 @@
       "expect": "eliminate",
       "final": "eliminated",
       "tally": {
-        "lesson_id": "019fc6d9f280ec9f12a17019edba",
+        "lesson_id": "0000000000010000000000000008",
         "exposed": 73,
         "exposed_successes": 0,
         "withheld": 71,
@@ -162,7 +162,7 @@
       "expect": "eliminate",
       "final": "eliminated",
       "tally": {
-        "lesson_id": "019fc6d9f280c3a14b3b626acb83",
+        "lesson_id": "0000000000010000000000000009",
         "exposed": 210,
         "exposed_successes": 63,
         "withheld": 167,
@@ -179,7 +179,7 @@
       "expect": "eliminate",
       "final": "eliminated",
       "tally": {
-        "lesson_id": "019fc6d9f2805f63806f5a945f90",
+        "lesson_id": "000000000001000000000000000a",
         "exposed": 267,
         "exposed_successes": 94,
         "withheld": 232,
@@ -196,7 +196,7 @@
       "expect": "accept",
       "final": "accepted",
       "tally": {
-        "lesson_id": "019fc6d9f28039203f67e64b49f2",
+        "lesson_id": "0000000000020000000000000000",
         "exposed": 1343,
         "exposed_successes": 1084,
         "withheld": 153,
@@ -213,7 +213,7 @@
       "expect": "keep",
       "final": "trial",
       "tally": {
-        "lesson_id": "019fc6d9f2805d6ba15373b1f10b",
+        "lesson_id": "0000000000020000000000000001",
         "exposed": 1429,
         "exposed_successes": 1001,
         "withheld": 1425,
@@ -229,7 +229,7 @@
       "expect": "accept",
       "final": "accepted",
       "tally": {
-        "lesson_id": "019fc6d9f280d48ef936820dc99c",
+        "lesson_id": "0000000000020000000000000002",
         "exposed": 268,
         "exposed_successes": 215,
         "withheld": 28,
@@ -263,7 +263,7 @@
       "expect": "accept",
       "final": "trial",
       "tally": {
-        "lesson_id": "019fc6d9f2805c9b56b6fa76256f",
+        "lesson_id": "0000000000020000000000000004",
         "exposed": 1425,
         "exposed_successes": 1036,
         "withheld": 1399,
@@ -279,7 +279,7 @@
       "expect": "accept",
       "final": "accepted",
       "tally": {
-        "lesson_id": "019fc6d9f28087b2019356744f82",
+        "lesson_id": "0000000000020000000000000005",
         "exposed": 825,
         "exposed_successes": 686,
         "withheld": 71,
@@ -296,7 +296,7 @@
       "expect": "keep",
       "final": "trial",
       "tally": {
-        "lesson_id": "019fc6d9f280d5ea258c1957af3f",
+        "lesson_id": "0000000000020000000000000006",
         "exposed": 1436,
         "exposed_successes": 1017,
         "withheld": 1418,
@@ -312,7 +312,7 @@
       "expect": "keep",
       "final": "trial",
       "tally": {
-        "lesson_id": "019fc6d9f280b5db2e9a1b422108",
+        "lesson_id": "0000000000020000000000000007",
         "exposed": 1466,
         "exposed_successes": 1051,
         "withheld": 1380,
@@ -328,7 +328,7 @@
       "expect": "eliminate",
       "final": "eliminated",
       "tally": {
-        "lesson_id": "019fc6d9f28036e038ed9440b761",
+        "lesson_id": "0000000000020000000000000008",
         "exposed": 40,
         "exposed_successes": 0,
         "withheld": 31,
@@ -345,7 +345,7 @@
       "expect": "eliminate",
       "final": "eliminated",
       "tally": {
-        "lesson_id": "019fc6d9f280cb24217063eedddb",
+        "lesson_id": "0000000000020000000000000009",
         "exposed": 199,
         "exposed_successes": 65,
         "withheld": 186,
@@ -362,7 +362,7 @@
       "expect": "eliminate",
       "final": "eliminated",
       "tally": {
-        "lesson_id": "019fc6d9f2805e38cfccd1e5cab8",
+        "lesson_id": "000000000002000000000000000a",
         "exposed": 371,
         "exposed_successes": 150,
         "withheld": 375,
@@ -379,7 +379,7 @@
       "expect": "accept",
       "final": "accepted",
       "tally": {
-        "lesson_id": "019fc6d9f2801eafce30346f7b7a",
+        "lesson_id": "0000000000030000000000000000",
         "exposed": 2078,
         "exposed_successes": 1697,
         "withheld": 218,
@@ -396,7 +396,7 @@
       "expect": "keep",
       "final": "trial",
       "tally": {
-        "lesson_id": "019fc6d9f280ee99e21e337c5a39",
+        "lesson_id": "0000000000030000000000000001",
         "exposed": 1513,
         "exposed_successes": 1138,
         "withheld": 1401,
@@ -412,7 +412,7 @@
       "expect": "accept",
       "final": "accepted",
       "tally": {
-        "lesson_id": "019fc6d9f2806fa0a2421e6fcbe9",
+        "lesson_id": "0000000000030000000000000002",
         "exposed": 1520,
         "exposed_successes": 1253,
         "withheld": 176,
@@ -429,7 +429,7 @@
       "expect": "accept",
       "final": "accepted",
       "tally": {
-        "lesson_id": "019fc6d9f280a7f29b0c9602707d",
+        "lesson_id": "0000000000030000000000000003",
         "exposed": 542,
         "exposed_successes": 463,
         "withheld": 54,
@@ -446,7 +446,7 @@
       "expect": "accept",
       "final": "trial",
       "tally": {
-        "lesson_id": "019fc6d9f280a72e270e7b26b20b",
+        "lesson_id": "0000000000030000000000000004",
         "exposed": 1480,
         "exposed_successes": 1150,
         "withheld": 1437,
@@ -462,7 +462,7 @@
       "expect": "accept",
       "final": "accepted",
       "tally": {
-        "lesson_id": "019fc6d9f2807b2db7767957e743",
+        "lesson_id": "0000000000030000000000000005",
         "exposed": 357,
         "exposed_successes": 317,
         "withheld": 39,
@@ -479,7 +479,7 @@
       "expect": "keep",
       "final": "trial",
       "tally": {
-        "lesson_id": "019fc6d9f280815ca479c0ed73cc",
+        "lesson_id": "0000000000030000000000000006",
         "exposed": 1439,
         "exposed_successes": 1090,
         "withheld": 1468,
@@ -495,7 +495,7 @@
       "expect": "keep",
       "final": "trial",
       "tally": {
-        "lesson_id": "019fc6d9f280a929c1f043edb259",
+        "lesson_id": "0000000000030000000000000007",
         "exposed": 1447,
         "exposed_successes": 1064,
         "withheld": 1463,
@@ -511,7 +511,7 @@
       "expect": "eliminate",
       "final": "eliminated",
       "tally": {
-        "lesson_id": "019fc6d9f2806339b32b56e4ac72",
+        "lesson_id": "0000000000030000000000000008",
         "exposed": 35,
         "exposed_successes": 0,
         "withheld": 46,
@@ -528,7 +528,7 @@
       "expect": "eliminate",
       "final": "eliminated",
       "tally": {
-        "lesson_id": "019fc6d9f280b027f0796849f16a",
+        "lesson_id": "0000000000030000000000000009",
         "exposed": 128,
         "exposed_successes": 34,
         "withheld": 105,
@@ -545,7 +545,7 @@
       "expect": "eliminate",
       "final": "eliminated",
       "tally": {
-        "lesson_id": "019fc6d9f2804dd822ede1f01dd6",
+        "lesson_id": "000000000003000000000000000a",
         "exposed": 190,
         "exposed_successes": 65,
         "withheld": 222,
@@ -562,7 +562,7 @@
       "expect": "accept",
       "final": "accepted",
       "tally": {
-        "lesson_id": "019fc6d9f28049e9d936ca74fd61",
+        "lesson_id": "0000000000040000000000000000",
         "exposed": 1513,
         "exposed_successes": 1263,
         "withheld": 183,
@@ -579,7 +579,7 @@
       "expect": "keep",
       "final": "trial",
       "tally": {
-        "lesson_id": "019fc6d9f280153a394c27f8cfbb",
+        "lesson_id": "0000000000040000000000000001",
         "exposed": 1484,
         "exposed_successes": 1097,
         "withheld": 1405,
@@ -595,7 +595,7 @@
       "expect": "accept",
       "final": "accepted",
       "tally": {
-        "lesson_id": "019fc6d9f2808877a83cd18f3a60",
+        "lesson_id": "0000000000040000000000000002",
         "exposed": 990,
         "exposed_successes": 849,
         "withheld": 106,
@@ -612,7 +612,7 @@
       "expect": "accept",
       "final": "accepted",
       "tally": {
-        "lesson_id": "019fc6d9f280d19db8d6668b010c",
+        "lesson_id": "0000000000040000000000000003",
         "exposed": 718,
         "exposed_successes": 608,
         "withheld": 78,
@@ -629,7 +629,7 @@
       "expect": "accept",
       "final": "trial",
       "tally": {
-        "lesson_id": "019fc6d9f28002792e77252ebde7",
+        "lesson_id": "0000000000040000000000000004",
         "exposed": 1446,
         "exposed_successes": 1121,
         "withheld": 1450,
@@ -645,7 +645,7 @@
       "expect": "accept",
       "final": "accepted",
       "tally": {
-        "lesson_id": "019fc6d9f280398974073cf946a9",
+        "lesson_id": "0000000000040000000000000005",
         "exposed": 174,
         "exposed_successes": 153,
         "withheld": 22,
@@ -662,7 +662,7 @@
       "expect": "keep",
       "final": "trial",
       "tally": {
-        "lesson_id": "019fc6d9f280e7fc0fa41f60084c",
+        "lesson_id": "0000000000040000000000000006",
         "exposed": 1444,
         "exposed_successes": 1089,
         "withheld": 1440,
@@ -678,7 +678,7 @@
       "expect": "keep",
       "final": "trial",
       "tally": {
-        "lesson_id": "019fc6d9f2809adf8bacdb222ec9",
+        "lesson_id": "0000000000040000000000000007",
         "exposed": 1452,
         "exposed_successes": 1076,
         "withheld": 1445,
@@ -694,7 +694,7 @@
       "expect": "eliminate",
       "final": "eliminated",
       "tally": {
-        "lesson_id": "019fc6d9f280f6b3038b36578d6f",
+        "lesson_id": "0000000000040000000000000008",
         "exposed": 31,
         "exposed_successes": 0,
         "withheld": 40,
@@ -711,7 +711,7 @@
       "expect": "eliminate",
       "final": "eliminated",
       "tally": {
-        "lesson_id": "019fc6d9f280e4320a8b24c23a4c",
+        "lesson_id": "0000000000040000000000000009",
         "exposed": 125,
         "exposed_successes": 37,
         "withheld": 107,
@@ -728,7 +728,7 @@
       "expect": "eliminate",
       "final": "eliminated",
       "tally": {
-        "lesson_id": "019fc6d9f28067b056fc93aecfcf",
+        "lesson_id": "000000000004000000000000000a",
         "exposed": 275,
         "exposed_successes": 120,
         "withheld": 318,
@@ -745,7 +745,7 @@
       "expect": "accept",
       "final": "accepted",
       "tally": {
-        "lesson_id": "019fc6d9f280a78eab2028513781",
+        "lesson_id": "0000000000050000000000000000",
         "exposed": 1706,
         "exposed_successes": 1425,
         "withheld": 190,
@@ -762,7 +762,7 @@
       "expect": "keep",
       "final": "trial",
       "tally": {
-        "lesson_id": "019fc6d9f2803885acf17f6915ec",
+        "lesson_id": "0000000000050000000000000001",
         "exposed": 1483,
         "exposed_successes": 1134,
         "withheld": 1421,
@@ -778,7 +778,7 @@
       "expect": "accept",
       "final": "trial",
       "tally": {
-        "lesson_id": "019fc6d9f2801189ce6e647f7d83",
+        "lesson_id": "0000000000050000000000000002",
         "exposed": 1446,
         "exposed_successes": 1137,
         "withheld": 1468,
@@ -794,7 +794,7 @@
       "expect": "accept",
       "final": "accepted",
       "tally": {
-        "lesson_id": "019fc6d9f280faf5b37e86f1e26d",
+        "lesson_id": "0000000000050000000000000003",
         "exposed": 1700,
         "exposed_successes": 1409,
         "withheld": 196,
@@ -811,7 +811,7 @@
       "expect": "accept",
       "final": "trial",
       "tally": {
-        "lesson_id": "019fc6d9f28097418cad1330c20a",
+        "lesson_id": "0000000000050000000000000004",
         "exposed": 1433,
         "exposed_successes": 1124,
         "withheld": 1465,
@@ -827,7 +827,7 @@
       "expect": "accept",
       "final": "accepted",
       "tally": {
-        "lesson_id": "019fc6d9f2807d4dcc3d7fb98d28",
+        "lesson_id": "0000000000050000000000000005",
         "exposed": 1353,
         "exposed_successes": 1131,
         "withheld": 143,
@@ -844,7 +844,7 @@
       "expect": "keep",
       "final": "trial",
       "tally": {
-        "lesson_id": "019fc6d9f2805cf0c177a7b64239",
+        "lesson_id": "0000000000050000000000000006",
         "exposed": 1464,
         "exposed_successes": 1102,
         "withheld": 1441,
@@ -860,7 +860,7 @@
       "expect": "keep",
       "final": "trial",
       "tally": {
-        "lesson_id": "019fc6d9f2808890918559504396",
+        "lesson_id": "0000000000050000000000000007",
         "exposed": 1448,
         "exposed_successes": 1113,
         "withheld": 1476,
@@ -876,7 +876,7 @@
       "expect": "eliminate",
       "final": "eliminated",
       "tally": {
-        "lesson_id": "019fc6d9f280dff91a6bf9879116",
+        "lesson_id": "0000000000050000000000000008",
         "exposed": 70,
         "exposed_successes": 0,
         "withheld": 67,
@@ -893,7 +893,7 @@
       "expect": "eliminate",
       "final": "eliminated",
       "tally": {
-        "lesson_id": "019fc6d9f280db5f8abf5b2f307d",
+        "lesson_id": "0000000000050000000000000009",
         "exposed": 155,
         "exposed_successes": 40,
         "withheld": 164,
@@ -910,7 +910,7 @@
       "expect": "eliminate",
       "final": "eliminated",
       "tally": {
-        "lesson_id": "019fc6d9f280a849b6e3ab9a8537",
+        "lesson_id": "000000000005000000000000000a",
         "exposed": 136,
         "exposed_successes": 35,
         "withheld": 161,

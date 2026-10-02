@@ -257,8 +257,6 @@ Known issues carried in from Phase 2 (they distort the data Phase 3 measures):
   (listening by default is an owner decision, Helix threat model V2b).
 - Metabolism: repeat detection compares a request only with the immediately
   preceding turn.
-- Metabolism: the nutrient evaluation's regression sample varies between
-  runs (it is keyed on random lesson IDs); decisions do not.
 
 **GO / NO-GO gate.** Compare with the Phase 0 baseline after at least 4 weeks
 of real Helix use plus the public benchmark:

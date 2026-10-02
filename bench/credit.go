@@ -154,7 +154,7 @@ func creditSeed(ctx context.Context, path string, seed uint64, turns, settleEver
 	specs := append(helixsim.CorrectLessons(), helixsim.WrongLessons()...)
 	rows := make([]CreditRow, 0, len(specs))
 	ids := make([]types.ID, 0, len(specs))
-	for _, s := range specs {
+	for i, s := range specs {
 		var src []types.ID
 		for _, e := range hist {
 			if e.Attrs["scenario"] == s.From && len(src) < 3 {
@@ -164,7 +164,7 @@ func creditSeed(ctx context.Context, path string, seed uint64, turns, settleEver
 		if len(src) == 0 {
 			src = []types.ID{hist[0].ID}
 		}
-		l, err := m.Create(ctx, types.Lesson{Kind: s.Kind, Scope: types.Scope{Level: types.ScopeGlobal},
+		l, err := m.Create(ctx, types.Lesson{ID: plantedID(seed, i), Kind: s.Kind, Scope: types.Scope{Level: types.ScopeGlobal},
 			Text: s.Text, Sources: src, Provenance: types.ProvUserTyped, Origin: "planted"}, "planted by credit-eval")
 		if err != nil {
 			return nil, err

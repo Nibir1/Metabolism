@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/csv"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -13,6 +14,7 @@ import (
 	"github.com/Nibir1/metabolism/hosts/helixsim"
 	"github.com/Nibir1/metabolism/judge"
 	"github.com/Nibir1/metabolism/types"
+	"github.com/Nibir1/metabolism/verify"
 )
 
 var t0 = time.Date(2026, 9, 28, 0, 0, 0, 0, time.UTC) // a Monday
@@ -161,5 +163,27 @@ func TestLoadAndReplayOnSimulatedHelix(t *testing.T) {
 	}
 	if want == 0 || s.PreferWith != want || s.PreferOld != 0 || s.Compared != len(ds.Episodes) {
 		t.Fatalf("replay summary %+v, want prefer_with=%d prefer_without=0", s, want)
+	}
+}
+
+// Regenerating the committed baseline must not change it: two runs of the
+// nutrient evaluation give identical rows.
+func TestNutrientEvalIsReproducible(t *testing.T) {
+	ctx := context.Background()
+	a, err := EvaluateNutrient(ctx, []uint64{1, 2}, 200, verify.Config{}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	b, err := EvaluateNutrient(ctx, []uint64{1, 2}, 200, verify.Config{}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(a, b) {
+		for i := range a.Rows {
+			if a.Rows[i] != b.Rows[i] {
+				t.Errorf("row %d differs:\n%+v\n%+v", i, a.Rows[i], b.Rows[i])
+			}
+		}
+		t.Fatal("two runs differ")
 	}
 }
