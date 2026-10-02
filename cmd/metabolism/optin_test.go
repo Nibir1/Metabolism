@@ -224,3 +224,75 @@ func TestSaveLabelAndScore(t *testing.T) {
 		t.Fatalf("%d labels for %d comparisons (resume must not relabel)", len(labels), len(comps))
 	}
 }
+
+// crosscheck shows the second judge the exact saved view and scores agreement.
+func TestCrosscheckUsesTheSavedViewAndScores(t *testing.T) {
+	ctx := context.Background()
+	dir := t.TempDir()
+	journal := filepath.Join(dir, "j.db")
+	saved := filepath.Join(dir, "c.ndjson")
+	for _, args := range [][]string{
+		{"sim", "-journal", journal, "-count", "300"},
+		{"digest", "-journal", journal, "-reflector", "sim"},
+		{"verify", "-journal", journal, "-save", saved},
+	} {
+		if err := run(ctx, args, &bytes.Buffer{}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	comps, _ := readNDJSON[comparisonRecord](saved)
+	if len(comps) == 0 {
+		t.Fatal("no comparisons saved")
+	}
+	var seen []string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var body struct {
+			Messages []struct{ Content string } `json:"messages"`
+		}
+		_ = json.NewDecoder(r.Body).Decode(&body)
+		user := body.Messages[len(body.Messages)-1].Content
+		seen = append(seen, user)
+		// Agree with the heuristic judge: pick the plan whose last line is a reply.
+		var p struct {
+			PlanA []string `json:"plan_a"`
+		}
+		_ = json.Unmarshal([]byte(user[strings.Index(user, "{"):strings.LastIndex(user, "}")+1]), &p)
+		better := "b"
+		if !strings.Contains(strings.Join(p.PlanA, " "), "(fails") && len(p.PlanA) <= 2 {
+			better = "a"
+		}
+		reply, _ := json.Marshal(map[string]any{"message": map[string]string{
+			"content": fmt.Sprintf(`{"better":%q,"confidence":0.9,"reason":"test"}`, better)}})
+		_, _ = w.Write(reply)
+	}))
+	defer srv.Close()
+	t.Setenv("OLLAMA_HOST", srv.URL)
+
+	var out bytes.Buffer
+	if err := run(ctx, []string{"crosscheck", "-from", saved, "-judge", "ollama"}, &out); err != nil {
+		t.Fatalf("crosscheck: %v\n%s", err, out.String())
+	}
+	if len(seen) != len(comps) {
+		t.Fatalf("second judge asked %d times for %d comparisons", len(seen), len(comps))
+	}
+	if !strings.Contains(seen[0], comps[0].Request) || !strings.Contains(seen[0], comps[0].PlanA[0]) {
+		t.Fatal("the second judge was not shown the saved view")
+	}
+	got := out.String()
+	for _, want := range []string{"against heuristic", "agree ", "Cohen's κ", "not the human-labelled"} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("output lacks %q:\n%s", want, got)
+		}
+	}
+	path := crossPath(saved, "llm:ollama/qwen3:8b")
+	if strings.ContainsAny(filepath.Base(path), ":/") {
+		t.Fatalf("unsafe filename %q", path)
+	}
+	recs, err := readNDJSON[crossRecord](path)
+	if err != nil || len(recs) != len(comps) {
+		t.Fatalf("saved %d cross verdicts, err %v", len(recs), err)
+	}
+	if err := run(ctx, []string{"crosscheck", "-from", saved, "-judge", "heuristic"}, &bytes.Buffer{}); err == nil {
+		t.Fatal("the heuristic judge was allowed to re-judge saved pairs")
+	}
+}

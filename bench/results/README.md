@@ -132,3 +132,12 @@ eliminated everything under D-015. The path lesson cannot show value when
 replayed from `~`, where there is no drift to fix, and is correctly left
 undecided rather than eliminated. 34 judged comparisons were saved for blind
 labelling.
+
+### Judge agreement: first labelling pass not usable
+
+The first blind labelling pass over the 34 saved comparisons answered "a" for
+all 34, many within 1–3 seconds of each other. Jev chose A 9 times, so the
+printed "26.5% agreement, κ −0.38" measured only how often Jev also picked A.
+It is **not** a judge-agreement result. `label -score` now refuses to grade a
+sample where at least 90% of labels are one letter, and `label -redo` starts
+a fresh pass and keeps the old labels.

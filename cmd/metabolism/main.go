@@ -12,7 +12,8 @@
 //	metabolism lessons -journal PATH [-state S] [-id ID]
 //	metabolism nutrient-eval [-seeds 5] [-count 400] [-out DIR]
 //	metabolism replay  -journal PATH -episode ID -lesson TEXT [-host helix] [-judge jev] -allow-remote
-//	metabolism label   -from FILE [-score]
+//	metabolism label   -from FILE [-score] [-redo]
+//	metabolism crosscheck -from FILE [-judge deepseek] -allow-remote
 //
 // The journal defaults to $METABOLISM_JOURNAL, then ~/.metabolism/journal.db.
 package main
@@ -52,6 +53,7 @@ commands:
   nutrient-eval  does the nutrient test reject planted wrong lessons? (simulator)
   replay   replay one episode with and without a lesson; show both plans and the verdict
   label    label saved comparisons blind, or score a judge against your labels
+  crosscheck  re-judge saved comparisons with a second judge and report agreement
 
 run "metabolism <command> -h" for a command's flags
 `
@@ -93,13 +95,15 @@ func run(ctx context.Context, args []string, out io.Writer) error {
 		return cmdNutrientEval(ctx, args[1:], out)
 	case "replay":
 		return cmdReplay(ctx, args[1:], out)
+	case "crosscheck":
+		return cmdCrosscheck(ctx, args[1:], out)
 	case "label":
 		return cmdLabel(ctx, args[1:], out, os.Stdin)
 	case "help", "-h", "--help":
 		_, _ = fmt.Fprint(out, usage)
 		return nil
 	}
-	return fmt.Errorf("unknown command %q (try: doctor, ingest, sim, curves, inspect, recall, recall-eval, digest, verify, lessons, nutrient-eval, replay, label)", args[0])
+	return fmt.Errorf("unknown command %q (try: doctor, ingest, sim, curves, inspect, recall, recall-eval, digest, verify, lessons, nutrient-eval, replay, label, crosscheck)", args[0])
 }
 
 func defaultJournal() string {

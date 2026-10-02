@@ -62,7 +62,11 @@ var question = typesafe.Choice{
 
 // Compare implements ports.Judge.
 func (j Judge) Compare(ctx context.Context, original types.Episode, outcomes []types.Outcome, with, without types.ReplayResult) (types.Verdict, error) {
-	pair := judge.NewPair(original, outcomes, with, without)
+	return j.ComparePair(ctx, judge.NewPair(original, outcomes, with, without))
+}
+
+// ComparePair judges a pair as already presented.
+func (j Judge) ComparePair(ctx context.Context, pair judge.Pair) (types.Verdict, error) {
 	resp, err := j.API.SystemOne(ctx, &typesafe.SystemOneRequest{
 		State:     pair,
 		Model:     j.Model,

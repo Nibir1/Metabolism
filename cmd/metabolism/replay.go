@@ -169,6 +169,7 @@ func cmdLabel(ctx context.Context, args []string, out io.Writer, in io.Reader) e
 	fs.SetOutput(out)
 	from := fs.String("from", "", "comparisons file written by verify -save (required)")
 	score := fs.Bool("score", false, "score the judge against the labels instead of labelling")
+	redo := fs.Bool("redo", false, "start labelling again; earlier labels are kept in <file>.labels.<time>")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
@@ -180,6 +181,15 @@ func cmdLabel(ctx context.Context, args []string, out io.Writer, in io.Reader) e
 		return err
 	}
 	labelsPath := *from + ".labels"
+	if *redo {
+		if _, err := os.Stat(labelsPath); err == nil {
+			kept := labelsPath + "." + time.Now().UTC().Format("20060102T150405")
+			if err := os.Rename(labelsPath, kept); err != nil {
+				return err
+			}
+			say(out, "earlier labels kept in %s\n", kept)
+		}
+	}
 	labels, err := readNDJSON[labelRecord](labelsPath)
 	if err != nil && !errors.Is(err, os.ErrNotExist) {
 		return err
@@ -262,6 +272,23 @@ func scoreLabels(out io.Writer, comps []comparisonRecord, done map[string]string
 	if len(byJudge) == 0 {
 		say(out, "no labelled comparisons yet: run metabolism label -from <file> first\n")
 		return nil
+	}
+	// A labeller who gives (almost) the same answer every time has not
+	// compared anything, and an agreement score against that would measure
+	// only how often the judge picked the same letter. The with-lesson plan's
+	// position is randomised, so honest labels are not this uniform.
+	letters := map[string]int{}
+	n := 0
+	for _, l := range done {
+		letters[l]++
+		n++
+	}
+	for l, k := range letters {
+		if n >= 10 && float64(k)/float64(n) >= 0.9 {
+			say(out, "%d of %d labels are %q: these labels cannot measure a judge, so no score is given.\n", k, n, l)
+			say(out, "Label again with: metabolism label -from <file> -redo\n")
+			return nil
+		}
 	}
 	for name, ls := range byJudge {
 		a := bench.Score(ls)

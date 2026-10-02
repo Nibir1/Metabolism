@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -147,6 +148,48 @@ func TestDoctor(t *testing.T) {
 		if !strings.Contains(got, want) {
 			t.Errorf("after ingest, doctor output lacks %q:\n%s", want, got)
 		}
+	}
+}
+
+// Uniform labels cannot measure a judge; -redo keeps the old ones.
+func TestLabelScoreRefusesUniformLabelsAndRedoKeepsThem(t *testing.T) {
+	ctx := context.Background()
+	dir := t.TempDir()
+	journal := filepath.Join(dir, "j.db")
+	saved := filepath.Join(dir, "c.ndjson")
+	for _, args := range [][]string{
+		{"sim", "-journal", journal, "-count", "300"},
+		{"digest", "-journal", journal, "-reflector", "sim"},
+		{"verify", "-journal", journal, "-save", saved},
+	} {
+		if err := run(ctx, args, &bytes.Buffer{}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	comps, _ := readNDJSON[comparisonRecord](saved)
+	if len(comps) < 10 {
+		t.Skipf("only %d comparisons saved", len(comps))
+	}
+	if err := cmdLabel(ctx, []string{"-from", saved}, &bytes.Buffer{}, strings.NewReader(strings.Repeat("a\n", len(comps)))); err != nil {
+		t.Fatal(err)
+	}
+	var out bytes.Buffer
+	if err := cmdLabel(ctx, []string{"-from", saved, "-score"}, &out, nil); err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(out.String(), "cannot measure a judge") || strings.Contains(out.String(), "agrees on") {
+		t.Fatalf("uniform labels were scored:\n%s", out.String())
+	}
+	out.Reset()
+	if err := cmdLabel(ctx, []string{"-from", saved, "-redo"}, &out, strings.NewReader("q\n")); err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(out.String(), "earlier labels kept in") || !strings.Contains(out.String(), fmt.Sprintf("%d to label", len(comps))) {
+		t.Fatalf("redo output:\n%s", out.String())
+	}
+	kept, _ := filepath.Glob(saved + ".labels.*")
+	if len(kept) != 1 {
+		t.Fatalf("old labels not kept: %v", kept)
 	}
 }
 

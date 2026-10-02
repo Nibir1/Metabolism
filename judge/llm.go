@@ -32,7 +32,12 @@ Answer with one JSON object and nothing else:
 
 // Compare implements ports.Judge.
 func (j LLM) Compare(ctx context.Context, original types.Episode, outcomes []types.Outcome, with, without types.ReplayResult) (types.Verdict, error) {
-	pair := NewPair(original, outcomes, with, without)
+	return j.ComparePair(ctx, NewPair(original, outcomes, with, without))
+}
+
+// ComparePair judges a pair as already presented, for re-judging saved
+// comparisons with exactly the view another judge saw.
+func (j LLM) ComparePair(ctx context.Context, pair Pair) (types.Verdict, error) {
 	view, err := json.MarshalIndent(pair, "", " ")
 	if err != nil {
 		return types.Verdict{}, err
