@@ -97,6 +97,32 @@ func TestTrialRequiresPassingEvidenceForThatLesson(t *testing.T) {
 	}
 }
 
+// Acceptance is earned on live outcomes: a passing replay test is not enough.
+func TestAcceptedRequiresPassingCreditEvidence(t *testing.T) {
+	ctx := context.Background()
+	_, m, ep := setup(t)
+	l, _ := m.Create(ctx, draft(ep, types.ProvUserTyped), "reflected")
+	pass, _ := m.RecordEvidence(ctx, evidence(l.ID, types.ResultPass))
+	if err := m.Move(ctx, l.ID, types.StateTrial, "passed", pass.ID); err != nil {
+		t.Fatal(err)
+	}
+	if err := m.Move(ctx, l.ID, types.StateAccepted, "replay passed", pass.ID); !errors.Is(err, ErrNoEvidence) {
+		t.Fatalf("accepted on nutrient-test evidence: err = %v", err)
+	}
+	credit := func(r types.TestResult) types.Evidence {
+		return types.Evidence{LessonID: l.ID, Kind: types.EvidenceCredit, Result: r, Summary: "credit",
+			Exposed: 30, ExposedSuccesses: 25, Withheld: 20, WithheldSuccesses: 10, PBetter: 0.99}
+	}
+	fail, _ := m.RecordEvidence(ctx, credit(types.ResultFail))
+	if err := m.Move(ctx, l.ID, types.StateAccepted, "failed credit", fail.ID); !errors.Is(err, ErrNoEvidence) {
+		t.Fatalf("accepted on failing credit: err = %v", err)
+	}
+	ok, _ := m.RecordEvidence(ctx, credit(types.ResultPass))
+	if err := m.Move(ctx, l.ID, types.StateAccepted, "credit passed", ok.ID); err != nil {
+		t.Fatalf("accepted on passing credit: %v", err)
+	}
+}
+
 func TestIllegalMovesAreRefused(t *testing.T) {
 	ctx := context.Background()
 	_, m, ep := setup(t)

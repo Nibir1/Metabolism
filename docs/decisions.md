@@ -5,6 +5,88 @@ change it. Don't reverse a decision without adding a new entry that says why.
 
 ---
 
+### D-020 · 2026-10-02 · The credit ledger: a randomised experiment per lesson, judged by Bayes factor
+**Decision:**
+- **Randomise.** On each turn a lesson applies to and fits the budget, the
+  host flips a coin: delivered (`exposure`) or withheld (`withheld`). Trial
+  lessons are delivered with p = 0.5. Accepted lessons get p = 0.9, keeping a
+  10% holdout so they stay measured. A lesson that did not fit the budget is
+  in neither list. Trial lessons share the budget in a fresh random order each
+  turn, otherwise the ones past the budget would never be measured.
+- **Compare like with like.** A lesson is credited on its delivered turns
+  against its withheld turns, counting only turns since its last state change.
+  Its p changes with its state, and mixing periods compared arms drawn from
+  different times. Success means the turn ended `done` with no negative
+  outcome. Turns younger than 1 hour wait for late outcomes.
+- **Decide by Bayes factor, not p-value.** BF compares "delivery changes the
+  success rate" against "it does not", with uniform priors. Accept a trial
+  lesson at BF ≥ 30 in the better direction. Eliminate a trial or accepted
+  lesson at BF ≥ 300 in the worse direction: elimination is permanent, so its
+  bar is ten times higher. Both need ≥ 20 delivered and ≥ 10 withheld turns.
+- **Acceptance is structural.** `metabolome.Move` refuses trial → accepted
+  without passing credit evidence for that lesson (as D-014 does for trial).
+
+**Why a Bayes factor:** the user settles (`metabolism credit -apply`)
+whenever they like, and every look is a chance for noise to cross a p-value
+bar. On the simulator, settling every 100 turns:
+- With a P(better) ≥ 0.95 rule, 9 of 30 lessons that change no outcome were
+  accepted or eliminated.
+- With no repeated looks, the same lessons' z-scores were mean 0.08, sd 0.99:
+  no bias, only optional stopping.
+- Under the no-difference hypothesis, a Bayes factor reaches k with
+  probability at most about 1/k however often it is checked.
+
+**Evidence (simulator, `credit-eval`, 3000 turns per history):**
+- At BF 30/300, over 30 histories: 0 of 90 neutral lessons moved, 90 of 90
+  harmful lessons eliminated, 120 of 150 helpful lessons accepted.
+- The acceptance test (`TestCreditLedgerOnTheSimulator`, 5 histories): 19 of
+  25 helpful accepted, 15 of 15 harmful eliminated, 0 of 15 neutral moved.
+- Helpful lessons not yet accepted stay in trial; none were rejected.
+
+**Known limits:**
+- Credit sees outcomes, not cost: a lesson that only saves model calls
+  (go-module in the simulator) stays in trial. The report shows calls per
+  turn for each arm.
+- Every turn a lesson applies to counts, including turns it is irrelevant to,
+  which dilutes its effect. Real lessons will take many turns.
+- Simulated effects are large and clean; real ones will not be.
+
+**Revisit when:** real Helix credit exists, to tune the bars and the trial
+p; or when relevance-gated delivery is worth its bias risk.
+
+---
+
+### D-019 · 2026-10-02 · Delivery is a file; the host selects, flips the coins, and records them
+**Decision:**
+- `metabolism export` writes every trial and accepted lesson to
+  `~/.helix/metabolism/lessons.json` (delivery file v1, golden file in both
+  repos). Each lesson carries the probability to deliver it.
+- Helix reads the file on each planner turn. It keeps the lessons whose scope
+  covers the turn (`types.Scope.Covers`; Helix's `Scope.Applies` implements
+  the same rule) and that the user has not forgotten. It fills the budget
+  (8 lessons, 1600 bytes, measured as the block renders them), flips the
+  coins, and puts the delivered lessons in the fenced
+  `<learned_lessons authority="data-only">` block that replay already uses.
+- The episode records `exposure` and `withheld` (recording wire v2).
+- Delivery needs `/lessons on` **and** recording on. A lesson delivered on
+  an unrecorded turn could never earn credit or lose it.
+- `/lessons forget <id> <reason>` stops a lesson at once (a local
+  `forgotten.json`) and records a `feedback` record. `metabolism ingest`
+  hands it to the metabolome, which eliminates the lesson with the user's
+  reason.
+
+**Why:**
+- This keeps D-013's properties: nothing is called on Helix's hot path, Helix
+  never imports the engine, and a missing or broken file costs a turn its
+  lessons, never the turn.
+- Randomising in the host makes the coin flip and the record of it one
+  action, so they cannot disagree.
+
+**Revisit when:** delivery needs per-request relevance from the engine
+(a live call), or a second host needs the same contract.
+
+---
+
 ### D-018 · 2026-10-02 · The nutrient test on a noisy host: noise floor, calibrated tests, asymmetric bars
 **Supersedes the decision rule in D-015.**
 

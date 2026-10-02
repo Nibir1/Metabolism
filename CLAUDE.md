@@ -7,16 +7,16 @@ lessons, verifies each lesson before keeping it, delivers kept lessons to
 future work, credits or blames them by outcome, and eliminates what stops
 earning its place.
 
-Status (2026-10-02): **Phases 0, 1 and 2 built; Phase 3 (distribution and the
-credit ledger) is next.** Phase 2 has three stages: 2a engine core, 2b real
-reflectors and judges (Jev and DeepSeek 11/11 on the simulator), 2c real Helix
-replay (`helix replay`, blind labelling, judge cross-check). Under D-018 the
-first lesson learned from real Helix episodes passed the nutrient test on real
-replays. Open exit criteria, all waiting on real data: the real Helix baseline
-(weeks of use), a public benchmark, planted wrong lessons on real replays, and
-a human-labelled sample for judge agreement. See
-[docs/roadmap.md](docs/roadmap.md). The docs below are the source of truth for
-what, why and how.
+Status (2026-10-02): **Phases 0–3 built.** Phase 2: reflection and the
+nutrient test, on the simulator and on real Helix replays (the first real
+lesson passed, D-018). Phase 3: delivery of tested lessons into live Helix
+turns by coin flip (D-019) and a credit ledger that accepts or eliminates them
+by Bayes factor on live outcomes (D-020), checked on the simulator. Open exit
+criteria, all waiting on real data: the real Helix baseline (weeks of use with
+lessons off), a public benchmark, planted wrong lessons on real replays, a
+human-labelled sample for judge agreement, real credit decisions, and the
+Phase 3 go/no-go. See [docs/roadmap.md](docs/roadmap.md). The docs below are
+the source of truth for what, why and how.
 
 ## Working in this repo
 
@@ -34,27 +34,33 @@ what, why and how.
   | `types/` | vocabulary |
   | `ports/` | interfaces; the engine imports only these and `types` |
   | `adapters/journal/sqlite` | durable journal |
-  | `adapters/ndjson` | `metabolism ingest`: reads Helix's recorded episodes (wire v1) |
+  | `adapters/ndjson` | `metabolism ingest`: reads Helix's recorded episodes (wire v1 and v2) and `/lessons forget` feedback |
   | `episodic/` | tier-1 memory: time-aware case recall over the journal |
   | `metabolome/` | event-sourced lessons; the only code that changes lesson state (D-014) |
   | `immune/` | deterministic screen: no lesson may weaken a safety gate |
   | `digest/` | reflection: reflector output is untrusted until validated |
   | `verify/` | the nutrient test: replays, A/A noise floor, calibrated decision rule (D-015, D-018) |
+  | `deliver/` | `metabolism export`: the delivery file Helix reads, and the reference selection (D-019) |
+  | `ledger/` | the credit ledger: delivered vs withheld turns, Bayes-factor decisions (D-020) |
   | `judge/` | judges: heuristic, LLM (via `ports.Model`), and the plain-words pair view every model judge sees |
   | `llmreflect/` | LLM reflector (via `ports.Model`) |
   | `adapters/remote/` | the only code that reaches beyond the machine: `llm` (Ollama, DeepSeek), `jev` (typesafe-go), `helix` (drives `helix replay`). Imported only by the CLI, behind `-allow-remote` (D-016, D-017) |
   | `internal/privacyguard` | test: no network code outside `adapters/remote/` |
   | `hosts/helixsim` | simulated Helix |
-  | `bench/` | metrics, curves, recall evaluation, nutrient-test evaluation, judge agreement (κ) |
+  | `bench/` | metrics, curves, recall evaluation, nutrient-test and credit evaluation, judge agreement (κ) |
   | `cmd/metabolism` | CLI |
 
 - Helix integration work happens in `../Helix` on branch
   `feat/metabolism-integration` (the same branch name in typesafe-go). Never
-  on main. Two Helix ↔ engine contracts, each pinned by a golden file in both
-  repos: recording wire v1 (D-013) and replay wire v1 (D-017).
-  `make check-wire` compares both.
+  on main. Helix ↔ engine contracts, each pinned by a golden file in both
+  repos: recording wire v1 and v2 (D-013, D-019), replay v1 (D-017) and the
+  delivery file v1 (D-019). `make check-wire` compares them all.
 - Helix is built and tested with `CGO_ENABLED=0` on this machine (the cgo
   linker fails; see [docs/verifying.md](docs/verifying.md)).
+- `make demo` (and so `make verify`) deletes and rebuilds `.demo/cli/`. Keep
+  journals and files from live runs in `.runs/`, which no target touches.
+  The first live-run data was lost to an older demo that cleared all of
+  `.demo/`.
 - The journal is append-only by database trigger. Never add a code path that
   updates or deletes records. Forget-with-proof is a planned, audited Phase 4
   migration.

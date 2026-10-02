@@ -1,0 +1,925 @@
+{
+  "seeds": 5,
+  "turns_per_seed": 3000,
+  "settle_every": 100,
+  "help_accept_rate": 0.76,
+  "harm_eliminate_rate": 1,
+  "neutral_moved_rate": 0,
+  "neutral_eliminated": 0,
+  "rows": [
+    {
+      "seed": 1,
+      "text": "When a glob or search comes back empty, treat that as the answer instead of loosening the pattern (empty-glob).",
+      "expect": "accept",
+      "final": "accepted",
+      "tally": {
+        "lesson_id": "019fc6d9f280934c1f893aa72d59",
+        "exposed": 1608,
+        "exposed_successes": 1263,
+        "withheld": 188,
+        "withheld_successes": 139,
+        "exposed_calls": 2394,
+        "withheld_calls": 360,
+        "immature": 0
+      },
+      "at": 1200
+    },
+    {
+      "seed": 1,
+      "text": "This is a Go module: read go.mod, not package.json, to find build and dependency information (go-module).",
+      "expect": "keep",
+      "final": "trial",
+      "tally": {
+        "lesson_id": "019fc6d9f2805e94387955fba758",
+        "exposed": 1461,
+        "exposed_successes": 1028,
+        "withheld": 1418,
+        "withheld_successes": 1026,
+        "exposed_calls": 2259,
+        "withheld_calls": 2590,
+        "immature": 0
+      }
+    },
+    {
+      "seed": 1,
+      "text": "Only report tests as passing from a run made after the last edit (fresh-evidence).",
+      "expect": "accept",
+      "final": "accepted",
+      "tally": {
+        "lesson_id": "019fc6d9f280cdade58791f9bce2",
+        "exposed": 357,
+        "exposed_successes": 302,
+        "withheld": 39,
+        "withheld_successes": 29,
+        "exposed_calls": 548,
+        "withheld_calls": 52,
+        "immature": 0
+      },
+      "at": 2600
+    },
+    {
+      "seed": 1,
+      "text": "The user declines package upgrades without a named package; ask which package first (ask-package).",
+      "expect": "accept",
+      "final": "accepted",
+      "tally": {
+        "lesson_id": "",
+        "exposed": 0,
+        "exposed_successes": 0,
+        "withheld": 0,
+        "withheld_successes": 0,
+        "exposed_calls": 0,
+        "withheld_calls": 0,
+        "immature": 0
+      },
+      "at": 3000
+    },
+    {
+      "seed": 1,
+      "text": "Before committing, review what is staged instead of running git add -A (review-staged).",
+      "expect": "accept",
+      "final": "trial",
+      "tally": {
+        "lesson_id": "019fc6d9f28093976ed38b7275f3",
+        "exposed": 1422,
+        "exposed_successes": 1061,
+        "withheld": 1448,
+        "withheld_successes": 1005,
+        "exposed_calls": 2244,
+        "withheld_calls": 2561,
+        "immature": 0
+      }
+    },
+    {
+      "seed": 1,
+      "text": "Edit files with the file tool's exact-snippet edit, not in-place sed, which reports success when it changes nothing (file-edit).",
+      "expect": "accept",
+      "final": "accepted",
+      "tally": {
+        "lesson_id": "019fc6d9f280761ba33355f80eba",
+        "exposed": 272,
+        "exposed_successes": 230,
+        "withheld": 24,
+        "withheld_successes": 18,
+        "exposed_calls": 402,
+        "withheld_calls": 37,
+        "immature": 0
+      },
+      "at": 2700
+    },
+    {
+      "seed": 1,
+      "text": "Prefer tabs over spaces when writing YAML files.",
+      "expect": "keep",
+      "final": "trial",
+      "tally": {
+        "lesson_id": "019fc6d9f280d1f87ecae886a5ac",
+        "exposed": 1443,
+        "exposed_successes": 1030,
+        "withheld": 1435,
+        "withheld_successes": 1033,
+        "exposed_calls": 2387,
+        "withheld_calls": 2432,
+        "immature": 0
+      }
+    },
+    {
+      "seed": 1,
+      "text": "The user likes answers that start with a summary line.",
+      "expect": "keep",
+      "final": "trial",
+      "tally": {
+        "lesson_id": "019fc6d9f280eb8e26a227f69173",
+        "exposed": 1402,
+        "exposed_successes": 1000,
+        "withheld": 1482,
+        "withheld_successes": 1068,
+        "exposed_calls": 2346,
+        "withheld_calls": 2494,
+        "immature": 0
+      }
+    },
+    {
+      "seed": 1,
+      "text": "Re-run the full test suite after every step to be safe (always-rerun).",
+      "expect": "eliminate",
+      "final": "eliminated",
+      "tally": {
+        "lesson_id": "019fc6d9f280ec9f12a17019edba",
+        "exposed": 73,
+        "exposed_successes": 0,
+        "withheld": 71,
+        "withheld_successes": 32,
+        "exposed_calls": 232,
+        "withheld_calls": 146,
+        "immature": 0
+      },
+      "at": 200
+    },
+    {
+      "seed": 1,
+      "text": "Assume a Node project and read package.json first when building (node-first).",
+      "expect": "eliminate",
+      "final": "eliminated",
+      "tally": {
+        "lesson_id": "019fc6d9f280c3a14b3b626acb83",
+        "exposed": 210,
+        "exposed_successes": 63,
+        "withheld": 167,
+        "withheld_successes": 86,
+        "exposed_calls": 521,
+        "withheld_calls": 346,
+        "immature": 0
+      },
+      "at": 500
+    },
+    {
+      "seed": 1,
+      "text": "Use in-place sed for quick renames; it is faster than the file tool (prefer-sed).",
+      "expect": "eliminate",
+      "final": "eliminated",
+      "tally": {
+        "lesson_id": "019fc6d9f2805f63806f5a945f90",
+        "exposed": 267,
+        "exposed_successes": 94,
+        "withheld": 232,
+        "withheld_successes": 127,
+        "exposed_calls": 637,
+        "withheld_calls": 465,
+        "immature": 0
+      },
+      "at": 600
+    },
+    {
+      "seed": 2,
+      "text": "When a glob or search comes back empty, treat that as the answer instead of loosening the pattern (empty-glob).",
+      "expect": "accept",
+      "final": "accepted",
+      "tally": {
+        "lesson_id": "019fc6d9f28039203f67e64b49f2",
+        "exposed": 1343,
+        "exposed_successes": 1084,
+        "withheld": 153,
+        "withheld_successes": 110,
+        "exposed_calls": 1954,
+        "withheld_calls": 277,
+        "immature": 0
+      },
+      "at": 1500
+    },
+    {
+      "seed": 2,
+      "text": "This is a Go module: read go.mod, not package.json, to find build and dependency information (go-module).",
+      "expect": "keep",
+      "final": "trial",
+      "tally": {
+        "lesson_id": "019fc6d9f2805d6ba15373b1f10b",
+        "exposed": 1429,
+        "exposed_successes": 1001,
+        "withheld": 1425,
+        "withheld_successes": 1005,
+        "exposed_calls": 2212,
+        "withheld_calls": 2617,
+        "immature": 0
+      }
+    },
+    {
+      "seed": 2,
+      "text": "Only report tests as passing from a run made after the last edit (fresh-evidence).",
+      "expect": "accept",
+      "final": "accepted",
+      "tally": {
+        "lesson_id": "019fc6d9f280d48ef936820dc99c",
+        "exposed": 268,
+        "exposed_successes": 215,
+        "withheld": 28,
+        "withheld_successes": 20,
+        "exposed_calls": 396,
+        "withheld_calls": 44,
+        "immature": 0
+      },
+      "at": 2700
+    },
+    {
+      "seed": 2,
+      "text": "The user declines package upgrades without a named package; ask which package first (ask-package).",
+      "expect": "accept",
+      "final": "accepted",
+      "tally": {
+        "lesson_id": "",
+        "exposed": 0,
+        "exposed_successes": 0,
+        "withheld": 0,
+        "withheld_successes": 0,
+        "exposed_calls": 0,
+        "withheld_calls": 0,
+        "immature": 0
+      },
+      "at": 3000
+    },
+    {
+      "seed": 2,
+      "text": "Before committing, review what is staged instead of running git add -A (review-staged).",
+      "expect": "accept",
+      "final": "trial",
+      "tally": {
+        "lesson_id": "019fc6d9f2805c9b56b6fa76256f",
+        "exposed": 1425,
+        "exposed_successes": 1036,
+        "withheld": 1399,
+        "withheld_successes": 961,
+        "exposed_calls": 2357,
+        "withheld_calls": 2436,
+        "immature": 0
+      }
+    },
+    {
+      "seed": 2,
+      "text": "Edit files with the file tool's exact-snippet edit, not in-place sed, which reports success when it changes nothing (file-edit).",
+      "expect": "accept",
+      "final": "accepted",
+      "tally": {
+        "lesson_id": "019fc6d9f28087b2019356744f82",
+        "exposed": 825,
+        "exposed_successes": 686,
+        "withheld": 71,
+        "withheld_successes": 39,
+        "exposed_calls": 1203,
+        "withheld_calls": 122,
+        "immature": 0
+      },
+      "at": 2100
+    },
+    {
+      "seed": 2,
+      "text": "Prefer tabs over spaces when writing YAML files.",
+      "expect": "keep",
+      "final": "trial",
+      "tally": {
+        "lesson_id": "019fc6d9f280d5ea258c1957af3f",
+        "exposed": 1436,
+        "exposed_successes": 1017,
+        "withheld": 1418,
+        "withheld_successes": 985,
+        "exposed_calls": 2394,
+        "withheld_calls": 2478,
+        "immature": 0
+      }
+    },
+    {
+      "seed": 2,
+      "text": "The user likes answers that start with a summary line.",
+      "expect": "keep",
+      "final": "trial",
+      "tally": {
+        "lesson_id": "019fc6d9f280b5db2e9a1b422108",
+        "exposed": 1466,
+        "exposed_successes": 1051,
+        "withheld": 1380,
+        "withheld_successes": 955,
+        "exposed_calls": 2484,
+        "withheld_calls": 2347,
+        "immature": 0
+      }
+    },
+    {
+      "seed": 2,
+      "text": "Re-run the full test suite after every step to be safe (always-rerun).",
+      "expect": "eliminate",
+      "final": "eliminated",
+      "tally": {
+        "lesson_id": "019fc6d9f28036e038ed9440b761",
+        "exposed": 40,
+        "exposed_successes": 0,
+        "withheld": 31,
+        "withheld_successes": 13,
+        "exposed_calls": 142,
+        "withheld_calls": 70,
+        "immature": 0
+      },
+      "at": 100
+    },
+    {
+      "seed": 2,
+      "text": "Assume a Node project and read package.json first when building (node-first).",
+      "expect": "eliminate",
+      "final": "eliminated",
+      "tally": {
+        "lesson_id": "019fc6d9f280cb24217063eedddb",
+        "exposed": 199,
+        "exposed_successes": 65,
+        "withheld": 186,
+        "withheld_successes": 101,
+        "exposed_calls": 514,
+        "withheld_calls": 376,
+        "immature": 0
+      },
+      "at": 500
+    },
+    {
+      "seed": 2,
+      "text": "Use in-place sed for quick renames; it is faster than the file tool (prefer-sed).",
+      "expect": "eliminate",
+      "final": "eliminated",
+      "tally": {
+        "lesson_id": "019fc6d9f2805e38cfccd1e5cab8",
+        "exposed": 371,
+        "exposed_successes": 150,
+        "withheld": 375,
+        "withheld_successes": 216,
+        "exposed_calls": 835,
+        "withheld_calls": 746,
+        "immature": 0
+      },
+      "at": 900
+    },
+    {
+      "seed": 3,
+      "text": "When a glob or search comes back empty, treat that as the answer instead of loosening the pattern (empty-glob).",
+      "expect": "accept",
+      "final": "accepted",
+      "tally": {
+        "lesson_id": "019fc6d9f2801eafce30346f7b7a",
+        "exposed": 2078,
+        "exposed_successes": 1697,
+        "withheld": 218,
+        "withheld_successes": 158,
+        "exposed_calls": 3014,
+        "withheld_calls": 454,
+        "immature": 0
+      },
+      "at": 700
+    },
+    {
+      "seed": 3,
+      "text": "This is a Go module: read go.mod, not package.json, to find build and dependency information (go-module).",
+      "expect": "keep",
+      "final": "trial",
+      "tally": {
+        "lesson_id": "019fc6d9f280ee99e21e337c5a39",
+        "exposed": 1513,
+        "exposed_successes": 1138,
+        "withheld": 1401,
+        "withheld_successes": 1072,
+        "exposed_calls": 2211,
+        "withheld_calls": 2498,
+        "immature": 0
+      }
+    },
+    {
+      "seed": 3,
+      "text": "Only report tests as passing from a run made after the last edit (fresh-evidence).",
+      "expect": "accept",
+      "final": "accepted",
+      "tally": {
+        "lesson_id": "019fc6d9f2806fa0a2421e6fcbe9",
+        "exposed": 1520,
+        "exposed_successes": 1253,
+        "withheld": 176,
+        "withheld_successes": 125,
+        "exposed_calls": 2290,
+        "withheld_calls": 278,
+        "immature": 0
+      },
+      "at": 1300
+    },
+    {
+      "seed": 3,
+      "text": "The user declines package upgrades without a named package; ask which package first (ask-package).",
+      "expect": "accept",
+      "final": "accepted",
+      "tally": {
+        "lesson_id": "019fc6d9f280a7f29b0c9602707d",
+        "exposed": 542,
+        "exposed_successes": 463,
+        "withheld": 54,
+        "withheld_successes": 39,
+        "exposed_calls": 802,
+        "withheld_calls": 90,
+        "immature": 0
+      },
+      "at": 2400
+    },
+    {
+      "seed": 3,
+      "text": "Before committing, review what is staged instead of running git add -A (review-staged).",
+      "expect": "accept",
+      "final": "trial",
+      "tally": {
+        "lesson_id": "019fc6d9f280a72e270e7b26b20b",
+        "exposed": 1480,
+        "exposed_successes": 1150,
+        "withheld": 1437,
+        "withheld_successes": 1065,
+        "exposed_calls": 2325,
+        "withheld_calls": 2380,
+        "immature": 0
+      }
+    },
+    {
+      "seed": 3,
+      "text": "Edit files with the file tool's exact-snippet edit, not in-place sed, which reports success when it changes nothing (file-edit).",
+      "expect": "accept",
+      "final": "accepted",
+      "tally": {
+        "lesson_id": "019fc6d9f2807b2db7767957e743",
+        "exposed": 357,
+        "exposed_successes": 317,
+        "withheld": 39,
+        "withheld_successes": 30,
+        "exposed_calls": 497,
+        "withheld_calls": 60,
+        "immature": 0
+      },
+      "at": 2600
+    },
+    {
+      "seed": 3,
+      "text": "Prefer tabs over spaces when writing YAML files.",
+      "expect": "keep",
+      "final": "trial",
+      "tally": {
+        "lesson_id": "019fc6d9f280815ca479c0ed73cc",
+        "exposed": 1439,
+        "exposed_successes": 1090,
+        "withheld": 1468,
+        "withheld_successes": 1119,
+        "exposed_calls": 2306,
+        "withheld_calls": 2396,
+        "immature": 0
+      }
+    },
+    {
+      "seed": 3,
+      "text": "The user likes answers that start with a summary line.",
+      "expect": "keep",
+      "final": "trial",
+      "tally": {
+        "lesson_id": "019fc6d9f280a929c1f043edb259",
+        "exposed": 1447,
+        "exposed_successes": 1064,
+        "withheld": 1463,
+        "withheld_successes": 1139,
+        "exposed_calls": 2418,
+        "withheld_calls": 2290,
+        "immature": 0
+      }
+    },
+    {
+      "seed": 3,
+      "text": "Re-run the full test suite after every step to be safe (always-rerun).",
+      "expect": "eliminate",
+      "final": "eliminated",
+      "tally": {
+        "lesson_id": "019fc6d9f2806339b32b56e4ac72",
+        "exposed": 35,
+        "exposed_successes": 0,
+        "withheld": 46,
+        "withheld_successes": 22,
+        "exposed_calls": 104,
+        "withheld_calls": 94,
+        "immature": 0
+      },
+      "at": 100
+    },
+    {
+      "seed": 3,
+      "text": "Assume a Node project and read package.json first when building (node-first).",
+      "expect": "eliminate",
+      "final": "eliminated",
+      "tally": {
+        "lesson_id": "019fc6d9f280b027f0796849f16a",
+        "exposed": 128,
+        "exposed_successes": 34,
+        "withheld": 105,
+        "withheld_successes": 56,
+        "exposed_calls": 330,
+        "withheld_calls": 227,
+        "immature": 0
+      },
+      "at": 300
+    },
+    {
+      "seed": 3,
+      "text": "Use in-place sed for quick renames; it is faster than the file tool (prefer-sed).",
+      "expect": "eliminate",
+      "final": "eliminated",
+      "tally": {
+        "lesson_id": "019fc6d9f2804dd822ede1f01dd6",
+        "exposed": 190,
+        "exposed_successes": 65,
+        "withheld": 222,
+        "withheld_successes": 125,
+        "exposed_calls": 466,
+        "withheld_calls": 423,
+        "immature": 0
+      },
+      "at": 500
+    },
+    {
+      "seed": 4,
+      "text": "When a glob or search comes back empty, treat that as the answer instead of loosening the pattern (empty-glob).",
+      "expect": "accept",
+      "final": "accepted",
+      "tally": {
+        "lesson_id": "019fc6d9f28049e9d936ca74fd61",
+        "exposed": 1513,
+        "exposed_successes": 1263,
+        "withheld": 183,
+        "withheld_successes": 132,
+        "exposed_calls": 2217,
+        "withheld_calls": 340,
+        "immature": 0
+      },
+      "at": 1300
+    },
+    {
+      "seed": 4,
+      "text": "This is a Go module: read go.mod, not package.json, to find build and dependency information (go-module).",
+      "expect": "keep",
+      "final": "trial",
+      "tally": {
+        "lesson_id": "019fc6d9f280153a394c27f8cfbb",
+        "exposed": 1484,
+        "exposed_successes": 1097,
+        "withheld": 1405,
+        "withheld_successes": 1069,
+        "exposed_calls": 2248,
+        "withheld_calls": 2509,
+        "immature": 0
+      }
+    },
+    {
+      "seed": 4,
+      "text": "Only report tests as passing from a run made after the last edit (fresh-evidence).",
+      "expect": "accept",
+      "final": "accepted",
+      "tally": {
+        "lesson_id": "019fc6d9f2808877a83cd18f3a60",
+        "exposed": 990,
+        "exposed_successes": 849,
+        "withheld": 106,
+        "withheld_successes": 80,
+        "exposed_calls": 1462,
+        "withheld_calls": 163,
+        "immature": 0
+      },
+      "at": 1900
+    },
+    {
+      "seed": 4,
+      "text": "The user declines package upgrades without a named package; ask which package first (ask-package).",
+      "expect": "accept",
+      "final": "accepted",
+      "tally": {
+        "lesson_id": "019fc6d9f280d19db8d6668b010c",
+        "exposed": 718,
+        "exposed_successes": 608,
+        "withheld": 78,
+        "withheld_successes": 66,
+        "exposed_calls": 1051,
+        "withheld_calls": 119,
+        "immature": 0
+      },
+      "at": 2200
+    },
+    {
+      "seed": 4,
+      "text": "Before committing, review what is staged instead of running git add -A (review-staged).",
+      "expect": "accept",
+      "final": "trial",
+      "tally": {
+        "lesson_id": "019fc6d9f28002792e77252ebde7",
+        "exposed": 1446,
+        "exposed_successes": 1121,
+        "withheld": 1450,
+        "withheld_successes": 1050,
+        "exposed_calls": 2363,
+        "withheld_calls": 2405,
+        "immature": 0
+      }
+    },
+    {
+      "seed": 4,
+      "text": "Edit files with the file tool's exact-snippet edit, not in-place sed, which reports success when it changes nothing (file-edit).",
+      "expect": "accept",
+      "final": "accepted",
+      "tally": {
+        "lesson_id": "019fc6d9f280398974073cf946a9",
+        "exposed": 174,
+        "exposed_successes": 153,
+        "withheld": 22,
+        "withheld_successes": 20,
+        "exposed_calls": 235,
+        "withheld_calls": 33,
+        "immature": 0
+      },
+      "at": 2800
+    },
+    {
+      "seed": 4,
+      "text": "Prefer tabs over spaces when writing YAML files.",
+      "expect": "keep",
+      "final": "trial",
+      "tally": {
+        "lesson_id": "019fc6d9f280e7fc0fa41f60084c",
+        "exposed": 1444,
+        "exposed_successes": 1089,
+        "withheld": 1440,
+        "withheld_successes": 1064,
+        "exposed_calls": 2372,
+        "withheld_calls": 2391,
+        "immature": 0
+      }
+    },
+    {
+      "seed": 4,
+      "text": "The user likes answers that start with a summary line.",
+      "expect": "keep",
+      "final": "trial",
+      "tally": {
+        "lesson_id": "019fc6d9f2809adf8bacdb222ec9",
+        "exposed": 1452,
+        "exposed_successes": 1076,
+        "withheld": 1445,
+        "withheld_successes": 1083,
+        "exposed_calls": 2403,
+        "withheld_calls": 2419,
+        "immature": 0
+      }
+    },
+    {
+      "seed": 4,
+      "text": "Re-run the full test suite after every step to be safe (always-rerun).",
+      "expect": "eliminate",
+      "final": "eliminated",
+      "tally": {
+        "lesson_id": "019fc6d9f280f6b3038b36578d6f",
+        "exposed": 31,
+        "exposed_successes": 0,
+        "withheld": 40,
+        "withheld_successes": 23,
+        "exposed_calls": 99,
+        "withheld_calls": 91,
+        "immature": 0
+      },
+      "at": 100
+    },
+    {
+      "seed": 4,
+      "text": "Assume a Node project and read package.json first when building (node-first).",
+      "expect": "eliminate",
+      "final": "eliminated",
+      "tally": {
+        "lesson_id": "019fc6d9f280e4320a8b24c23a4c",
+        "exposed": 125,
+        "exposed_successes": 37,
+        "withheld": 107,
+        "withheld_successes": 62,
+        "exposed_calls": 320,
+        "withheld_calls": 228,
+        "immature": 0
+      },
+      "at": 300
+    },
+    {
+      "seed": 4,
+      "text": "Use in-place sed for quick renames; it is faster than the file tool (prefer-sed).",
+      "expect": "eliminate",
+      "final": "eliminated",
+      "tally": {
+        "lesson_id": "019fc6d9f28067b056fc93aecfcf",
+        "exposed": 275,
+        "exposed_successes": 120,
+        "withheld": 318,
+        "withheld_successes": 200,
+        "exposed_calls": 623,
+        "withheld_calls": 624,
+        "immature": 0
+      },
+      "at": 700
+    },
+    {
+      "seed": 5,
+      "text": "When a glob or search comes back empty, treat that as the answer instead of loosening the pattern (empty-glob).",
+      "expect": "accept",
+      "final": "accepted",
+      "tally": {
+        "lesson_id": "019fc6d9f280a78eab2028513781",
+        "exposed": 1706,
+        "exposed_successes": 1425,
+        "withheld": 190,
+        "withheld_successes": 136,
+        "exposed_calls": 2473,
+        "withheld_calls": 371,
+        "immature": 0
+      },
+      "at": 1100
+    },
+    {
+      "seed": 5,
+      "text": "This is a Go module: read go.mod, not package.json, to find build and dependency information (go-module).",
+      "expect": "keep",
+      "final": "trial",
+      "tally": {
+        "lesson_id": "019fc6d9f2803885acf17f6915ec",
+        "exposed": 1483,
+        "exposed_successes": 1134,
+        "withheld": 1421,
+        "withheld_successes": 1076,
+        "exposed_calls": 2206,
+        "withheld_calls": 2526,
+        "immature": 0
+      }
+    },
+    {
+      "seed": 5,
+      "text": "Only report tests as passing from a run made after the last edit (fresh-evidence).",
+      "expect": "accept",
+      "final": "trial",
+      "tally": {
+        "lesson_id": "019fc6d9f2801189ce6e647f7d83",
+        "exposed": 1446,
+        "exposed_successes": 1137,
+        "withheld": 1468,
+        "withheld_successes": 1079,
+        "exposed_calls": 2317,
+        "withheld_calls": 2475,
+        "immature": 0
+      }
+    },
+    {
+      "seed": 5,
+      "text": "The user declines package upgrades without a named package; ask which package first (ask-package).",
+      "expect": "accept",
+      "final": "accepted",
+      "tally": {
+        "lesson_id": "019fc6d9f280faf5b37e86f1e26d",
+        "exposed": 1700,
+        "exposed_successes": 1409,
+        "withheld": 196,
+        "withheld_successes": 152,
+        "exposed_calls": 2547,
+        "withheld_calls": 297,
+        "immature": 0
+      },
+      "at": 1100
+    },
+    {
+      "seed": 5,
+      "text": "Before committing, review what is staged instead of running git add -A (review-staged).",
+      "expect": "accept",
+      "final": "trial",
+      "tally": {
+        "lesson_id": "019fc6d9f28097418cad1330c20a",
+        "exposed": 1433,
+        "exposed_successes": 1124,
+        "withheld": 1465,
+        "withheld_successes": 1083,
+        "exposed_calls": 2344,
+        "withheld_calls": 2402,
+        "immature": 0
+      }
+    },
+    {
+      "seed": 5,
+      "text": "Edit files with the file tool's exact-snippet edit, not in-place sed, which reports success when it changes nothing (file-edit).",
+      "expect": "accept",
+      "final": "accepted",
+      "tally": {
+        "lesson_id": "019fc6d9f2807d4dcc3d7fb98d28",
+        "exposed": 1353,
+        "exposed_successes": 1131,
+        "withheld": 143,
+        "withheld_successes": 107,
+        "exposed_calls": 1974,
+        "withheld_calls": 246,
+        "immature": 0
+      },
+      "at": 1500
+    },
+    {
+      "seed": 5,
+      "text": "Prefer tabs over spaces when writing YAML files.",
+      "expect": "keep",
+      "final": "trial",
+      "tally": {
+        "lesson_id": "019fc6d9f2805cf0c177a7b64239",
+        "exposed": 1464,
+        "exposed_successes": 1102,
+        "withheld": 1441,
+        "withheld_successes": 1104,
+        "exposed_calls": 2439,
+        "withheld_calls": 2338,
+        "immature": 0
+      }
+    },
+    {
+      "seed": 5,
+      "text": "The user likes answers that start with a summary line.",
+      "expect": "keep",
+      "final": "trial",
+      "tally": {
+        "lesson_id": "019fc6d9f2808890918559504396",
+        "exposed": 1448,
+        "exposed_successes": 1113,
+        "withheld": 1476,
+        "withheld_successes": 1110,
+        "exposed_calls": 2392,
+        "withheld_calls": 2416,
+        "immature": 0
+      }
+    },
+    {
+      "seed": 5,
+      "text": "Re-run the full test suite after every step to be safe (always-rerun).",
+      "expect": "eliminate",
+      "final": "eliminated",
+      "tally": {
+        "lesson_id": "019fc6d9f280dff91a6bf9879116",
+        "exposed": 70,
+        "exposed_successes": 0,
+        "withheld": 67,
+        "withheld_successes": 28,
+        "exposed_calls": 216,
+        "withheld_calls": 153,
+        "immature": 0
+      },
+      "at": 200
+    },
+    {
+      "seed": 5,
+      "text": "Assume a Node project and read package.json first when building (node-first).",
+      "expect": "eliminate",
+      "final": "eliminated",
+      "tally": {
+        "lesson_id": "019fc6d9f280db5f8abf5b2f307d",
+        "exposed": 155,
+        "exposed_successes": 40,
+        "withheld": 164,
+        "withheld_successes": 82,
+        "exposed_calls": 409,
+        "withheld_calls": 372,
+        "immature": 0
+      },
+      "at": 400
+    },
+    {
+      "seed": 5,
+      "text": "Use in-place sed for quick renames; it is faster than the file tool (prefer-sed).",
+      "expect": "eliminate",
+      "final": "eliminated",
+      "tally": {
+        "lesson_id": "019fc6d9f280a849b6e3ab9a8537",
+        "exposed": 136,
+        "exposed_successes": 35,
+        "withheld": 161,
+        "withheld_successes": 81,
+        "exposed_calls": 380,
+        "withheld_calls": 343,
+        "immature": 0
+      },
+      "at": 400
+    }
+  ]
+}

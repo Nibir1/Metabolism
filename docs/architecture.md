@@ -1,9 +1,10 @@
 # Architecture
 
-Status (2026-10-02): **built through VERIFY.** Ingest, episodic memory,
-digest and the nutrient test exist (Phases 0–2). Distribution, the credit
-ledger and elimination by credit are Phases 3–4; habit compilation and the
-parametric tier come later. Sections below say which parts are built and
+Status (2026-10-02): **built through DISTRIBUTE and the credit ledger.**
+Ingest, episodic memory, digest, the nutrient test (Phases 0–2), delivery
+into live Helix turns and the credit ledger (Phase 3) exist. Elimination by
+decay and contradiction is Phase 4; habit compilation and the parametric
+tier come later. Sections below say which parts are built and
 which are planned. The interfaces are shaped by Helix, the first host, and a
 second host must confirm them (Phase 8).
 
@@ -74,9 +75,11 @@ distribute are on the host's hot path and must be fast and never fail the host.
 - **quarantined**: derived wholly or partly from low-trust provenance
   (web, file content, unreliable voice). It must pass an extra check and can
   never be injected before that.
-- **trial**: passed the nutrient test. Injected on a small share of eligible
-  episodes, with credit tracked (bandit-style exploration).
-- **accepted**: positive credit with enough confidence. Injected normally.
+- **trial**: passed the nutrient test. Delivered on a coin flip (p = 0.5) on
+  the turns it applies to, so its credit compares delivered against withheld
+  turns (D-020).
+- **accepted**: passed the credit ledger on live turns. Delivered on 90% of
+  the turns it applies to; the 10% holdout keeps it measured.
 - **superseded**: replaced by a better lesson. Kept visible and restorable.
 - **eliminated**: removed from use, with a reason. The log entry remains so
   "why did it forget X?" is answerable. Hard deletion happens only on the
@@ -117,14 +120,27 @@ For candidate lesson *L* (`verify/`, decision rule D-018):
 This is the defence against "a wrong lesson gets assimilated", and it is
 what makes C6 measurable.
 
-### Credit ledger — planned (Phase 3)
+### Distribution — built (Phase 3, D-019)
 
-- Every episode records the exact set of lessons injected (the *exposure*).
-- When outcomes arrive, update each exposed lesson's credit. Start with simple
-  Beta-Bernoulli success counts per lesson versus a matched no-lesson baseline
-  from trial randomisation. More refined attribution can come later.
-- Elimination uses credit, not age: lessons with confidently non-positive
-  credit decay out.
+- `metabolism export` writes trial and accepted lessons, each with a delivery
+  probability, to a file the host reads (`deliver/`).
+- The host keeps the lessons whose scope covers the turn, fills its budget
+  (accepted first, then trial lessons in a random order), and flips a coin
+  per lesson. It records the result on the episode: `Exposure` (delivered)
+  and `Withheld` (lost the coin). `deliver.Select` is the reference; Helix
+  implements the same rule without importing the engine.
+- Lessons reach the host's prompt only as data, in a fenced block.
+
+### Credit ledger — built (Phase 3, D-020)
+
+- Each lesson is a randomised experiment: its delivered turns against its
+  withheld turns, since its last state change, success meaning `done` with no
+  negative outcome (`ledger/`).
+- Decisions use a Bayes factor, which stays valid however often the ledger
+  is settled: accept a trial lesson at 30, eliminate at 300. Accepted lessons
+  keep a 10% holdout, so a lesson that stops helping can still be
+  eliminated.
+- Credit, not age, decides: no lesson decays by time.
 
 ### Habit compilation (Phase 5)
 
@@ -213,17 +229,13 @@ type Model interface {
     Complete(ctx context.Context, req ModelRequest) (ModelResponse, error)
 }
 
-// Selector chooses which trial and accepted lessons to deliver for a new
-// request, within the host's budget, and records the exposure. Declared;
-// implemented in Phase 3.
-type Selector interface {
-    Select(ctx context.Context, req types.Request, scope types.Scope, budget types.Budget) (types.Selection, error)
-}
 ```
 
-`ports.Store` is still declared but unused: the event-sourced `metabolome`
-replaced the separate mutable store (D-014). Snapshots and rollback (Phase 4)
-will be folds of the journal.
+`ports.Store` and `ports.Selector` are still declared but unused. The
+event-sourced `metabolome` replaced the separate mutable store (D-014);
+snapshots and rollback (Phase 4) will be folds of the journal. Selection
+happens in the host, from the delivery file (D-019), so the engine is never
+on the host's hot path.
 
 Notes carried forward from the original sketch, which had these problems:
 
@@ -243,7 +255,7 @@ Built:
 metabolism/
   cmd/metabolism/        CLI: sim, ingest, inspect, curves, recall, recall-eval,
                          digest, verify, lessons, replay, label, crosscheck,
-                         nutrient-eval, doctor
+                         nutrient-eval, credit, export, credit-eval, doctor
   types/                 Episode, Outcome, Lesson, Evidence, Credit, Experience…
   ports/                 the interfaces above
   metabolome/            event-sourced lessons, lifecycle and evidence (D-014)
@@ -251,21 +263,22 @@ metabolism/
   digest/                reflection: validate, screen, dedupe, record
   llmreflect/            LLM reflector over ports.Model
   verify/                the nutrient test (D-015, D-018)
+  deliver/               the delivery file and the reference selection (D-019)
+  ledger/                credit from randomised delivery (D-020)
   judge/                 heuristic and LLM judges, the plain-words pair view
   episodic/              tier 1: time-aware BM25 case recall
   adapters/
     journal/sqlite/      modernc.org/sqlite (pure Go, same as Helix), append-only
-    ndjson/              Helix's recorded episodes, wire v1 (D-013)
+    ndjson/              Helix's recorded episodes, wire v1 and v2 (D-013, D-019)
     remote/llm/          Ollama, OpenAI-compatible (DeepSeek)   ┐ the only
     remote/jev/          Jev judge via typesafe-go              │ network code;
     remote/helix/        drives `helix replay` (D-017)          ┘ CLI only
   internal/privacyguard/ test: no network code outside adapters/remote/
-  bench/                 metrics, curves, recall, nutrient and agreement evaluation
+  bench/                 metrics, curves, recall, nutrient, credit and agreement evaluation
   hosts/helixsim/        simulated Helix (the real Helix code lives in Helix)
 ```
 
-Planned: `ledger/` (credit, Phase 3), `eliminate/` (decay, contradiction,
-supersession, Phase 4), `compile/` (habit compilation, Phase 5),
+Planned: `eliminate/` (contradiction and supersession, Phase 4), `compile/` (habit compilation, Phase 5),
 `consolidate/` (parametric tier, Phase 7), and a scheduler that runs the slow
 stages when the host is idle.
 

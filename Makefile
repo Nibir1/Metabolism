@@ -14,7 +14,10 @@ HELIX_CGO    ?= 0
 JOURNAL      ?= $(HOME)/.metabolism/journal.db
 HELIX_FILE   ?= $(HOME)/.helix/metabolism/episodes.ndjson
 BIN          := bin/metabolism
-DEMO         := .demo
+# The demo's scratch directory, deleted and rebuilt by every `make demo` (and
+# so by `make verify`). Keep anything real elsewhere: live runs go in .runs/,
+# which no target touches.
+DEMO         := .demo/cli
 
 .DEFAULT_GOAL := help
 .PHONY: help all check test race lint fmt build install demo verify \
@@ -55,27 +58,31 @@ install: ## install the metabolism CLI into your Go bin
 	go install ./cmd/metabolism
 	@echo "✔ installed into $$(go env GOPATH)/bin (or GOBIN if set); make sure it is on your PATH"
 
-demo: build ## run every CLI command end to end on simulated Helix (in .demo/)
+demo: build ## run every CLI command end to end on simulated Helix (in .demo/cli, rebuilt each run)
 	@rm -rf $(DEMO) && mkdir -p $(DEMO)
-	@echo "━━ 1/9 sim: 300 simulated Helix episodes over 3 weeks"
+	@echo "━━ 1/11 sim: 300 simulated Helix episodes over 3 weeks"
 	@$(BIN) sim -journal $(DEMO)/journal.db -count 300 -days 21 -start 2026-09-09
-	@echo "━━ 2/9 ingest: Helix's golden wire file (the cross-repo contract)"
+	@echo "━━ 2/11 ingest: Helix's golden wire file (the cross-repo contract)"
 	@$(BIN) ingest -journal $(DEMO)/journal.db -from adapters/ndjson/testdata/helix_wire_v1.ndjson
-	@echo "━━ 3/9 inspect: summary, then the ingested Helix episode in full"
+	@echo "━━ 3/11 inspect: summary, then the ingested Helix episode in full"
 	@$(BIN) inspect -journal $(DEMO)/journal.db -n 3
 	@$(BIN) inspect -journal $(DEMO)/journal.db -id 0199a1b2c3d4e5f6a7b8c9d0e1f2
-	@echo "━━ 4/9 curves: weekly metrics"
+	@echo "━━ 4/11 curves: weekly metrics"
 	@$(BIN) curves -journal $(DEMO)/journal.db -window 7d
-	@echo "━━ 5/9 recall: past cases for a new request"
+	@echo "━━ 5/11 recall: past cases for a new request"
 	@$(BIN) recall -journal $(DEMO)/journal.db -q "commit my changes" -k 3
-	@echo "━━ 6/9 recall-eval: does memory predict outcomes? (synthetic: expect high skill)"
+	@echo "━━ 6/11 recall-eval: does memory predict outcomes? (synthetic: expect high skill)"
 	@$(BIN) recall-eval -journal $(DEMO)/journal.db -label scenario
-	@echo "━━ 7/9 digest: reflect on the episodes and record candidate lessons"
+	@echo "━━ 7/11 digest: reflect on the episodes and record candidate lessons"
 	@$(BIN) digest -journal $(DEMO)/journal.db -reflector sim
-	@echo "━━ 8/9 verify: the nutrient test, then a lesson's history and evidence"
+	@echo "━━ 8/11 verify: the nutrient test, then a lesson's history and evidence"
 	@$(BIN) verify -journal $(DEMO)/journal.db
 	@$(BIN) lessons -journal $(DEMO)/journal.db -id $$($(BIN) lessons -journal $(DEMO)/journal.db -state trial | awk 'NR>2{print $$1; exit}')
-	@echo "━━ 9/9 doctor: the pipeline as the engine sees it"
+	@echo "━━ 9/11 credit: what live turns say about each delivered lesson (none yet: nothing was delivered)"
+	@$(BIN) credit -journal $(DEMO)/journal.db
+	@echo "━━ 10/11 export: the lessons Helix may deliver"
+	@$(BIN) export -journal $(DEMO)/journal.db -to $(DEMO)/lessons.json
+	@echo "━━ 11/11 doctor: the pipeline as the engine sees it"
 	@echo '{"user_preferences":{"metabolism_record":true}}' > $(DEMO)/helix-config.json
 	@$(BIN) doctor -journal $(DEMO)/journal.db -from adapters/ndjson/testdata/helix_wire_v1.ndjson \
 		-helix-config $(DEMO)/helix-config.json
@@ -95,15 +102,25 @@ baseline-sim: ## regenerate the synthetic baseline in bench/results/
 		-name baseline-helixsim -out bench/results/baseline-helixsim | tee bench/results/baseline-helixsim/recall.txt
 	go run ./cmd/metabolism nutrient-eval -seeds 5 -count 400 -out bench/results/baseline-helixsim \
 		| tee bench/results/baseline-helixsim/nutrient.txt
+	go run ./cmd/metabolism credit-eval -seeds 5 -turns 3000 -out bench/results/baseline-helixsim \
+		| tee bench/results/baseline-helixsim/credit.txt
 	rm -f bench/results/baseline-helixsim/journal.db*
 
 # ---------------------------------------------------------------- Helix
 
-check-wire: ## the Helix contracts: recording and replay golden files must match byte for byte
+check-wire: ## the Helix contracts: recording, replay and delivery golden files must match byte for byte
 	@if [ -f $(HELIX)/internal/metabolism/testdata/wire_v1.ndjson ]; then \
 		cmp adapters/ndjson/testdata/helix_wire_v1.ndjson $(HELIX)/internal/metabolism/testdata/wire_v1.ndjson \
 		&& echo "✔ wire v1: Helix and Metabolism agree"; \
 	else echo "• wire check skipped: no Helix checkout with the integration at $(HELIX)"; fi
+	@if [ -f $(HELIX)/internal/metabolism/testdata/wire_v2.ndjson ]; then \
+		cmp adapters/ndjson/testdata/helix_wire_v2.ndjson $(HELIX)/internal/metabolism/testdata/wire_v2.ndjson \
+		&& echo "✔ wire v2: Helix and Metabolism agree"; \
+	else echo "• wire v2 check skipped: no Helix checkout with lesson delivery at $(HELIX)"; fi
+	@if [ -f $(HELIX)/internal/metabolism/testdata/lessons_v1.json ]; then \
+		cmp deliver/testdata/lessons_v1.json $(HELIX)/internal/metabolism/testdata/lessons_v1.json \
+		&& echo "✔ lessons v1: Helix and Metabolism agree"; \
+	else echo "• lessons check skipped: no Helix checkout with lesson delivery at $(HELIX)"; fi
 	@if [ -f $(HELIX)/cmd/helix/testdata/replay_v1.ndjson ]; then \
 		cmp adapters/remote/helix/testdata/replay_v1.ndjson $(HELIX)/cmd/helix/testdata/replay_v1.ndjson \
 		&& echo "✔ replay v1: Helix and Metabolism agree"; \

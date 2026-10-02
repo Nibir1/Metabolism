@@ -3,6 +3,7 @@ package types
 import (
 	"errors"
 	"fmt"
+	"slices"
 	"time"
 )
 
@@ -26,6 +27,13 @@ type Episode struct {
 	// what lets the credit ledger blame or credit a lesson for the outcome.
 	// Empty is meaningful: it is the no-lesson baseline.
 	Exposure []ID `json:"exposure,omitempty"`
+
+	// Withheld lists the lessons that applied to this episode but were left
+	// out by the host's coin flip (trial randomisation, D-020). Together with
+	// Exposure it is a randomised experiment per lesson: the withheld turns
+	// are the matched no-lesson baseline the credit ledger compares against.
+	// A lesson left out for another reason (the budget) is in neither list.
+	Withheld []ID `json:"withheld,omitempty"`
 
 	Steps []Step `json:"steps,omitempty"`
 	Usage Usage  `json:"usage"`
@@ -113,6 +121,14 @@ func (ep Episode) Validate() error {
 	for i, id := range ep.Exposure {
 		if !id.Valid() {
 			errs = append(errs, fmt.Errorf("exposure[%d] %q is not a valid ID", i, id))
+		}
+	}
+	for i, id := range ep.Withheld {
+		if !id.Valid() {
+			errs = append(errs, fmt.Errorf("withheld[%d] %q is not a valid ID", i, id))
+		}
+		if slices.Contains(ep.Exposure, id) {
+			errs = append(errs, fmt.Errorf("lesson %s is both exposed and withheld", id))
 		}
 	}
 	if ep.Usage.ModelCalls < 0 || ep.Usage.InputChars < 0 || ep.Usage.OutputChars < 0 {

@@ -500,3 +500,45 @@ func Knows(text string) bool {
 	}
 	return false
 }
+
+// Live is a turn as it would have gone with lessons delivered into it, for
+// testing the credit ledger: ep and outs are the turn without lessons. A
+// lesson that repairs the scenario makes the turn the clean plan and a
+// success; a harmful lesson that applies adds its failing step and makes the
+// turn a failure, whatever else was delivered. Anything else changes
+// nothing, so the turn keeps its original outcomes.
+func Live(ep types.Episode, outs []types.Outcome, lessons []types.Lesson) (types.Episode, []types.Outcome, error) {
+	sc, ok := lookup(ep.Attrs["scenario"])
+	if !ok {
+		return ep, outs, fmt.Errorf("helixsim: episode %s has unknown scenario %q", ep.ID, ep.Attrs["scenario"])
+	}
+	res, err := Host{}.Replay(context.Background(), ep, lessons)
+	if err != nil {
+		return ep, outs, err
+	}
+	harmed, fixed := false, false
+	for _, l := range lessons {
+		for _, h := range harms {
+			harmed = harmed || (strings.Contains(l.Text, h.tag) && h.applies(sc.name))
+		}
+		fixed = fixed || (sc.fix != "" && strings.Contains(l.Text, sc.fix))
+	}
+	if !harmed && !fixed {
+		return ep, outs, nil
+	}
+	ep.Steps, ep.Usage = res.Steps, res.Usage
+	kind := types.OutcomeSuccess
+	ep.End = types.RunDone
+	if harmed {
+		kind, ep.End = types.OutcomeFailure, types.RunFailed
+	}
+	// One host outcome replaces the old ones: a repaired turn collects no
+	// late undo or repeat, and a harmed one has failed. The first outcome's
+	// ID is kept so a simulation stays deterministic.
+	id := types.NewID(ep.StartedAt)
+	if len(outs) > 0 {
+		id = outs[0].ID
+	}
+	return ep, []types.Outcome{{ID: id, EpisodeID: ep.ID, At: ep.StartedAt.Add(5 * time.Second),
+		Kind: kind, Source: types.SourceHost}}, nil
+}

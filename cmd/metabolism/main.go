@@ -14,6 +14,9 @@
 //	metabolism replay  -journal PATH -episode ID -lesson TEXT [-host helix] [-judge jev] -allow-remote
 //	metabolism label   -from FILE [-score] [-redo]
 //	metabolism crosscheck -from FILE [-judge deepseek] -allow-remote
+//	metabolism credit  -journal PATH [-apply]
+//	metabolism export  -journal PATH [-to FILE]
+//	metabolism credit-eval [-seeds 5] [-turns 3000] [-out DIR]
 //
 // The journal defaults to $METABOLISM_JOURNAL, then ~/.metabolism/journal.db.
 package main
@@ -54,6 +57,9 @@ commands:
   replay   replay one episode with and without a lesson; show both plans and the verdict
   label    label saved comparisons blind, or score a judge against your labels
   crosscheck  re-judge saved comparisons with a second judge and report agreement
+  credit   what live turns say about each delivered lesson; -apply accepts or eliminates
+  export   write the lessons Helix may deliver (~/.helix/metabolism/lessons.json)
+  credit-eval  does the credit ledger accept what helps and eliminate what harms? (simulator)
 
 run "metabolism <command> -h" for a command's flags
 `
@@ -99,11 +105,17 @@ func run(ctx context.Context, args []string, out io.Writer) error {
 		return cmdCrosscheck(ctx, args[1:], out)
 	case "label":
 		return cmdLabel(ctx, args[1:], out, os.Stdin)
+	case "credit":
+		return cmdCredit(ctx, args[1:], out)
+	case "export":
+		return cmdExport(ctx, args[1:], out)
+	case "credit-eval":
+		return cmdCreditEval(ctx, args[1:], out)
 	case "help", "-h", "--help":
 		_, _ = fmt.Fprint(out, usage)
 		return nil
 	}
-	return fmt.Errorf("unknown command %q (try: doctor, ingest, sim, curves, inspect, recall, recall-eval, digest, verify, lessons, nutrient-eval, replay, label, crosscheck)", args[0])
+	return fmt.Errorf("unknown command %q (try: doctor, ingest, sim, curves, inspect, recall, recall-eval, digest, verify, lessons, nutrient-eval, replay, label, crosscheck, credit, export, credit-eval)", args[0])
 }
 
 func defaultJournal() string {
@@ -154,7 +166,7 @@ func cmdIngest(ctx context.Context, args []string, out io.Writer) error {
 			_, _ = fmt.Fprintf(out, "    %s\n", p)
 		}
 	}
-	return nil
+	return applyFeedback(ctx, j, st.Feedback, out)
 }
 
 func cmdSim(ctx context.Context, args []string, out io.Writer) error {

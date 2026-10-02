@@ -64,39 +64,42 @@ pipeline to the engine over NDJSON.
 
 ```
 Helix turn
-  ├─ planner prompt  ◀── <learned_lessons authority="data-only"> (from Selector)
+  ├─ planner prompt  ◀── <learned_lessons authority="data-only">  ◀── lessons.json (metabolism export)
+  │                       (scope, budget, a coin per lesson)
   ├─ steps → StepObservations
   ├─ reportRunEnd → run outcome
-  └─ Episode{request, provenance, lesson exposure, steps, outcome} ──▶ Metabolism Journal
+  └─ Episode{request, provenance, exposure, withheld, steps, outcome} ──▶ Metabolism Journal
                                                                           │
 later: /undo, declined confirmations, repeated request ── late Outcome ──▶│
                                                                           ▼
-idle / nightly / on /reboot: digest → verify (Helix plan-only replay) → assimilate → eliminate
+by hand, for now: ingest → digest → verify (Helix plan-only replay) → credit -apply → export
 ```
 
-Built today: the recording half (episodes and late outcomes into a local
-NDJSON file, read by `metabolism ingest`) and replay (`helix replay`, driven
-by `metabolism verify -host helix`). Not built: the lesson block in live
-turns (Phase 3) and running the slow stages automatically; for now the user
-runs `metabolism digest` and `verify` by hand.
+Built: recording (episodes and late outcomes into a local NDJSON file, read
+by `metabolism ingest`), replay (`helix replay`, driven by `metabolism verify
+-host helix`), and delivery (`metabolism export` → `lessons.json` → the
+fenced block in live turns, with `/lessons on`). Not built: running the slow
+stages automatically; the user runs them by hand.
 
 ## Changes on the Helix side
 
 All of these are on Helix branch `feat/metabolism-integration`, additive, and
-off until the user opts in (`/metabolism on`).
+off until the user opts in (`/metabolism on`, and `/lessons on` for
+delivery).
 
 | # | Change | Status |
 |---|---|---|
 | 1 | Episode emission | **built** (Phase 0, daemon in Phase 1) |
 | 2 | Late outcomes | **built** |
-| 3 | The `<learned_lessons>` context block | **built for replay only** (2c); live turns in Phase 3 |
+| 3 | The `<learned_lessons>` context block | **built**: replay (2c) and live turns (Phase 3, D-019) |
 | 4 | Replay entry point | **built**: `helix replay` (D-017) |
-| 5 | `/lessons` command | Phase 3 |
+| 5 | `/lessons` command | **built**: list, `on\|off`, `why`, `forget`. `forget --hard`, snapshot and rollback are Phase 4 |
 | 6 | `/purge` and `helix uninstall` remove Metabolism's state | **built** for Helix's recording (`~/.helix/metabolism/`); the engine's journal (`~/.metabolism/`) is the engine's to remove |
-| 7 | `/doctor` shows the engine's status | Phase 3 (`metabolism doctor` covers it from the engine side today) |
+| 7 | `/doctor` shows the engine's status | not built in Helix; `metabolism doctor` reports recording, delivery and the journal |
 
-Changes 1 and 2 are a recorder that writes wire-v1 NDJSON rather than calling
-the engine (D-013). What was built:
+Changes 1 and 2 are a recorder that writes NDJSON (wire v2 since Phase 3)
+rather than calling the engine (D-013). Change 3 in live turns reads a file
+the engine writes (D-019). What was built:
 
 | Where in Helix | What |
 |---|---|
@@ -110,18 +113,28 @@ the engine (D-013). What was built:
 | `internal/agent/replay.go`, `cmd/helix/replay_cmd.go` | `helix replay` and the bounded, fence-proof lessons block |
 | `cmd/helix/purge.go` | `/purge` removes `~/.helix/metabolism/` |
 | `cmd/helix/metabolism_cmd.go` | `/metabolism [on\|off\|status]`, `/config metabolism`, and the startup announcement |
-| `docs/harness.md` §10–§11 | what is recorded, what it cannot do, masking, the wire contract, and replay |
+| `internal/metabolism/lessons.go` | the delivery file (strict), scope matching, selection with the coin, forgotten lessons, feedback records |
+| `internal/agent/lessons.go` | the lessons block in live planner turns; exposure and withheld on the episode |
+| `cmd/helix/lessons_cmd.go` | `/lessons [on\|off\|why\|forget]`, `/config lessons` |
+| `docs/harness.md` §10–§12 | what is recorded, masking, the wire contract, replay, and delivery |
 
 The user's own workflow:
 
 1. In Helix, run `/metabolism on`.
-2. Use Helix normally for weeks.
+2. Use Helix normally for weeks, lessons off: that is the baseline.
 3. Run `metabolism ingest`, then `metabolism curves -out bench/results/baseline-helix`
    (`make helix-baseline` does both).
+4. Learn: `metabolism digest`, then `metabolism verify -host helix …`
+   (replays; needs `-allow-remote`), then `metabolism export`.
+5. In Helix, run `/lessons on`. Use Helix normally.
+6. Now and then: `metabolism ingest`, `metabolism credit` (add `-apply` to
+   accept or eliminate), then `metabolism export` again.
 
 **Known gaps:**
-- The daemon reads the `/metabolism` preference when it starts; restart it
-  after changing the preference.
+- The daemon reads the `/metabolism` and `/lessons` preferences when it
+  starts; restart it after changing them.
+- `/plan` previews carry no lessons: a preview should not flip coins or
+  record exposure.
 - A turn's model usage is a meter delta, so ambient or vision calls that land
   during a turn are counted in it.
 - A replay plans only the first plan (not the agentic loop), from
@@ -221,7 +234,8 @@ real config, recorded and ingested into a scratch journal.
 
 45 requests submitted through the Helix daemon (`helix remote submit`), with
 recording on, then ingested into a separate journal,
-`.demo/helix-driven.db`. The requests were written by Claude, not the user, so
+`.demo/helix-driven.db` (since lost: see `bench/results/README.md`). The
+requests were written by Claude, not the user, so
 this is real Helix behaviour on scripted work, **not a usage baseline**. It
 yielded 42 planner episodes, 100% labelled: 30 done, 4 budget-exhausted,
 7 failed, 1 open work.

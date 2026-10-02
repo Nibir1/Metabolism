@@ -5,10 +5,22 @@ Each directory is one measured curve: `curve.json` (full precision),
 
 | Directory | What it is | Real? |
 |---|---|---|
-| `baseline-helixsim/` | Simulated Helix, no lessons, 1000 episodes over 8 weeks (`make baseline-sim`, seed 1). `curve.*` is the learning curve; `recall.*` is the episodic-recall evaluation; `nutrient.*` is the nutrient test on planted lessons (5 seeds) | **No.** Synthetic |
+| `baseline-helixsim/` | Simulated Helix, no lessons, 1000 episodes over 8 weeks (`make baseline-sim`, seed 1). `curve.*` is the learning curve; `recall.*` is the episodic-recall evaluation; `nutrient.*` is the nutrient test on planted lessons (5 seeds); `credit.*` is the credit ledger on planted lessons delivered by coin flip (5 seeds × 3000 turns) | **No.** Synthetic |
 
 The live runs below (judges, reflector, real Helix replays) are logged in this
-file only. Their journals live in `.demo/`, which is not committed.
+file only. Their journals are not committed. Live-run data now lives in
+`.runs/`.
+
+**Data loss, 2026-10-02.** The journals and files from the daemon-driven
+session and the D-018 re-run (`.demo/helix-driven.db`,
+`.demo/helix-driven/episodes.ndjson`, `.demo/helix-d018.db`, the 34 saved
+comparisons, both blind-labelling passes and the cross-check output) were
+deleted. `make demo`, which `make verify` runs, cleared all of `.demo/` before
+rebuilding its own files there. What remains: the numbers recorded below, and
+the session's requests, driver script and replies in
+`.runs/helix-driven-2026-10-02/`. The demo now uses `.demo/cli/` only. The
+results below cannot be recomputed from raw data without re-running the
+session.
 
 ## Read this before quoting any number
 
@@ -30,6 +42,13 @@ file only. Their journals live in `.demo/`, which is not committed.
   do what they should. Whether the test separates good from bad lessons on
   real plans depends on real Helix replays and a real judge. The first such
   results are below; there are no planted wrong lessons in real data yet.
+- **The simulated credit evaluation proves the ledger's logic and its
+  false-decision rate under frequent settling, not its speed on real
+  lessons.** Simulated effects are large and clean: a repairing lesson turns
+  a failing scenario into a success every time it is delivered. Real lessons
+  will move outcomes less often, so a decision will take many more turns.
+  Lessons that only save model calls (go-module) stay in trial by design:
+  credit is judged on outcomes.
 - **The real Helix baseline doesn't exist yet.** Helix records episodes now
   (`/metabolism on`); the baseline needs a few weeks of real use with
   learning off, and will be committed as `baseline-helix/`. The 42
@@ -175,3 +194,29 @@ disagreeing where a lesson changes the plan. Two models can still agree on
 the same mistake, so this is weaker than human labels, and the
 human-labelled Phase 2 criterion stays open. It points to where labelling
 effort is worth spending: pairs where the plans differ in substance.
+
+## Credit ledger on the simulator (Phase 3)
+
+2026-10-02: `credit-eval` plants all 11 simulator lessons in trial, delivers
+each on a coin flip over 3000 turns per history, and settles every 100
+turns. The rule went through one revision, kept here because the miss is
+the reason for the rule.
+
+| Rule | Histories | Helpful accepted | Harmful eliminated | Neutral moved |
+|---|---|---|---|---|
+| P(better) ≥ 0.95 / P(worse) ≥ 0.99 | 10 | 49/50 | 30/30 | 9/30 (2 eliminated) |
+| P(better) ≥ 0.99 / P(worse) ≥ 0.999 | 20 | 97/100 | 60/60 | 4/60 (3 eliminated) |
+| **Bayes factor 30 / 300 (D-020)** | 30 | 120/150 | 90/90 | **0/90** |
+
+- **The p-value rules failed on neutral lessons**, which is the error that
+  matters: an eliminated harmless lesson is gone for good, and an accepted
+  irrelevant one is claimed as learning. Without repeated looks the neutral
+  lessons' z-scores were unbiased (mean 0.08, sd 0.99 over 80). The cause
+  was settling repeatedly: optional stopping.
+- **Two design bugs were found on the way.** The budget was filled in file
+  order, so trial lessons past it were never delivered or measured (the
+  harmful ones, last in the list, had 0 turns). Turns before and after a
+  lesson's state change were mixed, which compared arms drawn from different
+  periods. Both are fixed (shuffled trial order, eras).
+- `baseline-helixsim/credit.txt` is the committed run: 19/25 helpful
+  accepted, 15/15 harmful eliminated, 0/15 neutral moved.

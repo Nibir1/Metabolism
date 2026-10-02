@@ -47,8 +47,10 @@ type Metabolome struct {
 	applied map[types.ID]bool
 }
 
-// ErrNoEvidence: a move to trial did not cite passing nutrient-test evidence.
-var ErrNoEvidence = errors.New("a lesson enters trial only on passing nutrient-test evidence")
+// ErrNoEvidence: a move to trial did not cite passing nutrient-test evidence,
+// or a move to accepted did not cite passing credit evidence.
+var ErrNoEvidence = errors.New("a lesson enters trial only on passing nutrient-test evidence, " +
+	"and is accepted only on passing credit evidence")
 
 // Load folds everything in the journal.
 func Load(ctx context.Context, j ports.Journal) (*Metabolome, error) {
@@ -196,15 +198,21 @@ func (m *Metabolome) Move(ctx context.Context, id types.ID, to types.LessonState
 	if !from.CanTransition(to) {
 		return fmt.Errorf("%w: lesson %s cannot move %s → %s", ports.ErrInvalid, id, from, to)
 	}
-	if to == types.StateTrial && !citesPassingTest(e, evidence) {
+	if to == types.StateTrial && !cites(e, evidence, types.EvidenceNutrientTest) {
+		return fmt.Errorf("%w (lesson %s)", ErrNoEvidence, id)
+	}
+	// Accepted is earned on live outcomes, not on replays: a lesson that
+	// helped plans in replay must also help real turns (D-020).
+	if to == types.StateAccepted && from == types.StateTrial && !cites(e, evidence, types.EvidenceCredit) {
 		return fmt.Errorf("%w (lesson %s)", ErrNoEvidence, id)
 	}
 	return m.appendEvent(ctx, id, from, to, reason, evidence)
 }
 
-func citesPassingTest(e *Entry, cited []types.ID) bool {
+// cites reports whether cited names passing evidence of kind for e.
+func cites(e *Entry, cited []types.ID, kind types.EvidenceKind) bool {
 	for _, ev := range e.Evidence {
-		if ev.Kind == types.EvidenceNutrientTest && ev.Passed() && slices.Contains(cited, ev.ID) {
+		if ev.Kind == kind && ev.Passed() && slices.Contains(cited, ev.ID) {
 			return true
 		}
 	}

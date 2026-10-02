@@ -21,6 +21,20 @@ type Scope struct {
 	Key   string     `json:"key,omitempty"`
 }
 
+// Covers reports whether a lesson with scope s applies to ep: a global lesson
+// everywhere, a machine lesson on that machine (an episode in a project
+// carries its machine in Attrs["machine"]), a project lesson in that project.
+// Hosts that select lessons themselves implement the same rule.
+func (s Scope) Covers(ep Episode) bool {
+	switch s.Level {
+	case ScopeProject:
+		return ep.Scope == s
+	case ScopeMachine:
+		return ep.Attrs["machine"] == s.Key || ep.Scope == s
+	}
+	return true
+}
+
 // Validate reports whether s is well formed.
 func (s Scope) Validate() error {
 	switch s.Level {

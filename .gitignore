@@ -37,3 +37,4 @@ go.work.sum
 *.db-shm
 bin/
 .demo/
+.runs/

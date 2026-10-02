@@ -16,6 +16,7 @@ import (
 
 	"github.com/Nibir1/metabolism/adapters/journal/sqlite"
 	"github.com/Nibir1/metabolism/adapters/ndjson"
+	"github.com/Nibir1/metabolism/deliver"
 	"github.com/Nibir1/metabolism/types"
 )
 
@@ -34,7 +35,7 @@ func cmdDoctor(ctx context.Context, args []string, out io.Writer) error {
 	d := &doctor{out: out}
 
 	d.section("Helix recording")
-	pref, prefErr := helixPreference(*helixCfg)
+	pref, lessonsPref, prefErr := helixPreference(*helixCfg)
 	switch {
 	case errors.Is(prefErr, fs.ErrNotExist):
 		d.idle("preference", "no Helix config at "+*helixCfg)
@@ -62,9 +63,33 @@ func cmdDoctor(ctx context.Context, args []string, out io.Writer) error {
 			d.info("last record", fst.last.Local().Format(time.DateTime)+" ("+ago(fst.last)+")")
 		}
 		if fst.badLines > 0 {
-			d.warn("unreadable", fmt.Sprintf("%d line(s) are not wire-v%d records; ingest will skip and report them",
+			d.warn("unreadable", fmt.Sprintf("%d line(s) are not wire v1–v%d records; ingest will skip and report them",
 				fst.badLines, ndjson.WireVersion))
 		}
+	}
+
+	d.section("Lesson delivery")
+	deliveryFile := filepath.Join(filepath.Dir(*from), "lessons.json")
+	switch f, err := deliver.Read(deliveryFile); {
+	case errors.Is(err, fs.ErrNotExist):
+		d.idle("lessons file", "none at "+deliveryFile)
+		d.next("once a lesson passes `metabolism verify`: metabolism export")
+	case err != nil:
+		d.bad("lessons file", err.Error()+" (Helix delivers nothing while it cannot read it)")
+	default:
+		d.good("lessons file", fmt.Sprintf("%d lesson(s), written %s (%s)", len(f.Lessons),
+			f.GeneratedAt.Local().Format(time.DateTime), ago(f.GeneratedAt)))
+	}
+	switch {
+	case prefErr != nil:
+	case lessonsPref && pref:
+		d.good("delivery", "metabolism_lessons is on: planner turns get the lessons, on a coin flip")
+		d.next("after some use: make helix-ingest, then metabolism credit")
+	case lessonsPref:
+		d.warn("delivery", "metabolism_lessons is on but recording is off, so nothing is delivered")
+	default:
+		d.idle("delivery", "off: planner turns get no lessons")
+		d.next("in Helix, when you want lessons: /lessons on")
 	}
 
 	d.section("Engine journal")
@@ -140,22 +165,24 @@ func defaultHelixConfig() string {
 	return filepath.Join(home, ".helix", "config.json")
 }
 
-// helixPreference reads only user_preferences.metabolism_record from Helix's
-// config; nothing else in that file is looked at.
-func helixPreference(path string) (bool, error) {
+// helixPreference reads only user_preferences.metabolism_record and
+// metabolism_lessons from Helix's config; nothing else in that file is
+// looked at.
+func helixPreference(path string) (record, lessons bool, err error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
-		return false, err
+		return false, false, err
 	}
 	var cfg struct {
 		UserPreferences struct {
-			MetabolismRecord bool `json:"metabolism_record"`
+			MetabolismRecord  bool `json:"metabolism_record"`
+			MetabolismLessons bool `json:"metabolism_lessons"`
 		} `json:"user_preferences"`
 	}
 	if err := json.Unmarshal(data, &cfg); err != nil {
-		return false, err
+		return false, false, err
 	}
-	return cfg.UserPreferences.MetabolismRecord, nil
+	return cfg.UserPreferences.MetabolismRecord, cfg.UserPreferences.MetabolismLessons, nil
 }
 
 type fileStats struct {
@@ -200,7 +227,7 @@ func scanHostFile(path string) (map[types.ID]bool, fileStats) {
 					At time.Time `json:"at"`
 				} `json:"outcome"`
 			}
-			if err := json.Unmarshal([]byte(line), &rec); err != nil || rec.V != ndjson.WireVersion {
+			if err := json.Unmarshal([]byte(line), &rec); err != nil || rec.V < 1 || rec.V > ndjson.WireVersion {
 				st.badLines++
 				continue
 			}
@@ -212,6 +239,8 @@ func scanHostFile(path string) (map[types.ID]bool, fileStats) {
 			case rec.Kind == "outcome" && rec.Outcome != nil:
 				st.outcomes++
 				st.last = later(st.last, rec.Outcome.At)
+			case rec.Kind == "feedback" && rec.V >= 2:
+				// A /lessons forget; ingest applies it.
 			default:
 				st.badLines++
 			}

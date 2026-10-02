@@ -15,16 +15,18 @@ This runs, in order:
 | Step | Target | Proves |
 |---|---|---|
 | gofmt, vet, golangci-lint | `lint` | the code is clean |
-| every test, race detector on | `race` | the engine: journal durability and crash safety, append-only triggers, retrieval, the recall evaluation (signal *and* noise), the immune screen, digest validation, the nutrient test (including the 20-trial noisy-host test, D-018), the judges and remote adapters against fakes, the privacy guard, the CLI and its opt-in rules |
-| golden files match | `check-wire` | Helix and the engine agree on both wire formats (recording and replay) byte for byte |
+| every test, race detector on | `race` | the engine: journal durability and crash safety, append-only triggers, retrieval, the recall evaluation (signal *and* noise), the immune screen, digest validation, the nutrient test (including the 20-trial noisy-host test, D-018), the credit ledger (including the simulator acceptance test, D-020), the judges and remote adapters against fakes, the privacy guard, the CLI and its opt-in rules |
+| golden files match | `check-wire` | Helix and the engine agree on every contract (recording v1 and v2, replay, delivery) byte for byte |
 | Helix on the integration branch | `helix-branch` | you are testing the right Helix |
-| Helix vet + integration tests + full suite + lint | `helix-verify` | the recorder, the agent hooks, decline counting, refused steps, untrusted planner steps, exit codes on every turn, the undo link, the daemon wiring (pagers off, a fresh working directory per request), `helix replay`, and that nothing else in Helix broke |
-| the CLI end to end | `demo` | sim → ingest → inspect → curves → recall → recall-eval → digest → verify → lessons → doctor all run on real files |
+| Helix vet + integration tests + full suite + lint | `helix-verify` | the recorder, the agent hooks, decline counting, refused steps, untrusted planner steps, exit codes on every turn, the undo link, the daemon wiring (pagers off, a fresh working directory per request), `helix replay`, lesson delivery and `/lessons`, and that nothing else in Helix broke |
+| the CLI end to end | `demo` | sim → ingest → inspect → curves → recall → recall-eval → digest → verify → lessons → credit → export → doctor all run on real files |
 
 It ends with `✔ verify passed`. Anything else, share the output.
 
 `make demo` on its own is the quickest way to *see* each command's output.
-It works in `.demo/`, so nothing touches your real journal.
+It works in `.demo/cli/`, which it deletes and rebuilds each time, so nothing
+touches your real journal. Keep live-run journals in `.runs/` (ignored by git,
+never touched by a make target).
 
 ## 2. Manual: real Helix
 
@@ -133,10 +135,10 @@ bar on the simulator.
 **Reflect with a real model on simulated episodes:**
 
 ```bash
-bin/metabolism sim -journal .demo/live.db -count 300 && bin/metabolism digest -journal .demo/live.db -reflector deepseek -allow-remote
+bin/metabolism sim -journal .runs/live.db -count 300 && bin/metabolism digest -journal .runs/live.db -reflector deepseek -allow-remote
 ```
 
-Then `bin/metabolism verify -journal .demo/live.db` tests what it proposed.
+Then `bin/metabolism verify -journal .runs/live.db` tests what it proposed.
 
 **Local instead of remote:** start Ollama (`ollama serve`), pull a model (for
 example `ollama pull qwen3:8b`), and use `-reflector ollama` or
@@ -205,6 +207,56 @@ bin/metabolism crosscheck -from comparisons.ndjson -judge deepseek -allow-remote
 
 It reports agreement and κ overall, on relevant episodes, on past successes
 and per lesson. Two models agreeing is weaker evidence than human labels.
+
+## 2d. Delivering lessons (Phase 3)
+
+**Check the ledger on the simulator first.** It plants every lesson the
+simulator knows the truth about, delivers them by coin flip over thousands of
+turns, and settles every 100 turns:
+
+```bash
+bin/metabolism credit-eval
+```
+
+Expect every harmful lesson eliminated, no lesson that changes no outcome
+moved, and most helpful lessons accepted. It sends nothing anywhere.
+
+**Deliver to real Helix.** Once a lesson has passed `verify` (it is in trial):
+
+```bash
+bin/metabolism export
+```
+
+This writes `~/.helix/metabolism/lessons.json`. Then, inside Helix:
+
+```
+/lessons on
+/lessons
+```
+
+`/lessons on` refuses while recording is off: a lesson delivered on an
+unrecorded turn could never be credited. `/lessons` lists what is delivered
+and what applies in the current directory. Ask a few planner questions. With
+`/debug` on, each turn prints how many lessons it delivered and withheld.
+Then:
+
+```bash
+make helix-ingest && bin/metabolism credit
+```
+
+Expect each trial lesson's delivered and withheld turn counts to grow,
+about half each. A decision needs at least 20 delivered and 10 withheld
+turns that are an hour old, and a Bayes factor of 30 (accept) or 300
+(eliminate), so it takes many turns. `credit -apply` records a decision;
+`export` again so Helix delivers the new state.
+
+To try a forget: `/lessons forget <id> <reason>` in Helix, then
+`make helix-ingest`. Expect `feedback: 1 lesson(s) forgotten in Helix
+eliminated`, and the reason in `bin/metabolism lessons -id <id>`.
+
+`bin/metabolism doctor` shows the delivery file and both preferences.
+
+Share the output of `credit-eval`, `/lessons`, and `credit`.
 
 ## 3. Once there are weeks of data
 

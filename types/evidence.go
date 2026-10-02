@@ -46,6 +46,18 @@ type Evidence struct {
 
 	// Episodes lists every episode replayed, relevant and regression alike.
 	Episodes []ID `json:"episodes,omitempty"`
+
+	// Credit counts (D-020), from live turns the lesson applied to: those
+	// where it was delivered, those where the host's coin flip withheld it,
+	// and how many of each succeeded. PBetter is the posterior probability
+	// that the lesson's success rate is higher when delivered; BayesFactor
+	// weighs "delivery changes the rate" against "it does not".
+	Exposed           int     `json:"exposed,omitempty"`
+	ExposedSuccesses  int     `json:"exposed_successes,omitempty"`
+	Withheld          int     `json:"withheld,omitempty"`
+	WithheldSuccesses int     `json:"withheld_successes,omitempty"`
+	PBetter           float64 `json:"p_better,omitempty"`
+	BayesFactor       float64 `json:"bayes_factor,omitempty"`
 }
 
 // Passed reports whether the evidence supports the lesson.
@@ -76,6 +88,18 @@ func (e Evidence) Validate() error {
 		e.RegressionWins < 0 || e.NoiseCompared < 0 || e.NoiseDecisive < 0 {
 		errs = append(errs, errors.New("negative count"))
 	}
+	if e.Exposed < 0 || e.ExposedSuccesses < 0 || e.Withheld < 0 || e.WithheldSuccesses < 0 {
+		errs = append(errs, errors.New("negative credit count"))
+	}
+	if e.ExposedSuccesses > e.Exposed || e.WithheldSuccesses > e.Withheld {
+		errs = append(errs, errors.New("more successes than turns"))
+	}
+	if e.BayesFactor < 0 {
+		errs = append(errs, errors.New("negative bayes_factor"))
+	}
+	if e.PBetter < 0 || e.PBetter > 1 {
+		errs = append(errs, errors.New("p_better outside [0, 1]"))
+	}
 	if e.NoiseDecisive > e.NoiseCompared {
 		errs = append(errs, errors.New("noise_decisive exceeds noise_compared"))
 	}
@@ -94,7 +118,8 @@ type EvidenceKind string
 const (
 	// EvidenceNutrientTest: replay with vs without the lesson (Phase 2).
 	EvidenceNutrientTest EvidenceKind = "nutrient-test"
-	// EvidenceCredit: accumulated outcome credit (Phase 3).
+	// EvidenceCredit: outcome credit from live turns, delivered against
+	// withheld (Phase 3, D-020).
 	EvidenceCredit EvidenceKind = "credit"
 	// EvidenceContradiction: conflict with another lesson (Phase 4).
 	EvidenceContradiction EvidenceKind = "contradiction"

@@ -214,22 +214,38 @@ Exit criteria:
 
 ## Phase 3: Distribution and the credit ledger (about 4 weeks). C4, C9
 
+**Status (2026-10-02): built.** The go/no-go gate waits on weeks of real use
+with lessons on, after the real baseline (Phase 0) exists.
+
 Deliverables:
 
-- The Selector, which delivers trial and accepted lessons within Helix's
-  budget in the `<learned_lessons authority="data-only">` block. Helix already
-  builds that block, bounded and fence-proof, for `helix replay` (2c); Phase 3
-  puts it into live turns.
-- A live call between Helix and the engine for delivery (D-013 named this the
-  point to revisit the file-only contract).
-- Exposure logging: `exposure` is already in recording wire v1 and in
-  `types.Episode`, and is always empty so far; Helix fills it with the
-  lessons it delivered. Then trial randomisation, and Beta-Bernoulli credit per lesson
-  (`types.Credit` exists; nothing writes it yet).
-- The lifecycle moves on to trial → accepted.
-- A learning-curve report comparing turns with and without lessons
-  (`metabolism curves` measures one journal today).
-- The `/lessons` command in Helix.
+- [x] Delivery (D-019): `metabolism export` writes trial and accepted lessons
+      to `~/.helix/metabolism/lessons.json` (delivery file v1, golden file in
+      both repos). Helix selects by scope and budget and puts the lessons in
+      live planner turns, in the same fenced `<learned_lessons>` block replay
+      uses. Delivery needs `/lessons on` and recording on.
+- [x] Exposure logging and trial randomisation (D-020): a coin per lesson per
+      turn, recorded as `exposure` and `withheld` (recording wire v2). Trial
+      p = 0.5; accepted p = 0.9 (a 10% holdout).
+- [x] The credit ledger (`ledger/`, D-020): delivered against withheld turns,
+      within each lesson's current state, decided by Bayes factor (accept at
+      30, eliminate at 300). `metabolism credit` reports; `-apply` records
+      the evidence and moves the lesson.
+- [x] Lifecycle trial → accepted, refused by `metabolome.Move` without
+      passing credit evidence.
+- [x] A report comparing turns with and without each lesson: `metabolism
+      credit` shows success and model calls per turn for both arms.
+- [x] Helix `/lessons`: list (and what applies here), `on|off`, `why <id>`
+      (evidence and credit), `forget <id> <reason>` (stops at once; the
+      engine eliminates it at the next ingest). `metabolism doctor` reports
+      delivery.
+- [x] On the simulator (`credit-eval`, `TestCreditLedgerOnTheSimulator`):
+      every harmful lesson eliminated, no lesson that changes no outcome
+      moved, most helpful lessons accepted within 3000 turns. A p-value rule
+      moved 9 of 30 neutral lessons under frequent settling, which is why the
+      bar is a Bayes factor.
+- [ ] Not in this phase: `/lessons forget --hard`, snapshot and rollback
+      (Phase 4); per-request relevance in delivery.
 
 Known issues carried in from Phase 2 (they distort the data Phase 3 measures):
 
@@ -241,6 +257,8 @@ Known issues carried in from Phase 2 (they distort the data Phase 3 measures):
   (listening by default is an owner decision, Helix threat model V2b).
 - Metabolism: repeat detection compares a request only with the immediately
   preceding turn.
+- Metabolism: the nutrient evaluation's regression sample varies between
+  runs (it is keyed on random lesson IDs); decisions do not.
 
 **GO / NO-GO gate.** Compare with the Phase 0 baseline after at least 4 weeks
 of real Helix use plus the public benchmark:
@@ -253,8 +271,15 @@ of real Helix use plus the public benchmark:
 
 Either way, **publish**: a blog post or arXiv note with the curves, method and code.
 
+The randomised delivery gives the gate a second comparison besides the
+Phase 0 baseline: turns with lessons against turns where the coin withheld
+them, over the same weeks.
+
 Exit criteria:
 
+- [ ] Real credit: lessons decided by live Helix turns (accepted or
+      eliminated), and the D-020 bars rechecked against what real effects
+      look like.
 - [ ] Go/no-go decision recorded in [decisions.md](decisions.md).
 - [ ] Publication out.
 

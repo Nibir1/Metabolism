@@ -447,15 +447,7 @@ func (v *Verifier) regression(l types.Lesson, relevant []types.ID, n int) []type
 	return pool
 }
 
-func inScope(ep types.Episode, s types.Scope) bool {
-	switch s.Level {
-	case types.ScopeProject:
-		return ep.Scope == s
-	case types.ScopeMachine:
-		return ep.Attrs["machine"] == s.Key || ep.Scope == s
-	}
-	return true
-}
+func inScope(ep types.Episode, s types.Scope) bool { return s.Covers(ep) }
 
 func mix(a, b types.ID) uint64 {
 	h := fnv.New64a()

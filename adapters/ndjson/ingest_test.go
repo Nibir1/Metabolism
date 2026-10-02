@@ -100,7 +100,7 @@ func TestBadLinesAreCountedNotFatal(t *testing.T) {
 		g[1], // outcome before its episode: orphan
 		g[0],
 		strings.Replace(g[2], `"note"`, `"surprise":1,"note"`, 1), // unknown field
-		strings.Replace(g[0], `"v":1`, `"v":2`, 1),                // future version
+		strings.Replace(g[0], `"v":1`, `"v":3`, 1),                // future version
 		strings.Replace(g[0], `"host":"helix"`, `"host":""`, 1),   // fails validation
 		`{"v":1,"kind":"episode","episode":{"id":"01`,             // cut off mid-write
 	)
@@ -147,5 +147,52 @@ func TestRotatedGenerationsOldestFirst(t *testing.T) {
 func TestMissingFileIsAnError(t *testing.T) {
 	if _, err := Ingest(context.Background(), openJournal(t), filepath.Join(t.TempDir(), "none.ndjson")); err == nil {
 		t.Fatal("ingesting nothing succeeded")
+	}
+}
+
+// Wire v2 (Phase 3): an episode carries the lessons delivered and withheld,
+// and a feedback record carries a /lessons forget. The golden file is a copy
+// of Helix's internal/metabolism/testdata/wire_v2.ndjson.
+func TestHelixGoldenV2(t *testing.T) {
+	ctx := context.Background()
+	j := openJournal(t)
+	st, err := Ingest(ctx, j, filepath.Join("testdata", "helix_wire_v2.ndjson"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if st.Episodes != 1 || st.Outcomes != 1 || len(st.Feedback) != 1 || st.Invalid+st.Malformed+st.Orphans != 0 {
+		t.Fatalf("stats %+v, problems %v", st, st.Problems)
+	}
+	fb := st.Feedback[0]
+	if fb.Action != FeedbackForget || fb.LessonID != "0199a1b2c3d4e5f6a7b8c9d0e1f4" || fb.Reason == "" {
+		t.Fatalf("feedback %+v", fb)
+	}
+	for r, err := range j.Scan(ctx, types.JournalQuery{Kinds: []types.RecordKind{types.RecordEpisode}}) {
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(r.Episode.Exposure) != 1 || len(r.Episode.Withheld) != 1 {
+			t.Fatalf("episode %+v", r.Episode)
+		}
+	}
+}
+
+// v2 fields in a v1 line, an unknown action and a version from the future
+// are refused, not half-read.
+func TestWireVersionsAreNotMixed(t *testing.T) {
+	ctx := context.Background()
+	j := openJournal(t)
+	path := filepath.Join(t.TempDir(), "episodes.ndjson")
+	writeLines(t, path,
+		`{"v":1,"kind":"feedback","feedback":{"id":"0199a1b2c3d6a7b8c9d0e1f2a3b6","lesson_id":"0199a1b2c3d4e5f6a7b8c9d0e1f4","at":"2026-10-03T10:05:00Z","action":"forget","reason":"x"}}`,
+		`{"v":2,"kind":"feedback","feedback":{"id":"0199a1b2c3d6a7b8c9d0e1f2a3b7","lesson_id":"0199a1b2c3d4e5f6a7b8c9d0e1f4","at":"2026-10-03T10:05:00Z","action":"promote","reason":"x"}}`,
+		`{"v":3,"kind":"outcome","outcome":{}}`,
+	)
+	st, err := Ingest(ctx, j, path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(st.Feedback) != 0 || st.Malformed != 2 || st.Invalid != 1 {
+		t.Fatalf("stats %+v, problems %v", st, st.Problems)
 	}
 }
