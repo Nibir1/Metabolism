@@ -90,17 +90,16 @@ func cmdReplay(ctx context.Context, args []string, out io.Writer) error {
 	return nil
 }
 
+// printPlan prints a replay exactly as the judge is shown it (judge.PlanLines):
+// rounds, what ran, the reply, and how a multi-round replay ended.
 func printPlan(out io.Writer, title string, r types.ReplayResult) {
-	say(out, "\n%s (%d model calls):\n", title, r.Usage.ModelCalls)
-	for _, s := range r.Steps {
-		line := strings.TrimSpace(s.Tool + " " + s.Action)
-		if s.Subject != "" {
-			line += ": " + s.Subject
-		}
-		say(out, "  - %s\n", line)
+	rounds := ""
+	if r.Rounds > 1 {
+		rounds = fmt.Sprintf(", %d rounds", r.Rounds)
 	}
-	if r.Text != "" {
-		say(out, "  reply: %s\n", truncate(strings.ReplaceAll(r.Text, "\n", " "), 200))
+	say(out, "\n%s (%d model calls%s):\n", title, r.Usage.ModelCalls, rounds)
+	for _, line := range judge.PlanLines(r) {
+		say(out, "  - %s\n", truncate(strings.ReplaceAll(line, "\n", " "), 220))
 	}
 }
 

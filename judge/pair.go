@@ -97,6 +97,9 @@ func describeOriginal(ep types.Episode, outcomes []types.Outcome) string {
 	return strings.Join(parts, "; ")
 }
 
+// PlanLines is a plan as a judge sees it, for printing the same view.
+func PlanLines(r types.ReplayResult) []string { return planLines(r) }
+
 // planLines lists a plan's steps and what it says to the user. A plan that
 // says nothing is marked as such: a reader cannot notice an absence.
 //
