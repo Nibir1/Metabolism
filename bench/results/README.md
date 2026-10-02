@@ -220,3 +220,31 @@ the reason for the rule.
   periods. Both are fixed (shuffled trial order, eras).
 - `baseline-helixsim/credit.txt` is the committed run: 19/25 helpful
   accepted, 15/15 harmful eliminated, 0/15 neutral moved.
+
+## Driven session re-run (after the Helix fixes)
+
+2026-10-02, 13:49–13:53: the same 45 requests through the Helix daemon
+(`feat/metabolism-integration` at `bb33f2d`, DeepSeek), lessons off. File
+requests were pointed at the run's own workspace. Data in
+`.runs/helix-driven-2026-10-02b/` (recording, journal, driver log, daemon
+log). Scripted work, **not a usage baseline**.
+
+| | First run | Re-run |
+|---|---|---|
+| Planner episodes | 42 | 42 |
+| Done / budget-exhausted / failed / open work | 30 / 4 / 7 / 1 | 28 / 8 / 5 / 1 |
+| Failed-step rate | 9.7% | 5.3% |
+| Model calls per finished turn | 6.17 | 6.79 |
+| Wall time | about 30 min | 4 min |
+
+- **The directory drift is gone.** Builds, tests and `go vet` ran in one
+  step each, in the right directory. In the first run, 7 of 12 failures and
+  budget exhaustions traced to a `cd` carried over from an earlier request.
+- **Still failing, unchanged:** 3 turns called `todo add` with no task list
+  loaded (the daemon still offers the tool). One read a file that does not
+  exist (the TODO request, as designed). One listed `internal/judge` instead
+  of `judge`.
+- **More budget exhaustions (8):** explanatory questions ("explain the
+  difference between candidate and quarantined lessons") spend the file
+  lookup's three follow-up iterations on grep and read without answering. This is a candidate for a
+  lesson about answering from what was read.
