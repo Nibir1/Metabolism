@@ -253,3 +253,29 @@ log). Scripted work, **not a usage baseline**.
   planner a slice from the middle (the last 60 lines of the first 20 KB), so
   it could never reach the section asked about. Fixed in Helix: a read is a
   window of up to 80 lines with a header, and takes `start_line`.
+
+## Driven session after the read fix
+
+2026-10-02, 15:04–15:08 (local): the same 45 requests, lessons off, Helix at
+`1c08cdf` (reads are windows with `start_line`). Data in
+`.runs/helix-driven-2026-10-02c/`.
+
+| | First run | Re-run (directory fix) | After the read fix |
+|---|---|---|---|
+| Done / budget-exhausted / failed / open work | 30 / 4 / 7 / 1 | 28 / 8 / 5 / 1 | 33 / 5 / 3 / 1 |
+| Finished turns | 71.4% | 66.7% | 78.6% |
+| Failed-step rate | 9.7% | 5.3% | 3.3% |
+| Model calls per finished turn | 6.17 | 6.79 | 5.67 |
+
+- Reads behave as intended: a file is read window by window, and a grep's
+  line number leads straight to a ranged read.
+- **The remaining budget exhaustions are lesson-shaped.** Three of five
+  repeat an identical step (decisions.md read twice and grepped twice; the
+  same grep for `Injectable` twice). One searched for a Python config loader
+  that does not exist and kept loosening the pattern (the simulator's
+  empty-glob scenario, seen for real). One read all of digest.go and ran out
+  before answering.
+- Failures: two are still the daemon offering the task-list tool with no
+  list loaded; one is the deliberately missing scratch.go.
+- One run each, scripted, with a nondeterministic planner: the direction is
+  clear, but the size of the change is not measured to any precision.
