@@ -244,6 +244,10 @@ Deliverables:
       moved, most helpful lessons accepted within 3000 turns. A p-value rule
       moved 9 of 30 neutral lessons under frequent settling, which is why the
       bar is a Bayes factor.
+- [x] Multi-round replay (D-021): lessons about follow-up rounds (rereading,
+      re-grepping until the budget runs out) were untestable on first plans.
+      Replays now play the rounds a live turn would, running only read-only
+      file steps between them. Not yet measured on real episodes.
 - [ ] Not in this phase: `/lessons forget --hard`, snapshot and rollback
       (Phase 4); per-request relevance in delivery.
 

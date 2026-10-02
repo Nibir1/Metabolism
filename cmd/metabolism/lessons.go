@@ -100,15 +100,24 @@ func pickReflector(name, model string, r remote) (ports.Reflector, error) {
 	return nil, fmt.Errorf("-reflector %q is not available (have: sim, ollama, deepseek)", name)
 }
 
-func pickHost(name, bin, dir string, r remote) (ports.Host, error) {
+// defaultRounds is a first plan plus the three follow-up rounds a live Helix
+// turn gets for a file lookup (D-021).
+const defaultRounds = 4
+
+func pickHost(name, bin, dir string, rounds int, r remote) (ports.Host, error) {
 	switch name {
 	case "sim", "helixsim":
 		return helixsim.Host{}, nil
 	case "helix":
-		if err := r.require("replaying through Helix", "Helix's configured model provider (past requests are planned again)"); err != nil {
+		what := "Helix's configured model provider (past requests are planned again)"
+		if rounds > 1 {
+			what = "Helix's configured model provider (past requests are planned again, with what read-only file steps " +
+				"read under the replay directory between rounds)"
+		}
+		if err := r.require("replaying through Helix", what); err != nil {
 			return nil, err
 		}
-		return &helixhost.Host{Command: bin, Dir: dir}, nil
+		return &helixhost.Host{Command: bin, Dir: dir, Rounds: rounds}, nil
 	}
 	return nil, fmt.Errorf("-host %q is not available (have: sim, helix)", name)
 }
@@ -229,6 +238,7 @@ func cmdVerify(ctx context.Context, args []string, out io.Writer) error {
 	hostName := fs.String("host", "sim", "what replays episodes without side effects: sim, helix")
 	helixBin := fs.String("helix-bin", "helix", "helix binary for -host helix (e.g. bin/helix from make helix-build)")
 	replayDir := fs.String("replay-dir", "", "directory Helix plans replays in (default: this one); episodes record only a hashed project key")
+	rounds := fs.Int("rounds", defaultRounds, "planner rounds per Helix replay; between rounds only read-only file steps run (1: first plan only)")
 	save := fs.String("save", "", "append every judged comparison to this NDJSON file, for metabolism label")
 	judgeName := fs.String("judge", "heuristic", "what compares replays: heuristic, ollama, deepseek, jev")
 	judgeModel := fs.String("judge-model", "", "model for an ollama, deepseek or jev judge")
@@ -241,7 +251,7 @@ func cmdVerify(ctx context.Context, args []string, out io.Writer) error {
 	if err := checkPair(*hostName, *judgeName); err != nil {
 		return err
 	}
-	host, err := pickHost(*hostName, *helixBin, *replayDir, rem)
+	host, err := pickHost(*hostName, *helixBin, *replayDir, *rounds, rem)
 	if err != nil {
 		return err
 	}

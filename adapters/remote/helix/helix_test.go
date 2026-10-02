@@ -47,12 +47,20 @@ func fakeHelix(mode string) {
 			_ = json.NewEncoder(os.Stdout).Encode(Response{V: 1, ID: "someone-else", OK: true})
 			continue
 		}
-		resp := Response{V: 1, ID: req.ID, OK: true, Usage: Usage{ModelCalls: 1, InputChars: 100, OutputChars: 20}}
+		resp := Response{V: req.V, ID: req.ID, OK: true, Usage: Usage{ModelCalls: 1, InputChars: 100, OutputChars: 20}}
 		if len(req.Lessons) > 0 {
 			resp.Steps = []Step{{Tool: "file", Action: "read", Subject: "read go.mod"}}
 			resp.Reply = "lessons: " + req.Lessons[0].Text
 		} else {
 			resp.Steps = []Step{{Tool: "file", Action: "read", Subject: "read package.json"}}
+		}
+		if req.Rounds > 1 {
+			resp.Steps = []Step{
+				{Tool: "file", Action: "read", Subject: "read notes.md", Round: 1, Outcome: "ok"},
+				{Tool: "file", Action: "read", Subject: "read missing.md", Round: 1, Outcome: "failed", Err: "no such file"},
+				{Tool: "response", Round: 2},
+			}
+			resp.Rounds, resp.End = 2, "answered"
 		}
 		if req.Request == "fail" {
 			resp = Response{V: 1, ID: req.ID, Error: "planner unavailable"}
@@ -178,5 +186,54 @@ func TestRelativeBinaryWorksWithAnotherReplayDir(t *testing.T) {
 	defer func() { _ = h.Close() }()
 	if _, err := h.Replay(context.Background(), ep("build the project"), nil); err != nil {
 		t.Fatalf("relative binary with another replay dir: %v", err)
+	}
+}
+
+// A multi-round replay is sent as v2 and its steps keep their round and
+// outcome; a first-plan replay stays v1, which any Helix with replay reads.
+func TestMultiRoundReplay(t *testing.T) {
+	h := fakeHost(t, "ok")
+	h.Rounds = 4
+	res, err := h.Replay(context.Background(), ep("what do my notes say?"), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.Rounds != 2 || res.End != types.ReplayEndAnswered || len(res.Steps) != 3 {
+		t.Fatalf("result %+v", res)
+	}
+	if s := res.Steps[0]; !s.Ran || !s.OK || s.Round != 1 {
+		t.Fatalf("step 0 %+v", s)
+	}
+	if s := res.Steps[1]; !s.Ran || s.OK || s.Err != "no such file" {
+		t.Fatalf("step 1 %+v", s)
+	}
+	if s := res.Steps[2]; s.Ran || !s.OK || s.Round != 2 {
+		t.Fatalf("step 2 %+v", s)
+	}
+}
+
+func TestReplayWireGoldenV2(t *testing.T) {
+	data, err := os.ReadFile(filepath.Join("testdata", "replay_v2.ndjson"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	lines := strings.Split(strings.TrimSpace(string(data)), "\n")
+	if len(lines) != 2 {
+		t.Fatalf("golden has %d lines", len(lines))
+	}
+	req := Request{V: 2, ID: "0199a1b2c3d4e5f6a7b8c9d0e1f2", Request: "what does the verify package do?",
+		Lessons: []Lesson{{ID: "01a0f7afc76b7637f51421cbd985", Text: "Read the named file once and answer from it."}}, Rounds: 4}
+	got, _ := json.Marshal(req)
+	if !bytes.Equal(got, []byte(lines[0])) {
+		t.Fatalf("request encoding drifted:\n got %s\nwant %s", got, lines[0])
+	}
+	var r Response
+	dec := json.NewDecoder(strings.NewReader(lines[1]))
+	dec.DisallowUnknownFields()
+	if err := dec.Decode(&r); err != nil {
+		t.Fatal(err)
+	}
+	if r.Rounds != 3 || r.End != "answered" || r.Steps[2].Outcome != "failed" {
+		t.Fatalf("decoded %+v", r)
 	}
 }

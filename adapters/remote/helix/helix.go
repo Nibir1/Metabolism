@@ -28,8 +28,10 @@ import (
 	"github.com/Nibir1/metabolism/types"
 )
 
-// WireVersion is the replay protocol version this adapter speaks.
-const WireVersion = 1
+// WireVersion is the newest replay protocol version this adapter speaks. A
+// first-plan replay (Rounds <= 1) is sent as version 1, which every Helix
+// with `helix replay` reads; more rounds need version 2 (D-021).
+const WireVersion = 2
 
 // HostName is the Host field of episodes Helix records.
 const HostName = "helix"
@@ -50,13 +52,18 @@ type Request struct {
 	ID      string   `json:"id"`
 	Request string   `json:"request"`
 	Lessons []Lesson `json:"lessons,omitempty"`
+	Rounds  int      `json:"rounds,omitempty"`
 }
 
-// Step is one planned step in a response.
+// Step is one planned step in a response. Round, Outcome ("" planned and not
+// run, "ok", "failed") and Err are version 2.
 type Step struct {
 	Tool    string `json:"tool"`
 	Action  string `json:"action,omitempty"`
 	Subject string `json:"subject,omitempty"`
+	Round   int    `json:"round,omitempty"`
+	Outcome string `json:"outcome,omitempty"`
+	Err     string `json:"err,omitempty"`
 }
 
 // Usage is what one replay cost.
@@ -68,21 +75,27 @@ type Usage struct {
 
 // Response is one line read back.
 type Response struct {
-	V     int    `json:"v"`
-	ID    string `json:"id"`
-	OK    bool   `json:"ok"`
-	Error string `json:"error,omitempty"`
-	Steps []Step `json:"steps,omitempty"`
-	Reply string `json:"reply,omitempty"`
-	Usage Usage  `json:"usage"`
+	V      int    `json:"v"`
+	ID     string `json:"id"`
+	OK     bool   `json:"ok"`
+	Error  string `json:"error,omitempty"`
+	Steps  []Step `json:"steps,omitempty"`
+	Reply  string `json:"reply,omitempty"`
+	Rounds int    `json:"rounds,omitempty"`
+	End    string `json:"end,omitempty"`
+	Usage  Usage  `json:"usage"`
 }
 
 // Host implements ports.Host by driving `helix replay`.
 type Host struct {
 	// Command is the helix binary (default "helix" on PATH).
 	Command string
-	// Dir is the working directory the replays plan in.
-	Dir     string
+	// Dir is the working directory the replays plan in, and the root the
+	// read-only steps of a multi-round replay read under.
+	Dir string
+	// Rounds is how many planner rounds to replay (D-021). 0 or 1 replays
+	// the first plan only and runs nothing.
+	Rounds  int
 	Timeout time.Duration
 
 	mu     sync.Mutex
@@ -108,7 +121,10 @@ func (h *Host) Replay(ctx context.Context, ep types.Episode, lessons []types.Les
 	if ep.Host != HostName {
 		return types.ReplayResult{}, fmt.Errorf("%w: episode %s was recorded by %q, not Helix", ports.ErrCannotReplay, ep.ID, ep.Host)
 	}
-	req := Request{V: WireVersion, ID: string(ep.ID), Request: ep.Request.Text}
+	req := Request{V: 1, ID: string(ep.ID), Request: ep.Request.Text}
+	if h.Rounds > 1 {
+		req.V, req.Rounds = 2, h.Rounds
+	}
 	for _, l := range lessons {
 		req.Lessons = append(req.Lessons, Lesson{ID: string(l.ID), Text: l.Text})
 	}
@@ -119,12 +135,13 @@ func (h *Host) Replay(ctx context.Context, ep types.Episode, lessons []types.Les
 	if !resp.OK {
 		return types.ReplayResult{}, fmt.Errorf("helix replay %s: %s", ep.ID, resp.Error)
 	}
-	res := types.ReplayResult{EpisodeID: ep.ID, Text: resp.Reply,
+	res := types.ReplayResult{EpisodeID: ep.ID, Text: resp.Reply, Rounds: resp.Rounds, End: resp.End,
 		Usage: types.Usage{ModelCalls: resp.Usage.ModelCalls, InputChars: resp.Usage.InputChars, OutputChars: resp.Usage.OutputChars}}
 	for _, s := range resp.Steps {
-		// Planned, not run: there is no outcome to report, so every step is
-		// "OK" in the sense of "not known to fail". Judges read the plan.
-		res.Steps = append(res.Steps, types.Step{Tool: s.Tool, Action: s.Action, Subject: s.Subject, OK: true})
+		// A step that did not run is "OK" only in the sense of "not known to
+		// fail". A read-only step a multi-round replay ran has a real outcome.
+		res.Steps = append(res.Steps, types.Step{Tool: s.Tool, Action: s.Action, Subject: s.Subject,
+			OK: s.Outcome != "failed", Err: s.Err, Round: s.Round, Ran: s.Outcome != ""})
 	}
 	return res, nil
 }
@@ -169,7 +186,7 @@ func (h *Host) roundTrip(ctx context.Context, req Request) (Response, error) {
 		dec := json.NewDecoder(strings.NewReader(lines.Text()))
 		dec.DisallowUnknownFields()
 		if err := dec.Decode(&resp); err != nil {
-			done <- result{err: fmt.Errorf("helix replay sent a line that is not a v%d response: %w", WireVersion, err)}
+			done <- result{err: fmt.Errorf("helix replay sent a line that is not a v%d response: %w", req.V, err)}
 			return
 		}
 		done <- result{resp: resp}
@@ -179,9 +196,9 @@ func (h *Host) roundTrip(ctx context.Context, req Request) (Response, error) {
 		if r.err != nil {
 			return Response{}, h.failLocked(r.err)
 		}
-		if r.resp.V != WireVersion || r.resp.ID != req.ID {
+		if r.resp.V != req.V || r.resp.ID != req.ID {
 			return Response{}, h.failLocked(fmt.Errorf("helix replay answered v%d id %q for v%d id %q",
-				r.resp.V, r.resp.ID, WireVersion, req.ID))
+				r.resp.V, r.resp.ID, req.V, req.ID))
 		}
 		return r.resp, nil
 	case <-ctx.Done():

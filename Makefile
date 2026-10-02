@@ -125,6 +125,10 @@ check-wire: ## the Helix contracts: recording, replay and delivery golden files 
 		cmp adapters/remote/helix/testdata/replay_v1.ndjson $(HELIX)/cmd/helix/testdata/replay_v1.ndjson \
 		&& echo "✔ replay v1: Helix and Metabolism agree"; \
 	else echo "• replay check skipped: no Helix checkout with helix replay at $(HELIX)"; fi
+	@if [ -f $(HELIX)/cmd/helix/testdata/replay_v2.ndjson ]; then \
+		cmp adapters/remote/helix/testdata/replay_v2.ndjson $(HELIX)/cmd/helix/testdata/replay_v2.ndjson \
+		&& echo "✔ replay v2: Helix and Metabolism agree"; \
+	else echo "• replay v2 check skipped: no Helix checkout with multi-round replay at $(HELIX)"; fi
 
 helix-branch:
 	@test -d $(HELIX)/.git || { echo "✘ no Helix checkout at $(HELIX) (set HELIX=...)"; exit 1; }

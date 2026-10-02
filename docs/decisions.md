@@ -5,6 +5,58 @@ change it. Don't reverse a decision without adding a new entry that says why.
 
 ---
 
+### D-021 · 2026-10-02 · Multi-round replay: read-only file steps run between rounds
+**Amends D-017** ("executes nothing", first plan only).
+
+**What happened:** in the re-run driven session, budget exhaustion was the
+most common failure (8 of 42 episodes): explanatory questions spent their
+follow-up rounds rereading and re-grepping. DeepSeek proposed three lessons
+about it, and all three were inconclusive, mostly ties. The comparisons
+showed why: those turns' first plans (one glob, one grep) barely differ with
+or without the lesson, because the looping happens in the later rounds, which
+replay never played.
+
+**Decision:**
+- `helix replay` can play a turn's follow-up rounds, the way a live
+  non-agentic turn does. If a round's steps are all read-only file steps
+  (`list`, `glob`, `grep`, `read`), they run. Their results go to the next
+  round in the same fenced execution report a live turn sends, with the same
+  follow-up budget (3 for a file lookup) and the same stop rule.
+- **Nothing else ever runs.** A round with any other step (shell, git,
+  package, file `write` or `edit`, web, todo) ends the replay before any of
+  that round's steps run. The replay records how it ended: `answered`,
+  `budget-exhausted`, `unexecuted-step` or `planned`.
+- Replay wire v2: the request carries `rounds`; the response carries each
+  step's round and outcome, and the replay's rounds and end. A first-plan
+  replay is still sent as v1, so v1 behaviour is unchanged.
+- The judge sees the plan round by round: which reads ran and what failed,
+  that it ran out of rounds still reading, or that it stopped at a step a
+  replay does not run (not a failure).
+- `metabolism verify` and `replay` default to `-rounds 4` for `-host helix`;
+  `-rounds 1` is the old first-plan replay.
+
+**Why reads are safe to run:** they change nothing on disk. They go through
+Helix's sandbox resolver, as in a live turn. Their output reaches the planner
+only in the data-only report. The new exposure is privacy: excerpts of files
+under `-replay-dir` go to the provider, as they did in the original turn.
+`-allow-remote` already covers the provider, and the notice now says so.
+
+**Costs:** up to four planner calls per replay instead of one, so a
+`verify` run costs up to about four times as much. Multi-round replays are
+less deterministic, and the A/A noise floor (D-018) measures that.
+
+**Evidence:** Helix tests show that a write, an edit or a shell command
+planned in any round never runs (no file is created or changed), that a
+round containing one runs none of its reads, that the budget matches the
+live one, and that one round runs nothing. The judge's view is tested. The
+real effect on budget lessons is not measured yet.
+
+**Revisit when:** a lesson's value lies past an unexecuted step (a build
+that fails, then a fix), which would need a sandboxed copy of the repository,
+not more rounds.
+
+---
+
 ### D-020 · 2026-10-02 · The credit ledger: a randomised experiment per lesson, judged by Bayes factor
 **Decision:**
 - **Randomise.** On each turn a lesson applies to and fits the budget, the
@@ -133,6 +185,9 @@ symmetric, or enough real runs exist to tune the levels.
 ---
 
 ### D-017 · 2026-10-01 · Real replay is `helix replay`: plan-only, no conversation, NDJSON
+**Amended by D-021:** a replay may now play follow-up rounds, running
+read-only file steps between them; nothing else ever runs.
+
 **Decision:**
 - The engine replays through a long-running `helix replay` process speaking
   NDJSON (replay wire v1, golden file in both repos, `make check-wire`).
@@ -148,7 +203,8 @@ symmetric, or enough real runs exist to tune the levels.
 
 **Why:** a replay must compare the lesson, not the conversation or today's
 context, and it must be impossible for it to act.
-**Known limits:** first plan only (not the agentic loop); plans in
+**Known limits:** first plan only (not the agentic loop; lifted for
+read-only follow-up rounds by D-021); plans in
 `-replay-dir`, not the original directory (episodes keep only a hashed project
 key); no RAG. A replay is a cleaner comparison than the live turn, not a copy
 of it.

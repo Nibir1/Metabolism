@@ -95,8 +95,10 @@ For candidate lesson *L* (`verify/`, decision rule D-018):
    by episodic memory, up to 8. **Regression:** up to 6 past successes in
    scope that *L* is not about.
 2. Replay each through the host's **side-effect-free replay port**, once with
-   *L* in context and once without. For Helix that is `helix replay`, which
-   plans and executes nothing (D-017). Baselines are cached per run.
+   *L* in context and once without. For Helix that is `helix replay` (D-017):
+   it plans the turn's rounds, runs only read-only file steps between them
+   (D-021), and never runs anything that would change something. Baselines
+   are cached per run.
 3. Measure the **noise floor.** Each baseline is replayed twice and judged
    against itself (A/A). r = (decisive A/A + 1) / (A/A + 2). A
    nondeterministic planner and a judge that reads noise as preference both

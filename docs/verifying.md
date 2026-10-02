@@ -162,6 +162,14 @@ bin/metabolism replay -journal ~/.metabolism/journal.db -episode <ID> -lesson "W
 It prints the plan without the lesson, the plan with it, and the judge's
 verdict. Nothing is recorded.
 
+By default a replay plays up to 4 rounds (`-rounds 4`): the first plan, then
+the follow-up rounds a live turn would play. Between rounds it runs only
+read-only file steps (`list`, `glob`, `grep`, `read`). The printed plans show
+the round of each step, which reads ran, and how the replay ended.
+`-rounds 1` replays the first plan only and runs nothing. More rounds mean
+more planner calls (up to four per replay), and excerpts of files under
+`-replay-dir` go to the provider, as they did in the original turn.
+
 `-replay-dir` is where Helix plans the replay. Use the directory the episode
 happened in: `~` for daemon episodes, the repository for interactive ones.
 Episodes keep only a hashed project key, so the engine cannot know it.

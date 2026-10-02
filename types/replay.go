@@ -22,7 +22,27 @@ type ReplayResult struct {
 	Steps     []Step `json:"steps"`
 	Text      string `json:"text,omitempty"`
 	Usage     Usage  `json:"usage"`
+	// Rounds and End describe a multi-round replay (D-021): how many planner
+	// rounds there were and how it ended (ReplayEnd*). Zero values: a
+	// first-plan replay.
+	Rounds int    `json:"rounds,omitempty"`
+	End    string `json:"end,omitempty"`
 }
+
+// How a multi-round replay ended.
+const (
+	// ReplayEndPlanned: one round, or nothing for a replay to run.
+	ReplayEndPlanned = "planned"
+	// ReplayEndAnswered: it stopped the way the live turn would, with
+	// nothing left to answer from.
+	ReplayEndAnswered = "answered"
+	// ReplayEndBudget: the follow-up rounds ran out while it was still
+	// reading.
+	ReplayEndBudget = "budget-exhausted"
+	// ReplayEndUnexecuted: a round planned a step a replay never runs (a
+	// command, a write); the live turn would have acted there.
+	ReplayEndUnexecuted = "unexecuted-step"
+)
 
 // Preference is a judge's comparison of two replays.
 type Preference string

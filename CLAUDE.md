@@ -53,7 +53,7 @@ the source of truth for what, why and how.
 - Helix integration work happens in `../Helix` on branch
   `feat/metabolism-integration` (the same branch name in typesafe-go). Never
   on main. Helix ↔ engine contracts, each pinned by a golden file in both
-  repos: recording wire v1 and v2 (D-013, D-019), replay v1 (D-017) and the
+  repos: recording wire v1 and v2 (D-013, D-019), replay v1 and v2 (D-017, D-021) and the
   delivery file v1 (D-019). `make check-wire` compares them all.
 - Helix is built and tested with `CGO_ENABLED=0` on this machine (the cgo
   linker fails; see [docs/verifying.md](docs/verifying.md)).

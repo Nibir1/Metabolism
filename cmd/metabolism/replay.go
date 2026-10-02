@@ -30,6 +30,7 @@ func cmdReplay(ctx context.Context, args []string, out io.Writer) error {
 	hostName := fs.String("host", "helix", "sim or helix")
 	helixBin := fs.String("helix-bin", "helix", "helix binary for -host helix")
 	replayDir := fs.String("replay-dir", "", "directory Helix plans the replay in (default: this one)")
+	rounds := fs.Int("rounds", defaultRounds, "planner rounds; between rounds only read-only file steps run (1: first plan only)")
 	judgeName := fs.String("judge", "jev", "heuristic, ollama, deepseek, jev")
 	judgeModel := fs.String("judge-model", "", "model for the judge")
 	allowRemote := fs.Bool("allow-remote", false, "allow remote replay and judging")
@@ -43,7 +44,7 @@ func cmdReplay(ctx context.Context, args []string, out io.Writer) error {
 		return err
 	}
 	rem := remote{allowed: *allowRemote, out: out}
-	host, err := pickHost(*hostName, *helixBin, *replayDir, rem)
+	host, err := pickHost(*hostName, *helixBin, *replayDir, *rounds, rem)
 	if err != nil {
 		return err
 	}

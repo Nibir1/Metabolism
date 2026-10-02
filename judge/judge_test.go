@@ -154,3 +154,34 @@ func TestLLMJudgeRetriesAnEmptyAnswerOnce(t *testing.T) {
 		t.Fatalf("calls %d, err %v", m.calls, err)
 	}
 }
+
+// A multi-round replay is shown round by round, with what ran and how it
+// ended, so a judge can see a plan that kept reading without answering. A
+// first-plan replay is shown exactly as before.
+func TestPlanLinesForMultiRoundReplays(t *testing.T) {
+	looping := types.ReplayResult{Rounds: 4, End: types.ReplayEndBudget, Steps: []types.Step{
+		{Tool: "file", Action: "grep", Subject: "grep nutrient", OK: true, Ran: true, Round: 1},
+		{Tool: "file", Action: "read", Subject: "read verify.go", OK: true, Ran: true, Round: 2},
+		{Tool: "file", Action: "read", Subject: "read missing.go", OK: false, Err: "no such file", Ran: true, Round: 3},
+		{Tool: "file", Action: "read", Subject: "read verify.go", OK: true, Ran: true, Round: 4},
+	}}
+	got := strings.Join(planLines(looping), "\n")
+	for _, want := range []string{"round 1: file grep: grep nutrient (ran)", "round 3: file read: read missing.go (fails: no such file)",
+		"reply to the user: (none)", "ran out of follow-up rounds after 4 rounds"} {
+		if !strings.Contains(got, want) {
+			t.Errorf("missing %q in:\n%s", want, got)
+		}
+	}
+	acting := types.ReplayResult{Rounds: 2, End: types.ReplayEndUnexecuted, Steps: []types.Step{
+		{Tool: "file", Action: "read", Subject: "read go.mod", OK: true, Ran: true, Round: 1},
+		{Tool: "shell", Subject: "go build ./...", OK: true, Round: 2},
+	}}
+	if got := strings.Join(planLines(acting), "\n"); !strings.Contains(got, "planned here, not run, and are not failures") ||
+		strings.Contains(got, "go build ./... (ran)") {
+		t.Errorf("unexecuted ending:\n%s", got)
+	}
+	first := types.ReplayResult{Steps: []types.Step{{Tool: "file", Action: "read", Subject: "read go.mod", OK: true}}}
+	if got := planLines(first); len(got) != 2 || got[0] != "file read: read go.mod" {
+		t.Errorf("first-plan view changed: %q", got)
+	}
+}

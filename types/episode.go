@@ -59,6 +59,13 @@ type Step struct {
 	OK       bool          `json:"ok"`
 	Err      string        `json:"err,omitempty"`
 	Duration time.Duration `json:"duration,omitempty"`
+
+	// Replay only (D-021): the planner round that planned the step (1-based;
+	// 0 in a recorded episode) and whether the replay ran it. A replay runs
+	// only read-only file steps, between rounds; every other step is planned
+	// and never run, and its OK means only "not known to fail".
+	Round int  `json:"round,omitempty"`
+	Ran   bool `json:"ran,omitempty"`
 }
 
 // Usage is what the episode cost. Characters rather than tokens, because not

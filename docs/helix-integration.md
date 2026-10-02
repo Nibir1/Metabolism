@@ -92,7 +92,7 @@ delivery).
 | 1 | Episode emission | **built** (Phase 0, daemon in Phase 1) |
 | 2 | Late outcomes | **built** |
 | 3 | The `<learned_lessons>` context block | **built**: replay (2c) and live turns (Phase 3, D-019) |
-| 4 | Replay entry point | **built**: `helix replay` (D-017) |
+| 4 | Replay entry point | **built**: `helix replay` (D-017), multi-round with read-only steps (D-021) |
 | 5 | `/lessons` command | **built**: list, `on\|off`, `why`, `forget`. `forget --hard`, snapshot and rollback are Phase 4 |
 | 6 | `/purge` and `helix uninstall` remove Metabolism's state | **built** for Helix's recording (`~/.helix/metabolism/`); the engine's journal (`~/.metabolism/`) is the engine's to remove |
 | 7 | `/doctor` shows the engine's status | not built in Helix; `metabolism doctor` reports recording, delivery and the journal |
@@ -137,8 +137,11 @@ The user's own workflow:
   record exposure.
 - A turn's model usage is a meter delta, so ambient or vision calls that land
   during a turn are counted in it.
-- A replay plans only the first plan (not the agentic loop), from
-  `-replay-dir` rather than the original directory, without RAG (D-017).
+- A replay plays the first plan and, by default, the follow-up rounds a
+  live non-agentic turn would, running only read-only file steps between
+  them (D-021). It stops at any step that would change something. It plans
+  from `-replay-dir` rather than the original directory, and without RAG
+  (D-017).
 
 ### The planned changes in detail
 

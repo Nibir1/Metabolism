@@ -1,6 +1,7 @@
 package judge
 
 import (
+	"fmt"
 	"hash/fnv"
 	"strings"
 
@@ -98,15 +99,26 @@ func describeOriginal(ep types.Episode, outcomes []types.Outcome) string {
 
 // planLines lists a plan's steps and what it says to the user. A plan that
 // says nothing is marked as such: a reader cannot notice an absence.
+//
+// A multi-round replay (D-021) also says which round planned each step, what
+// each read that ran found, and how the replay ended, in plain words: a judge
+// must be able to see a plan that kept rereading without ever answering.
 func planLines(r types.ReplayResult) []string {
+	multi := r.Rounds > 1
 	var out []string
 	for _, s := range r.Steps {
 		line := strings.TrimSpace(s.Tool + " " + s.Action)
 		if s.Subject != "" {
 			line += ": " + s.Subject
 		}
-		if !s.OK && s.Err != "" {
+		switch {
+		case s.Ran && s.OK:
+			line += " (ran)"
+		case !s.OK && s.Err != "":
 			line += " (fails: " + s.Err + ")"
+		}
+		if multi && s.Round > 0 {
+			line = fmt.Sprintf("round %d: %s", s.Round, line)
 		}
 		out = append(out, line)
 	}
@@ -114,6 +126,12 @@ func planLines(r types.ReplayResult) []string {
 		out = append(out, "reply to the user: "+r.Text)
 	} else {
 		out = append(out, "reply to the user: (none)")
+	}
+	switch r.End {
+	case types.ReplayEndBudget:
+		out = append(out, fmt.Sprintf("ended: ran out of follow-up rounds after %d rounds, still reading", r.Rounds))
+	case types.ReplayEndUnexecuted:
+		out = append(out, "ended: at a step that would change something; such steps are planned here, not run, and are not failures")
 	}
 	return out
 }
