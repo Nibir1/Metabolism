@@ -100,9 +100,9 @@ func pickReflector(name, model string, r remote) (ports.Reflector, error) {
 	return nil, fmt.Errorf("-reflector %q is not available (have: sim, ollama, deepseek)", name)
 }
 
-// defaultRounds is a first plan plus the three follow-up rounds a live Helix
-// turn gets for a file lookup (D-021).
-const defaultRounds = 4
+// defaultRounds is a first plan plus the most follow-up rounds a live Helix
+// turn gets for a file lookup: 1 + 6 (D-021, D-022).
+const defaultRounds = 7
 
 // replayNotice says what a Helix replay sends, for the opt-in notice.
 func replayNotice(rounds int) string {

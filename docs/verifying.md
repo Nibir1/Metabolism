@@ -162,8 +162,9 @@ bin/metabolism replay -journal ~/.metabolism/journal.db -episode <ID> -lesson "W
 It prints the plan without the lesson, the plan with it, and the judge's
 verdict. Nothing is recorded.
 
-By default a replay plays up to 4 rounds (`-rounds 4`): the first plan, then
-the follow-up rounds a live turn would play. Between rounds it runs only
+By default a replay plays up to 7 rounds (`-rounds 7`): the first plan, then
+the follow-up rounds a live turn would play (3 after a file lookup, up to 6
+when each round reads new parts of files; D-022). Between rounds it runs only
 read-only file steps (`list`, `glob`, `grep`, `read`). The printed plans show
 the round of each step, which reads ran, and how the replay ended.
 `-rounds 1` replays the first plan only and runs nothing. More rounds mean

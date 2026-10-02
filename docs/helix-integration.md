@@ -263,6 +263,10 @@ yielded 42 planner episodes, 100% labelled: 30 done, 4 budget-exhausted,
   replay (D-021). A read is now a window of up to 80 lines with a header
   (`[path: lines A-B of N]`), kept from its start, and takes `start_line`
   and `end_line`.
+- **File lookups ran out of rounds mid-read, with no reply.** The budget was
+  a fixed 3 follow-ups and the last round was not marked. A round that reads
+  new parts of a file now earns another, up to 6, and the last round is told
+  to answer from what it has (D-022).
 - **Search results were relative to the searched folder.** A glob in
   `Development/Personal/Metabolism` reported `judge/pair.go`, and reading
   that from the working directory failed, in both arms of several replays.

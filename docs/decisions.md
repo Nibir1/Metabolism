@@ -5,6 +5,43 @@ change it. Don't reverse a decision without adding a new entry that says why.
 
 ---
 
+### D-022 · 2026-10-02 · Helix's file-lookup budget: earned rounds and a last-round notice
+**What happened:** after the read fix, 5 of 42 driven turns still ran out of
+follow-up rounds. Two were reading steadily through new parts of a file, one
+was mixed, and two were looping (the same grep twice; re-searching for a file
+that does not exist). A file lookup had 3 follow-up rounds, fixed after the
+first round. Reading and answering are separate rounds, so a search plus two
+80-line windows used them all. And nothing told the planner it was on its
+last round, so a turn still reading spent it on one more read and gave no
+reply.
+
+**Decision (in Helix, mirrored in `helix replay`):**
+- **Earned rounds.** A follow-up round that read part of a file this turn
+  had not read, and repeated no step this turn already ran, earns one more
+  round, up to 6 follow-ups (from 3). Searches alone earn nothing, so a
+  search for something absent cannot keep itself going. A repeat earns
+  nothing for that round. Only the file-lookup budget grows; `/agentic` and
+  web lookups are unchanged.
+- **Last-round notice.** The final round's directive says it is the last
+  one: answer now from what the record shows, say what could not be checked,
+  and plan no more reads or searches.
+- Replays play the same rules, so the nutrient test sees the turn a user
+  would get. `-rounds` defaults to 7 (the first plan plus 6 follow-ups).
+
+**Why not a flat increase:** it would pay for the looping turns too. Earned
+rounds cost up to 3 extra planner calls, only on turns that are reading
+through files (2 of 42 in the last session). The notice costs nothing.
+
+**Evidence:** Helix tests show that new reads earn rounds up to the cap,
+repeats and searches earn none, the notice appears on the final round and
+only there, a final answer is recorded as done, and live and replay follow
+the same rules. The real effect needs another driven session.
+
+**Revisit when:** real use shows turns hitting the cap while still making
+progress, or earned rounds being gamed by reading windows that do not help.
+
+---
+
 ### D-021 · 2026-10-02 · Multi-round replay: read-only file steps run between rounds
 **Amends D-017** ("executes nothing", first plan only).
 
@@ -32,7 +69,8 @@ replay never played.
 - The judge sees the plan round by round: which reads ran and what failed,
   that it ran out of rounds still reading, or that it stopped at a step a
   replay does not run (not a failure).
-- `metabolism verify` and `replay` default to `-rounds 4` for `-host helix`;
+- `metabolism verify` and `replay` default to `-rounds 4` for `-host helix`
+  (7 since D-022);
   `-rounds 1` is the old first-plan replay.
 
 **Why reads are safe to run:** they change nothing on disk. They go through
