@@ -102,3 +102,14 @@ simulated episodes. It was shown 40 of them, failures first.
   its own catalogue. `verify -host sim` reports them as "can't judge" and
   records nothing (`ports.ErrCannotReplay`). They need real Helix replays
   (Phase 2c).
+
+## First nutrient test on real Helix replays
+
+2026-10-02: `verify -host helix -judge jev` on 42 daemon-driven episodes,
+with 4 lessons proposed by DeepSeek. **All 4 were eliminated, wrongly.** The
+saved comparisons show the task-list lesson winning its 3 relevant episodes
+at 0.96–0.99 confidence. The "regressions" that eliminated it were the
+planner planning the same request differently each time, read by the judge
+as preference. The rule was replaced: D-018 adds a noise floor, calibrated
+tests and asymmetric bars. Also observed: one plain judge error, where Jev
+preferred a plan that misused the task-list tool for "add a TODO comment".

@@ -172,8 +172,14 @@ Delivered in three stages.
       `verify -save` for labelling, `replay` (one episode, both plans, the
       verdict), `label` (blind, resumable) and `label -score` (agreement and
       Cohen's κ). D-017.
-- [ ] Live: real lessons nutrient-tested on real Helix episodes, and a
-      labelled sample (see docs/verifying.md, "Real Helix replay").
+- [x] First live run (2026-10-02, 42 daemon-driven episodes, DeepSeek
+      reflector, Jev judge). All 4 real lessons were eliminated by noise
+      "regressions" even though the comparisons showed them working. That led
+      to D-018: an A/A noise floor, tests calibrated to it, and asymmetric
+      bars (permanent elimination needs p ≤ 0.02). Accepted by a 20-trial
+      noisy-host test.
+- [ ] Re-run under D-018 on a fresh journal, then a labelled sample (see
+      docs/verifying.md, "Real Helix replay").
 
 Exit criteria:
 

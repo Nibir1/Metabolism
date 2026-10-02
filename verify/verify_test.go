@@ -2,7 +2,10 @@ package verify
 
 import (
 	"context"
+	"fmt"
+	"math"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -217,8 +220,10 @@ func TestBaselineReplaysAreCached(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
+	// Two baseline replays per episode (the baseline and its A/A twin), and
+	// no more however many lessons are tested against it.
 	for ep, n := range host.without {
-		if n > 1 {
+		if n > 2 {
 			t.Fatalf("episode %s replayed without lessons %d times", ep, n)
 		}
 	}
@@ -249,5 +254,119 @@ func TestIdenticalReplaysAreTiesWithoutAJudge(t *testing.T) {
 	}
 	if rep.Evidence.Wins != 0 || rep.Evidence.Losses != 0 || rep.Evidence.Regressions != 0 || rep.Evidence.Ties == 0 {
 		t.Fatalf("evidence %+v", rep.Evidence)
+	}
+}
+
+// noisyHost wraps the simulator the way a real planner behaves: a replay
+// sometimes differs from the last for reasons that have nothing to do with
+// any lesson (a different but equivalent step).
+type noisyHost struct {
+	helixsim.Host
+	rate  float64
+	calls uint64
+}
+
+func (n *noisyHost) Replay(ctx context.Context, ep types.Episode, ls []types.Lesson) (types.ReplayResult, error) {
+	res, err := n.Host.Replay(ctx, ep, ls)
+	if err != nil {
+		return res, err
+	}
+	n.calls++
+	if float64(mix(ep.ID, types.ID(fmt.Sprint(n.calls)))%1000)/1000 < n.rate {
+		res.Steps = append(slices.Clone(res.Steps), types.Step{Tool: "file", Action: "list", Subject: fmt.Sprintf("variant-%d", n.calls%3), OK: true})
+	}
+	return res, nil
+}
+
+// noisyJudge is the heuristic judge, except that when two plans differ only
+// by noise it still picks a side, confidently, at random: what the first live
+// run showed a model judge doing.
+type noisyJudge struct{ judge.Heuristic }
+
+func (noisyJudge) Name() string { return "noisy" }
+func (j noisyJudge) Compare(ctx context.Context, ep types.Episode, outs []types.Outcome, with, without types.ReplayResult) (types.Verdict, error) {
+	v, err := j.Heuristic.Compare(ctx, ep, outs, with, without)
+	if err != nil || v.Prefer != types.PreferNeither {
+		return v, err
+	}
+	if mix(ep.ID, types.ID(fmt.Sprint(len(with.Steps), len(without.Steps), with.Steps[len(with.Steps)-1].Subject)))%2 == 0 {
+		return types.Verdict{Prefer: types.PreferWith, Confidence: 0.8, Reason: "noise"}, nil
+	}
+	return types.Verdict{Prefer: types.PreferWithout, Confidence: 0.8, Reason: "noise"}, nil
+}
+
+// TestDecisionsHoldOnANoisyHost is D-018's acceptance test. On a host whose
+// replays vary and a judge that reads that variation as preference, the
+// nutrient test, over 20 independent lessons per case, must:
+//   - accept a correct lesson nearly always;
+//   - eliminate a harmful lesson always;
+//   - almost never eliminate an irrelevant lesson on noise, which the D-015
+//     rule (any decisive loss on a past success fails) did routinely.
+func TestDecisionsHoldOnANoisyHost(t *testing.T) {
+	const trials = 20
+	cases := []struct {
+		scenario, tag string
+		good          bool
+	}{
+		{"empty-glob-loop", "(empty-glob)", true},
+		{"edit-and-test", "(always-rerun)", false},
+		{"empty-glob-loop", "YAML", false},
+	}
+	for _, c := range cases {
+		t.Run(c.tag, func(t *testing.T) {
+			w := newWorld(t)
+			counts := map[types.TestResult]int{}
+			noiseRegressions := 0
+			for i := range trials {
+				id := w.lessonFrom(t, c.scenario, spec(t, c.tag, c.good), types.ProvUserTyped)
+				v := &Verifier{Host: &noisyHost{rate: 0.6, calls: uint64(i) * 1000}, Judge: noisyJudge{}, History: w.h}
+				rep, err := v.Test(context.Background(), w.m, id)
+				if err != nil {
+					t.Fatal(err)
+				}
+				if rep.Evidence.NoiseDecisive == 0 {
+					t.Fatalf("the A/A probe saw no noise on a noisy host: %+v", rep.Evidence)
+				}
+				counts[rep.Evidence.Result]++
+				noiseRegressions += rep.Evidence.Regressions
+			}
+			t.Logf("%s over %d trials: %v", c.tag, trials, counts)
+			switch c.tag {
+			case "(empty-glob)":
+				if counts[types.ResultPass] < trials*9/10 || counts[types.ResultFail] > 1 {
+					t.Fatalf("a correct lesson was accepted %d/%d and eliminated %d/%d", counts[types.ResultPass], trials, counts[types.ResultFail], trials)
+				}
+			case "(always-rerun)":
+				if counts[types.ResultFail] != trials {
+					t.Fatalf("a harmful lesson survived %d/%d times", trials-counts[types.ResultFail], trials)
+				}
+			case "YAML":
+				if noiseRegressions == 0 {
+					t.Fatal("the noisy host produced no noise regressions; the test proves nothing")
+				}
+				if counts[types.ResultFail] > 1 || counts[types.ResultPass] > 2 {
+					t.Fatalf("an irrelevant lesson was eliminated %d and accepted %d of %d times on noise",
+						counts[types.ResultFail], counts[types.ResultPass], trials)
+				}
+			}
+		})
+	}
+}
+
+func TestTailAndNoiseRate(t *testing.T) {
+	if tail(0, 5, 0.3) != 1 || tail(3, 0, 0.3) != 1 {
+		t.Fatal("no evidence must be p=1")
+	}
+	if got := tail(3, 3, 0.5); math.Abs(got-0.125) > 1e-9 {
+		t.Fatalf("tail(3,3,.5) = %v", got)
+	}
+	quiet := types.Evidence{NoiseCompared: 14, NoiseDecisive: 0}
+	noisy := types.Evidence{NoiseCompared: 14, NoiseDecisive: 10}
+	if noiseRate(quiet) >= noiseRate(noisy) || noiseRate(types.Evidence{}) != 0.5 {
+		t.Fatal("noise rate ordering or default")
+	}
+	// Three clean wins are strong evidence on a quiet host and weak on a noisy one.
+	if tail(3, 8, noiseRate(quiet)/2) > 0.1 || tail(3, 8, noiseRate(noisy)/2) < 0.1 {
+		t.Fatal("the noise floor does not change the strength of the same evidence")
 	}
 }

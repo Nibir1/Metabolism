@@ -27,6 +27,23 @@ type Evidence struct {
 	Losses      int `json:"losses,omitempty"`
 	Ties        int `json:"ties,omitempty"`
 	Regressions int `json:"regressions,omitempty"`
+	// RegressionWins: past successes where the with-lesson plan was judged
+	// better. Counted so harm is judged symmetrically: with a planner that
+	// varies run to run, noise produces both (D-018).
+	RegressionWins int `json:"regression_wins,omitempty"`
+
+	// The A/A noise floor: episodes whose baseline was replayed twice and
+	// judged against itself, and how many of those the judge called
+	// decisively. A judge that confidently prefers one of two no-lesson plans
+	// is reading noise; this is how often it does.
+	NoiseCompared int `json:"noise_compared,omitempty"`
+	NoiseDecisive int `json:"noise_decisive,omitempty"`
+
+	// Sign-test p-values: that the lesson helps on its relevant episodes,
+	// and that it harms past successes, beyond what symmetric noise explains.
+	PHelp float64 `json:"p_help,omitempty"`
+	PHarm float64 `json:"p_harm,omitempty"`
+
 	// Episodes lists every episode replayed, relevant and regression alike.
 	Episodes []ID `json:"episodes,omitempty"`
 }
@@ -55,8 +72,15 @@ func (e Evidence) Validate() error {
 	if e.Summary == "" {
 		errs = append(errs, errors.New("summary is empty"))
 	}
-	if e.Compared < 0 || e.Wins < 0 || e.Losses < 0 || e.Ties < 0 || e.Regressions < 0 {
+	if e.Compared < 0 || e.Wins < 0 || e.Losses < 0 || e.Ties < 0 || e.Regressions < 0 ||
+		e.RegressionWins < 0 || e.NoiseCompared < 0 || e.NoiseDecisive < 0 {
 		errs = append(errs, errors.New("negative count"))
+	}
+	if e.NoiseDecisive > e.NoiseCompared {
+		errs = append(errs, errors.New("noise_decisive exceeds noise_compared"))
+	}
+	if e.PHelp < 0 || e.PHelp > 1 || e.PHarm < 0 || e.PHarm > 1 {
+		errs = append(errs, errors.New("p-value outside [0, 1]"))
 	}
 	if e.Wins+e.Losses+e.Ties > e.Compared {
 		errs = append(errs, errors.New("wins + losses + ties exceeds compared"))

@@ -120,6 +120,7 @@ type comparisonRecord struct {
 	Lesson          types.ID         `json:"lesson"`
 	LessonText      string           `json:"lesson_text"`
 	Episode         types.ID         `json:"episode"`
+	Regression      bool             `json:"regression_set"`
 	Request         string           `json:"request"`
 	Original        string           `json:"original_attempt"`
 	PlanA           []string         `json:"plan_a"`
@@ -144,7 +145,7 @@ func saveComparisons(path string, l types.Lesson, rep verify.Report, h *verify.H
 		ep, outs, _ := h.Episode(c.Episode)
 		pair := judge.NewPair(ep, outs, c.With, c.Without)
 		if err := enc.Encode(comparisonRecord{
-			Lesson: l.ID, LessonText: l.Text, Episode: c.Episode, Request: pair.Request, Original: pair.Original,
+			Lesson: l.ID, LessonText: l.Text, Episode: c.Episode, Regression: c.Regression, Request: pair.Request, Original: pair.Original,
 			PlanA: pair.PlanA, PlanB: pair.PlanB, WithIsA: pair.WithIsA,
 			Judge: judgeName, JudgePrefer: c.Verdict.Prefer, JudgeConfidence: c.Verdict.Confidence,
 		}); err != nil {

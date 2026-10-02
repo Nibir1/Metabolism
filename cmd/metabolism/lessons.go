@@ -283,7 +283,7 @@ func cmdVerify(ctx context.Context, args []string, out io.Writer) error {
 	}
 	v := &verify.Verifier{Host: host, Judge: jd, History: h}
 	tw := tabwriter.NewWriter(out, 0, 0, 2, ' ', 0)
-	say(tw, "  result\tmove\tW/L/T\treg\tlesson\n")
+	say(tw, "  result\tmove\tW/L/T\tworse/better\tnoise\tlesson\n")
 	skipped := 0
 	for _, id := range ids {
 		rep, err := v.Test(ctx, m, id)
@@ -303,11 +303,13 @@ func cmdVerify(ctx context.Context, args []string, out io.Writer) error {
 			}
 		}
 		ev := rep.Evidence
-		say(tw, "  %s\t%s → %s\t%d/%d/%d\t%d\t%s\n", ev.Result, rep.From, rep.To,
-			ev.Wins, ev.Losses, ev.Ties, ev.Regressions, truncate(e.Lesson.Text, 60))
+		say(tw, "  %s\t%s → %s\t%d/%d/%d\t%d/%d\t%d/%d\t%s\n", ev.Result, rep.From, rep.To,
+			ev.Wins, ev.Losses, ev.Ties, ev.Regressions, ev.RegressionWins, ev.NoiseDecisive, ev.NoiseCompared,
+			truncate(e.Lesson.Text, 60))
 	}
 	_ = tw.Flush()
-	say(out, "\njudge: %s · details: metabolism lessons -id <ID>\n", jd.Name())
+	say(out, "\njudge: %s · W/L/T on the episodes a lesson is about; worse/better on past successes; noise = decisive baseline-vs-baseline pairs (D-018)\n", jd.Name())
+	say(out, "details: metabolism lessons -id <ID>\n")
 	if skipped > 0 {
 		say(out, "%d lesson(s) not tested: host %q cannot replay them meaningfully (the simulator only models its own catalogue). Nothing was recorded for them.\n", skipped, *hostName)
 	}
@@ -389,9 +391,13 @@ func lessonWhy(m *metabolome.Metabolome, id types.ID, out io.Writer) error {
 	if len(e.Evidence) > 0 {
 		say(out, "\nevidence:\n")
 		for _, ev := range e.Evidence {
-			say(out, "  %s  %s %s by %s: %d wins, %d losses, %d ties, %d regressions over %d episodes\n",
-				ev.At.UTC().Format(time.DateTime), ev.Kind, ev.Result, orDash(ev.Judge),
-				ev.Wins, ev.Losses, ev.Ties, ev.Regressions, len(ev.Episodes))
+			say(out, "  %s  %s %s by %s over %d episodes\n", ev.At.UTC().Format(time.DateTime), ev.Kind, ev.Result,
+				orDash(ev.Judge), len(ev.Episodes))
+			say(out, "    relevant: %d wins, %d losses, %d ties (p_help %.3f)\n", ev.Wins, ev.Losses, ev.Ties, ev.PHelp)
+			say(out, "    past successes: %d worse, %d better (p_harm %.3f)\n", ev.Regressions, ev.RegressionWins, ev.PHarm)
+			if ev.NoiseCompared > 0 {
+				say(out, "    noise floor: %d of %d baseline-vs-baseline pairs judged decisively\n", ev.NoiseDecisive, ev.NoiseCompared)
+			}
 		}
 	}
 	return nil

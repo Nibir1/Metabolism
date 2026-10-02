@@ -19,6 +19,7 @@ import (
 	"context"
 	"fmt"
 	"hash/fnv"
+	"math"
 	"slices"
 
 	"github.com/Nibir1/metabolism/episodic"
@@ -27,42 +28,50 @@ import (
 	"github.com/Nibir1/metabolism/types"
 )
 
-// Config holds the decision rule. The zero value selects the defaults.
+// Config holds the decision rule (D-018). The zero value selects the defaults.
 type Config struct {
-	MaxRelevant      int     // relevant episodes replayed (default 8)
-	RegressionSample int     // past successes replayed (default 6)
-	MinCompared      int     // fewer relevant comparisons is inconclusive (default 3)
-	MinWins          int     // wins needed to pass (default 2)
-	WinRatio         float64 // wins must be ≥ WinRatio × losses (default 3)
-	// QuarantineMinWins is the bar for a lesson learned from untrusted
-	// content: this many wins and no losses at all (default 4).
+	MaxRelevant      int // relevant episodes replayed (default 8)
+	RegressionSample int // past successes replayed (default 6)
+	MinCompared      int // fewer relevant comparisons is inconclusive (default 3)
+	MinWins          int // decisive wins needed to pass (default 2)
+	// Alpha is the level for "helps", which moves a lesson to trial
+	// (default 0.1). Trial is reversible: outcome credit keeps testing it.
+	Alpha float64
+	// HarmAlpha is the level for "harms" and "makes things worse", which
+	// eliminate a lesson (default 0.02). Elimination is permanent, so it
+	// needs much stronger evidence than promotion. MinHarm is the fewest
+	// decisive losses that can eliminate (default 2).
+	HarmAlpha float64
+	MinHarm   int
+	// QuarantineMinWins and QuarantineAlpha are the stricter bar for a lesson
+	// learned from untrusted content (defaults 4 and 0.02).
 	QuarantineMinWins int
+	QuarantineAlpha   float64
 	// MinConfidence below which a verdict counts as a tie (default 0.6).
 	MinConfidence float64
 }
 
 func (c Config) withDefaults() Config {
-	if c.MaxRelevant <= 0 {
-		c.MaxRelevant = 8
+	def := func(v *int, d int) {
+		if *v <= 0 {
+			*v = d
+		}
 	}
-	if c.RegressionSample <= 0 {
-		c.RegressionSample = 6
+	deff := func(v *float64, d float64) {
+		if *v <= 0 {
+			*v = d
+		}
 	}
-	if c.MinCompared <= 0 {
-		c.MinCompared = 3
-	}
-	if c.MinWins <= 0 {
-		c.MinWins = 2
-	}
-	if c.WinRatio <= 0 {
-		c.WinRatio = 3
-	}
-	if c.QuarantineMinWins <= 0 {
-		c.QuarantineMinWins = 4
-	}
-	if c.MinConfidence <= 0 {
-		c.MinConfidence = 0.6
-	}
+	def(&c.MaxRelevant, 8)
+	def(&c.RegressionSample, 6)
+	def(&c.MinCompared, 3)
+	def(&c.MinWins, 2)
+	def(&c.MinHarm, 2)
+	def(&c.QuarantineMinWins, 4)
+	deff(&c.Alpha, 0.1)
+	deff(&c.HarmAlpha, 0.02)
+	deff(&c.QuarantineAlpha, 0.02)
+	deff(&c.MinConfidence, 0.6)
 	return c
 }
 
@@ -126,6 +135,7 @@ type Verifier struct {
 	Config  Config
 
 	baseline map[types.ID]types.ReplayResult
+	aa       map[types.ID]types.Verdict
 }
 
 // Comparison is one replayed pair, for reports and for labelling.
@@ -135,7 +145,9 @@ type Comparison struct {
 	Verdict    types.Verdict `json:"verdict"`
 	// Judged is false when the two plans were identical and no judge was
 	// asked. Only judged comparisons are worth a person's label.
-	Judged  bool               `json:"judged"`
+	Judged bool `json:"judged"`
+	// Noise is the episode's A/A verdict (baseline against baseline).
+	Noise   types.Verdict      `json:"noise"`
 	With    types.ReplayResult `json:"with"`
 	Without types.ReplayResult `json:"without"`
 }
@@ -180,20 +192,29 @@ func (v *Verifier) Test(ctx context.Context, m *metabolome.Metabolome, id types.
 			if err != nil {
 				return Report{}, err
 			}
-			c.Regression = set.regression
-			verdict := c.Verdict
+			aa, err := v.noise(ctx, eid)
+			if err != nil {
+				return Report{}, err
+			}
+			c.Regression, c.Noise = set.regression, aa
+			ev.NoiseCompared++
+			if decisive(aa, cfg) {
+				ev.NoiseDecisive++
+			}
 			ev.Episodes = append(ev.Episodes, eid)
 			rep.Comparisons = append(rep.Comparisons, c)
-			decisive := verdict.Confidence >= cfg.MinConfidence
+			win := decisive(c.Verdict, cfg) && c.Verdict.Prefer == types.PreferWith
+			loss := decisive(c.Verdict, cfg) && c.Verdict.Prefer == types.PreferWithout
 			switch {
+			case set.regression && win:
+				ev.RegressionWins++
+			case set.regression && loss:
+				ev.Regressions++
 			case set.regression:
-				if decisive && verdict.Prefer == types.PreferWithout {
-					ev.Regressions++
-				}
-			case decisive && verdict.Prefer == types.PreferWith:
+			case win:
 				ev.Compared++
 				ev.Wins++
-			case decisive && verdict.Prefer == types.PreferWithout:
+			case loss:
 				ev.Compared++
 				ev.Losses++
 			default:
@@ -203,6 +224,7 @@ func (v *Verifier) Test(ctx context.Context, m *metabolome.Metabolome, id types.
 		}
 	}
 
+	Calibrate(&ev)
 	ev.Result, ev.Summary = decide(ev, lesson.State == types.StateQuarantined, cfg)
 	recorded, err := m.RecordEvidence(ctx, ev)
 	if err != nil {
@@ -225,24 +247,114 @@ func (v *Verifier) Test(ctx context.Context, m *metabolome.Metabolome, id types.
 	return rep, nil
 }
 
-// decide applies the rule. Every branch says why, in a sentence that names the
-// counts, because the summary is what a person reads in `lessons why`.
+func decisive(v types.Verdict, cfg Config) bool {
+	return v.Prefer != types.PreferNeither && v.Confidence >= cfg.MinConfidence
+}
+
+// decide applies the rule (D-018). A planner that varies run to run makes
+// two plans differ for reasons that have nothing to do with the lesson, and a
+// judge confidently prefers one of them some of the time. The A/A replays
+// measure how often: r, the share of baseline-against-baseline comparisons
+// the judge called decisively. If the lesson did nothing, each comparison
+// would come out a decisive win with probability r/2, a decisive loss with
+// r/2, and a tie otherwise. Every question below is "how likely is this many
+// wins (or losses) from noise alone?", and a lesson moves only when that is
+// unlikely. Otherwise the result is inconclusive, never a guess: elimination
+// is permanent.
+//
+// Every branch says why, with the counts, because the summary is what a
+// person reads in `lessons why`. ev.PHelp and ev.PHarm must already be set
+// (Test does, with Calibrate).
 func decide(ev types.Evidence, quarantined bool, cfg Config) (types.TestResult, string) {
-	counts := fmt.Sprintf("%d wins, %d losses, %d ties over %d relevant episodes; %d regressions",
-		ev.Wins, ev.Losses, ev.Ties, ev.Compared, ev.Regressions)
+	r := noiseRate(ev)
+	pHurt := tail(ev.Losses, ev.Compared, r/2)
+	counts := fmt.Sprintf("relevant: %d wins, %d losses, %d ties (p=%.3f); past successes: %d worse, %d better (p=%.3f); noise: %d of %d A/A pairs decisive (r=%.2f)",
+		ev.Wins, ev.Losses, ev.Ties, ev.PHelp, ev.Regressions, ev.RegressionWins, ev.PHarm, ev.NoiseDecisive, ev.NoiseCompared, r)
 	switch {
-	case ev.Regressions > 0:
-		return types.ResultFail, "harms past successes it is not about: " + counts
+	case ev.Regressions >= cfg.MinHarm && ev.PHarm <= cfg.HarmAlpha:
+		return types.ResultFail, "harms past successes it is not about, beyond noise: " + counts
 	case ev.Compared < cfg.MinCompared:
 		return types.ResultInconclusive, fmt.Sprintf("too few relevant episodes to judge (need %d): %s", cfg.MinCompared, counts)
 	case ev.Wins == 0 && ev.Losses == 0:
 		return types.ResultFail, "changes nothing where it should help: " + counts
-	case quarantined && (ev.Wins < cfg.QuarantineMinWins || ev.Losses > 0):
-		return types.ResultFail, fmt.Sprintf("quarantined lessons need %d wins and no losses: %s", cfg.QuarantineMinWins, counts)
-	case !quarantined && (ev.Wins < cfg.MinWins || float64(ev.Wins) < cfg.WinRatio*float64(ev.Losses)):
-		return types.ResultFail, fmt.Sprintf("needs %d wins and %g× more wins than losses: %s", cfg.MinWins, cfg.WinRatio, counts)
+	case ev.Losses >= cfg.MinHarm && pHurt <= cfg.HarmAlpha:
+		return types.ResultFail, "makes things worse where it applies, beyond noise: " + counts
+	case quarantined && ev.Wins >= cfg.QuarantineMinWins && ev.PHelp <= cfg.QuarantineAlpha:
+		return types.ResultPass, "clears the quarantine bar: " + counts
+	case quarantined:
+		return types.ResultFail, fmt.Sprintf("quarantined lessons need %d decisive wins and p ≤ %g: %s", cfg.QuarantineMinWins, cfg.QuarantineAlpha, counts)
+	case ev.Wins >= cfg.MinWins && ev.PHelp <= cfg.Alpha:
+		return types.ResultPass, "helps where it should, beyond noise, and harms nothing: " + counts
 	}
-	return types.ResultPass, "helps where it should and harms nothing: " + counts
+	return types.ResultInconclusive, "not distinguishable from noise yet; the lesson stays where it is: " + counts
+}
+
+// Calibrate sets the evidence's p-values from its counts and noise floor.
+func Calibrate(ev *types.Evidence) {
+	r := noiseRate(*ev)
+	ev.PHelp = tail(ev.Wins, ev.Compared, r/2)
+	ev.PHarm = tail(ev.Regressions, ev.Regressions+ev.RegressionWins+tiesIn(*ev), r/2)
+}
+
+// tiesIn is how many regression episodes were neither better nor worse:
+// every episode replayed, minus the relevant ones and the decisive regressions.
+func tiesIn(ev types.Evidence) int {
+	return max(len(ev.Episodes)-ev.Compared-ev.Regressions-ev.RegressionWins, 0)
+}
+
+// noiseRate is the share of A/A pairs the judge called decisively, smoothed
+// so it is never 0 or 1: (decisive + 1) / (compared + 2). With no A/A pairs
+// at all it is ½, the most cautious assumption.
+func noiseRate(ev types.Evidence) float64 {
+	return float64(ev.NoiseDecisive+1) / float64(ev.NoiseCompared+2)
+}
+
+// tail is the chance of k or more successes in n trials of probability p.
+// With k ≤ 0 there is nothing to explain: 1.
+func tail(k, n int, p float64) float64 {
+	if k <= 0 || n <= 0 {
+		return 1
+	}
+	sum := 0.0
+	for i := k; i <= n; i++ {
+		sum += binom(n, i) * math.Pow(p, float64(i)) * math.Pow(1-p, float64(n-i))
+	}
+	return math.Min(1, sum)
+}
+
+func binom(n, k int) float64 {
+	r := 1.0
+	for i := 1; i <= k; i++ {
+		r = r * float64(n-k+i) / float64(i)
+	}
+	return r
+}
+
+// noise returns the A/A verdict for an episode: its baseline replayed a
+// second time and judged against the first. Identical baselines (a
+// deterministic host) are a tie without asking the judge. Cached: one A/A
+// per episode per run, shared by every lesson tested.
+func (v *Verifier) noise(ctx context.Context, eid types.ID) (types.Verdict, error) {
+	if aa, ok := v.aa[eid]; ok {
+		return aa, nil
+	}
+	if v.aa == nil {
+		v.aa = map[types.ID]types.Verdict{}
+	}
+	ep := v.History.byID[eid]
+	first := v.baseline[eid]
+	second, err := v.Host.Replay(ctx, ep, nil)
+	if err != nil {
+		return types.Verdict{}, fmt.Errorf("replay %s again without lessons: %w", eid, err)
+	}
+	aa := types.Verdict{Prefer: types.PreferNeither, Confidence: 1, Reason: "identical baselines"}
+	if !sameReplay(first, second) {
+		if aa, err = v.Judge.Compare(ctx, ep, v.History.outcomes[eid], second, first); err != nil {
+			return types.Verdict{}, fmt.Errorf("judge A/A %s: %w", eid, err)
+		}
+	}
+	v.aa[eid] = aa
+	return aa, nil
 }
 
 func (v *Verifier) compare(ctx context.Context, eid types.ID, lesson types.Lesson) (Comparison, error) {

@@ -17,7 +17,9 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -193,9 +195,9 @@ func (h *Host) startLocked() error {
 	if h.cmd != nil {
 		return nil
 	}
-	bin := h.Command
-	if bin == "" {
-		bin = "helix"
+	bin, err := resolveBinary(h.Command)
+	if err != nil {
+		return err
 	}
 	cmd := exec.Command(bin, "replay")
 	cmd.Dir = h.Dir
@@ -283,4 +285,29 @@ func tail(s string) string {
 		return "(none)"
 	}
 	return s
+}
+
+// resolveBinary turns the configured command into an absolute path before the
+// replay's working directory is set. A relative path such as bin/helix is
+// otherwise looked up relative to that directory: with -replay-dir ~ it
+// became ~/bin/helix, which does not exist.
+func resolveBinary(command string) (string, error) {
+	if command == "" {
+		command = "helix"
+	}
+	if !strings.ContainsRune(command, filepath.Separator) {
+		p, err := exec.LookPath(command)
+		if err != nil {
+			return "", fmt.Errorf("find %s on PATH: %w (build it with make helix-build and pass -helix-bin bin/helix)", command, err)
+		}
+		command = p
+	}
+	abs, err := filepath.Abs(command)
+	if err != nil {
+		return "", err
+	}
+	if _, err := os.Stat(abs); err != nil {
+		return "", fmt.Errorf("helix binary %s: %w", abs, err)
+	}
+	return abs, nil
 }

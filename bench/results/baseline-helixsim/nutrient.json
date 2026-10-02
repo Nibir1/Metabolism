@@ -16,7 +16,7 @@
       "good": true,
       "why": "repairs empty-glob-loop",
       "result": "pass",
-      "summary": "helps where it should and harms nothing: 8 wins, 0 losses, 0 ties over 8 relevant episodes; 0 regressions"
+      "summary": "helps where it should, beyond noise, and harms nothing: relevant: 8 wins, 0 losses, 0 ties (p=0.000); past successes: 0 worse, 0 better (p=1.000); noise: 0 of 14 A/A pairs decisive (r=0.06)"
     },
     {
       "seed": 1,
@@ -24,7 +24,7 @@
       "good": true,
       "why": "repairs missing-package-json",
       "result": "pass",
-      "summary": "helps where it should and harms nothing: 8 wins, 0 losses, 0 ties over 8 relevant episodes; 0 regressions"
+      "summary": "helps where it should, beyond noise, and harms nothing: relevant: 8 wins, 0 losses, 0 ties (p=0.000); past successes: 0 worse, 0 better (p=1.000); noise: 0 of 14 A/A pairs decisive (r=0.06)"
     },
     {
       "seed": 1,
@@ -32,7 +32,7 @@
       "good": true,
       "why": "repairs stale-test-evidence",
       "result": "pass",
-      "summary": "helps where it should and harms nothing: 8 wins, 0 losses, 0 ties over 8 relevant episodes; 0 regressions"
+      "summary": "helps where it should, beyond noise, and harms nothing: relevant: 8 wins, 0 losses, 0 ties (p=0.000); past successes: 0 worse, 0 better (p=1.000); noise: 0 of 14 A/A pairs decisive (r=0.06)"
     },
     {
       "seed": 1,
@@ -40,7 +40,7 @@
       "good": true,
       "why": "repairs declined-upgrade",
       "result": "pass",
-      "summary": "helps where it should and harms nothing: 3 wins, 0 losses, 5 ties over 8 relevant episodes; 0 regressions"
+      "summary": "helps where it should, beyond noise, and harms nothing: relevant: 3 wins, 0 losses, 5 ties (p=0.002); past successes: 0 worse, 0 better (p=1.000); noise: 0 of 14 A/A pairs decisive (r=0.06)"
     },
     {
       "seed": 1,
@@ -48,7 +48,7 @@
       "good": true,
       "why": "repairs undone-commit",
       "result": "pass",
-      "summary": "helps where it should and harms nothing: 8 wins, 0 losses, 0 ties over 8 relevant episodes; 0 regressions"
+      "summary": "helps where it should, beyond noise, and harms nothing: relevant: 8 wins, 0 losses, 0 ties (p=0.000); past successes: 0 worse, 0 better (p=1.000); noise: 0 of 14 A/A pairs decisive (r=0.06)"
     },
     {
       "seed": 1,
@@ -56,7 +56,7 @@
       "good": true,
       "why": "repairs sed-noop",
       "result": "pass",
-      "summary": "helps where it should and harms nothing: 3 wins, 0 losses, 5 ties over 8 relevant episodes; 0 regressions"
+      "summary": "helps where it should, beyond noise, and harms nothing: relevant: 3 wins, 0 losses, 5 ties (p=0.002); past successes: 0 worse, 0 better (p=1.000); noise: 0 of 14 A/A pairs decisive (r=0.06)"
     },
     {
       "seed": 1,
@@ -64,7 +64,7 @@
       "good": false,
       "why": "irrelevant: changes nothing",
       "result": "fail",
-      "summary": "changes nothing where it should help: 0 wins, 0 losses, 8 ties over 8 relevant episodes; 0 regressions"
+      "summary": "changes nothing where it should help: relevant: 0 wins, 0 losses, 8 ties (p=1.000); past successes: 0 worse, 0 better (p=1.000); noise: 0 of 14 A/A pairs decisive (r=0.06)"
     },
     {
       "seed": 1,
@@ -72,7 +72,7 @@
       "good": false,
       "why": "irrelevant to every simulated failure",
       "result": "fail",
-      "summary": "changes nothing where it should help: 0 wins, 0 losses, 8 ties over 8 relevant episodes; 0 regressions"
+      "summary": "changes nothing where it should help: relevant: 0 wins, 0 losses, 8 ties (p=1.000); past successes: 0 worse, 0 better (p=1.000); noise: 0 of 14 A/A pairs decisive (r=0.06)"
     },
     {
       "seed": 1,
@@ -80,7 +80,7 @@
       "good": false,
       "why": "harmful: a failing extra step everywhere",
       "result": "fail",
-      "summary": "harms past successes it is not about: 0 wins, 8 losses, 0 ties over 8 relevant episodes; 6 regressions"
+      "summary": "harms past successes it is not about, beyond noise: relevant: 0 wins, 8 losses, 0 ties (p=1.000); past successes: 6 worse, 0 better (p=0.000); noise: 0 of 14 A/A pairs decisive (r=0.06)"
     },
     {
       "seed": 1,
@@ -88,7 +88,7 @@
       "good": false,
       "why": "plausible but wrong in a Go repository",
       "result": "fail",
-      "summary": "harms past successes it is not about: 0 wins, 8 losses, 0 ties over 8 relevant episodes; 4 regressions"
+      "summary": "harms past successes it is not about, beyond noise: relevant: 0 wins, 8 losses, 0 ties (p=1.000); past successes: 5 worse, 0 better (p=0.000); noise: 0 of 14 A/A pairs decisive (r=0.06)"
     },
     {
       "seed": 1,
@@ -96,7 +96,7 @@
       "good": false,
       "why": "reintroduces the sed no-op failure",
       "result": "fail",
-      "summary": "harms past successes it is not about: 0 wins, 8 losses, 0 ties over 8 relevant episodes; 4 regressions"
+      "summary": "harms past successes it is not about, beyond noise: relevant: 0 wins, 8 losses, 0 ties (p=1.000); past successes: 2 worse, 0 better (p=0.013); noise: 0 of 14 A/A pairs decisive (r=0.06)"
     },
     {
       "seed": 2,
@@ -104,7 +104,7 @@
       "good": true,
       "why": "repairs empty-glob-loop",
       "result": "pass",
-      "summary": "helps where it should and harms nothing: 8 wins, 0 losses, 0 ties over 8 relevant episodes; 0 regressions"
+      "summary": "helps where it should, beyond noise, and harms nothing: relevant: 8 wins, 0 losses, 0 ties (p=0.000); past successes: 0 worse, 0 better (p=1.000); noise: 0 of 14 A/A pairs decisive (r=0.06)"
     },
     {
       "seed": 2,
@@ -112,7 +112,7 @@
       "good": true,
       "why": "repairs missing-package-json",
       "result": "pass",
-      "summary": "helps where it should and harms nothing: 8 wins, 0 losses, 0 ties over 8 relevant episodes; 0 regressions"
+      "summary": "helps where it should, beyond noise, and harms nothing: relevant: 8 wins, 0 losses, 0 ties (p=0.000); past successes: 0 worse, 0 better (p=1.000); noise: 0 of 14 A/A pairs decisive (r=0.06)"
     },
     {
       "seed": 2,
@@ -120,7 +120,7 @@
       "good": true,
       "why": "repairs stale-test-evidence",
       "result": "pass",
-      "summary": "helps where it should and harms nothing: 8 wins, 0 losses, 0 ties over 8 relevant episodes; 0 regressions"
+      "summary": "helps where it should, beyond noise, and harms nothing: relevant: 8 wins, 0 losses, 0 ties (p=0.000); past successes: 0 worse, 0 better (p=1.000); noise: 0 of 14 A/A pairs decisive (r=0.06)"
     },
     {
       "seed": 2,
@@ -128,7 +128,7 @@
       "good": true,
       "why": "repairs declined-upgrade",
       "result": "pass",
-      "summary": "helps where it should and harms nothing: 3 wins, 0 losses, 5 ties over 8 relevant episodes; 0 regressions"
+      "summary": "helps where it should, beyond noise, and harms nothing: relevant: 3 wins, 0 losses, 5 ties (p=0.002); past successes: 0 worse, 0 better (p=1.000); noise: 0 of 14 A/A pairs decisive (r=0.06)"
     },
     {
       "seed": 2,
@@ -136,7 +136,7 @@
       "good": true,
       "why": "repairs undone-commit",
       "result": "pass",
-      "summary": "helps where it should and harms nothing: 8 wins, 0 losses, 0 ties over 8 relevant episodes; 0 regressions"
+      "summary": "helps where it should, beyond noise, and harms nothing: relevant: 8 wins, 0 losses, 0 ties (p=0.000); past successes: 0 worse, 0 better (p=1.000); noise: 0 of 14 A/A pairs decisive (r=0.06)"
     },
     {
       "seed": 2,
@@ -144,7 +144,7 @@
       "good": true,
       "why": "repairs sed-noop",
       "result": "pass",
-      "summary": "helps where it should and harms nothing: 3 wins, 0 losses, 5 ties over 8 relevant episodes; 0 regressions"
+      "summary": "helps where it should, beyond noise, and harms nothing: relevant: 3 wins, 0 losses, 5 ties (p=0.002); past successes: 0 worse, 0 better (p=1.000); noise: 0 of 14 A/A pairs decisive (r=0.06)"
     },
     {
       "seed": 2,
@@ -152,7 +152,7 @@
       "good": false,
       "why": "irrelevant: changes nothing",
       "result": "fail",
-      "summary": "changes nothing where it should help: 0 wins, 0 losses, 8 ties over 8 relevant episodes; 0 regressions"
+      "summary": "changes nothing where it should help: relevant: 0 wins, 0 losses, 8 ties (p=1.000); past successes: 0 worse, 0 better (p=1.000); noise: 0 of 14 A/A pairs decisive (r=0.06)"
     },
     {
       "seed": 2,
@@ -160,7 +160,7 @@
       "good": false,
       "why": "irrelevant to every simulated failure",
       "result": "fail",
-      "summary": "changes nothing where it should help: 0 wins, 0 losses, 8 ties over 8 relevant episodes; 0 regressions"
+      "summary": "changes nothing where it should help: relevant: 0 wins, 0 losses, 8 ties (p=1.000); past successes: 0 worse, 0 better (p=1.000); noise: 0 of 14 A/A pairs decisive (r=0.06)"
     },
     {
       "seed": 2,
@@ -168,7 +168,7 @@
       "good": false,
       "why": "harmful: a failing extra step everywhere",
       "result": "fail",
-      "summary": "harms past successes it is not about: 0 wins, 8 losses, 0 ties over 8 relevant episodes; 6 regressions"
+      "summary": "harms past successes it is not about, beyond noise: relevant: 0 wins, 8 losses, 0 ties (p=1.000); past successes: 6 worse, 0 better (p=0.000); noise: 0 of 14 A/A pairs decisive (r=0.06)"
     },
     {
       "seed": 2,
@@ -176,7 +176,7 @@
       "good": false,
       "why": "plausible but wrong in a Go repository",
       "result": "fail",
-      "summary": "harms past successes it is not about: 0 wins, 8 losses, 0 ties over 8 relevant episodes; 2 regressions"
+      "summary": "harms past successes it is not about, beyond noise: relevant: 0 wins, 8 losses, 0 ties (p=1.000); past successes: 4 worse, 0 better (p=0.000); noise: 0 of 14 A/A pairs decisive (r=0.06)"
     },
     {
       "seed": 2,
@@ -184,7 +184,7 @@
       "good": false,
       "why": "reintroduces the sed no-op failure",
       "result": "fail",
-      "summary": "harms past successes it is not about: 0 wins, 8 losses, 0 ties over 8 relevant episodes; 2 regressions"
+      "summary": "makes things worse where it applies, beyond noise: relevant: 0 wins, 8 losses, 0 ties (p=1.000); past successes: 1 worse, 0 better (p=0.173); noise: 0 of 14 A/A pairs decisive (r=0.06)"
     },
     {
       "seed": 3,
@@ -192,7 +192,7 @@
       "good": true,
       "why": "repairs empty-glob-loop",
       "result": "pass",
-      "summary": "helps where it should and harms nothing: 8 wins, 0 losses, 0 ties over 8 relevant episodes; 0 regressions"
+      "summary": "helps where it should, beyond noise, and harms nothing: relevant: 8 wins, 0 losses, 0 ties (p=0.000); past successes: 0 worse, 0 better (p=1.000); noise: 0 of 14 A/A pairs decisive (r=0.06)"
     },
     {
       "seed": 3,
@@ -200,7 +200,7 @@
       "good": true,
       "why": "repairs missing-package-json",
       "result": "pass",
-      "summary": "helps where it should and harms nothing: 8 wins, 0 losses, 0 ties over 8 relevant episodes; 0 regressions"
+      "summary": "helps where it should, beyond noise, and harms nothing: relevant: 8 wins, 0 losses, 0 ties (p=0.000); past successes: 0 worse, 1 better (p=1.000); noise: 0 of 14 A/A pairs decisive (r=0.06)"
     },
     {
       "seed": 3,
@@ -208,7 +208,7 @@
       "good": true,
       "why": "repairs stale-test-evidence",
       "result": "pass",
-      "summary": "helps where it should and harms nothing: 8 wins, 0 losses, 0 ties over 8 relevant episodes; 0 regressions"
+      "summary": "helps where it should, beyond noise, and harms nothing: relevant: 8 wins, 0 losses, 0 ties (p=0.000); past successes: 0 worse, 0 better (p=1.000); noise: 0 of 14 A/A pairs decisive (r=0.06)"
     },
     {
       "seed": 3,
@@ -216,7 +216,7 @@
       "good": true,
       "why": "repairs declined-upgrade",
       "result": "pass",
-      "summary": "helps where it should and harms nothing: 3 wins, 0 losses, 5 ties over 8 relevant episodes; 0 regressions"
+      "summary": "helps where it should, beyond noise, and harms nothing: relevant: 3 wins, 0 losses, 5 ties (p=0.002); past successes: 0 worse, 0 better (p=1.000); noise: 0 of 14 A/A pairs decisive (r=0.06)"
     },
     {
       "seed": 3,
@@ -224,7 +224,7 @@
       "good": true,
       "why": "repairs undone-commit",
       "result": "pass",
-      "summary": "helps where it should and harms nothing: 8 wins, 0 losses, 0 ties over 8 relevant episodes; 0 regressions"
+      "summary": "helps where it should, beyond noise, and harms nothing: relevant: 8 wins, 0 losses, 0 ties (p=0.000); past successes: 0 worse, 0 better (p=1.000); noise: 0 of 14 A/A pairs decisive (r=0.06)"
     },
     {
       "seed": 3,
@@ -232,7 +232,7 @@
       "good": true,
       "why": "repairs sed-noop",
       "result": "pass",
-      "summary": "helps where it should and harms nothing: 3 wins, 0 losses, 5 ties over 8 relevant episodes; 0 regressions"
+      "summary": "helps where it should, beyond noise, and harms nothing: relevant: 3 wins, 0 losses, 5 ties (p=0.002); past successes: 0 worse, 0 better (p=1.000); noise: 0 of 14 A/A pairs decisive (r=0.06)"
     },
     {
       "seed": 3,
@@ -240,7 +240,7 @@
       "good": false,
       "why": "irrelevant: changes nothing",
       "result": "fail",
-      "summary": "changes nothing where it should help: 0 wins, 0 losses, 8 ties over 8 relevant episodes; 0 regressions"
+      "summary": "changes nothing where it should help: relevant: 0 wins, 0 losses, 8 ties (p=1.000); past successes: 0 worse, 0 better (p=1.000); noise: 0 of 14 A/A pairs decisive (r=0.06)"
     },
     {
       "seed": 3,
@@ -248,7 +248,7 @@
       "good": false,
       "why": "irrelevant to every simulated failure",
       "result": "fail",
-      "summary": "changes nothing where it should help: 0 wins, 0 losses, 8 ties over 8 relevant episodes; 0 regressions"
+      "summary": "changes nothing where it should help: relevant: 0 wins, 0 losses, 8 ties (p=1.000); past successes: 0 worse, 0 better (p=1.000); noise: 0 of 14 A/A pairs decisive (r=0.06)"
     },
     {
       "seed": 3,
@@ -256,7 +256,7 @@
       "good": false,
       "why": "harmful: a failing extra step everywhere",
       "result": "fail",
-      "summary": "harms past successes it is not about: 0 wins, 8 losses, 0 ties over 8 relevant episodes; 6 regressions"
+      "summary": "harms past successes it is not about, beyond noise: relevant: 0 wins, 8 losses, 0 ties (p=1.000); past successes: 6 worse, 0 better (p=0.000); noise: 0 of 14 A/A pairs decisive (r=0.06)"
     },
     {
       "seed": 3,
@@ -264,7 +264,7 @@
       "good": false,
       "why": "plausible but wrong in a Go repository",
       "result": "fail",
-      "summary": "harms past successes it is not about: 0 wins, 8 losses, 0 ties over 8 relevant episodes; 4 regressions"
+      "summary": "harms past successes it is not about, beyond noise: relevant: 0 wins, 8 losses, 0 ties (p=1.000); past successes: 4 worse, 0 better (p=0.000); noise: 0 of 14 A/A pairs decisive (r=0.06)"
     },
     {
       "seed": 3,
@@ -272,7 +272,7 @@
       "good": false,
       "why": "reintroduces the sed no-op failure",
       "result": "fail",
-      "summary": "harms past successes it is not about: 0 wins, 8 losses, 0 ties over 8 relevant episodes; 2 regressions"
+      "summary": "harms past successes it is not about, beyond noise: relevant: 0 wins, 8 losses, 0 ties (p=1.000); past successes: 4 worse, 0 better (p=0.000); noise: 0 of 14 A/A pairs decisive (r=0.06)"
     },
     {
       "seed": 4,
@@ -280,7 +280,7 @@
       "good": true,
       "why": "repairs empty-glob-loop",
       "result": "pass",
-      "summary": "helps where it should and harms nothing: 8 wins, 0 losses, 0 ties over 8 relevant episodes; 0 regressions"
+      "summary": "helps where it should, beyond noise, and harms nothing: relevant: 8 wins, 0 losses, 0 ties (p=0.000); past successes: 0 worse, 0 better (p=1.000); noise: 0 of 14 A/A pairs decisive (r=0.06)"
     },
     {
       "seed": 4,
@@ -288,7 +288,7 @@
       "good": true,
       "why": "repairs missing-package-json",
       "result": "pass",
-      "summary": "helps where it should and harms nothing: 8 wins, 0 losses, 0 ties over 8 relevant episodes; 0 regressions"
+      "summary": "helps where it should, beyond noise, and harms nothing: relevant: 8 wins, 0 losses, 0 ties (p=0.000); past successes: 0 worse, 2 better (p=1.000); noise: 0 of 14 A/A pairs decisive (r=0.06)"
     },
     {
       "seed": 4,
@@ -296,7 +296,7 @@
       "good": true,
       "why": "repairs stale-test-evidence",
       "result": "pass",
-      "summary": "helps where it should and harms nothing: 8 wins, 0 losses, 0 ties over 8 relevant episodes; 0 regressions"
+      "summary": "helps where it should, beyond noise, and harms nothing: relevant: 8 wins, 0 losses, 0 ties (p=0.000); past successes: 0 worse, 0 better (p=1.000); noise: 0 of 14 A/A pairs decisive (r=0.06)"
     },
     {
       "seed": 4,
@@ -304,7 +304,7 @@
       "good": true,
       "why": "repairs declined-upgrade",
       "result": "pass",
-      "summary": "helps where it should and harms nothing: 3 wins, 0 losses, 5 ties over 8 relevant episodes; 0 regressions"
+      "summary": "helps where it should, beyond noise, and harms nothing: relevant: 3 wins, 0 losses, 5 ties (p=0.002); past successes: 0 worse, 0 better (p=1.000); noise: 0 of 14 A/A pairs decisive (r=0.06)"
     },
     {
       "seed": 4,
@@ -312,7 +312,7 @@
       "good": true,
       "why": "repairs undone-commit",
       "result": "pass",
-      "summary": "helps where it should and harms nothing: 8 wins, 0 losses, 0 ties over 8 relevant episodes; 0 regressions"
+      "summary": "helps where it should, beyond noise, and harms nothing: relevant: 8 wins, 0 losses, 0 ties (p=0.000); past successes: 0 worse, 0 better (p=1.000); noise: 0 of 14 A/A pairs decisive (r=0.06)"
     },
     {
       "seed": 4,
@@ -320,7 +320,7 @@
       "good": true,
       "why": "repairs sed-noop",
       "result": "pass",
-      "summary": "helps where it should and harms nothing: 3 wins, 0 losses, 5 ties over 8 relevant episodes; 0 regressions"
+      "summary": "helps where it should, beyond noise, and harms nothing: relevant: 3 wins, 0 losses, 5 ties (p=0.002); past successes: 0 worse, 0 better (p=1.000); noise: 0 of 14 A/A pairs decisive (r=0.06)"
     },
     {
       "seed": 4,
@@ -328,7 +328,7 @@
       "good": false,
       "why": "irrelevant: changes nothing",
       "result": "fail",
-      "summary": "changes nothing where it should help: 0 wins, 0 losses, 8 ties over 8 relevant episodes; 0 regressions"
+      "summary": "changes nothing where it should help: relevant: 0 wins, 0 losses, 8 ties (p=1.000); past successes: 0 worse, 0 better (p=1.000); noise: 0 of 14 A/A pairs decisive (r=0.06)"
     },
     {
       "seed": 4,
@@ -336,7 +336,7 @@
       "good": false,
       "why": "irrelevant to every simulated failure",
       "result": "fail",
-      "summary": "changes nothing where it should help: 0 wins, 0 losses, 8 ties over 8 relevant episodes; 0 regressions"
+      "summary": "changes nothing where it should help: relevant: 0 wins, 0 losses, 8 ties (p=1.000); past successes: 0 worse, 0 better (p=1.000); noise: 0 of 14 A/A pairs decisive (r=0.06)"
     },
     {
       "seed": 4,
@@ -344,7 +344,7 @@
       "good": false,
       "why": "harmful: a failing extra step everywhere",
       "result": "fail",
-      "summary": "harms past successes it is not about: 0 wins, 8 losses, 0 ties over 8 relevant episodes; 6 regressions"
+      "summary": "harms past successes it is not about, beyond noise: relevant: 0 wins, 8 losses, 0 ties (p=1.000); past successes: 6 worse, 0 better (p=0.000); noise: 0 of 14 A/A pairs decisive (r=0.06)"
     },
     {
       "seed": 4,
@@ -352,7 +352,7 @@
       "good": false,
       "why": "plausible but wrong in a Go repository",
       "result": "fail",
-      "summary": "harms past successes it is not about: 0 wins, 8 losses, 0 ties over 8 relevant episodes; 2 regressions"
+      "summary": "harms past successes it is not about, beyond noise: relevant: 0 wins, 8 losses, 0 ties (p=1.000); past successes: 4 worse, 0 better (p=0.000); noise: 0 of 14 A/A pairs decisive (r=0.06)"
     },
     {
       "seed": 4,
@@ -360,7 +360,7 @@
       "good": false,
       "why": "reintroduces the sed no-op failure",
       "result": "fail",
-      "summary": "harms past successes it is not about: 0 wins, 8 losses, 0 ties over 8 relevant episodes; 1 regressions"
+      "summary": "harms past successes it is not about, beyond noise: relevant: 0 wins, 8 losses, 0 ties (p=1.000); past successes: 2 worse, 0 better (p=0.013); noise: 0 of 14 A/A pairs decisive (r=0.06)"
     },
     {
       "seed": 5,
@@ -368,7 +368,7 @@
       "good": true,
       "why": "repairs empty-glob-loop",
       "result": "pass",
-      "summary": "helps where it should and harms nothing: 8 wins, 0 losses, 0 ties over 8 relevant episodes; 0 regressions"
+      "summary": "helps where it should, beyond noise, and harms nothing: relevant: 8 wins, 0 losses, 0 ties (p=0.000); past successes: 0 worse, 0 better (p=1.000); noise: 0 of 14 A/A pairs decisive (r=0.06)"
     },
     {
       "seed": 5,
@@ -376,7 +376,7 @@
       "good": true,
       "why": "repairs missing-package-json",
       "result": "pass",
-      "summary": "helps where it should and harms nothing: 8 wins, 0 losses, 0 ties over 8 relevant episodes; 0 regressions"
+      "summary": "helps where it should, beyond noise, and harms nothing: relevant: 8 wins, 0 losses, 0 ties (p=0.000); past successes: 0 worse, 1 better (p=1.000); noise: 0 of 14 A/A pairs decisive (r=0.06)"
     },
     {
       "seed": 5,
@@ -384,7 +384,7 @@
       "good": true,
       "why": "repairs stale-test-evidence",
       "result": "pass",
-      "summary": "helps where it should and harms nothing: 8 wins, 0 losses, 0 ties over 8 relevant episodes; 0 regressions"
+      "summary": "helps where it should, beyond noise, and harms nothing: relevant: 8 wins, 0 losses, 0 ties (p=0.000); past successes: 0 worse, 0 better (p=1.000); noise: 0 of 14 A/A pairs decisive (r=0.06)"
     },
     {
       "seed": 5,
@@ -392,7 +392,7 @@
       "good": true,
       "why": "repairs declined-upgrade",
       "result": "pass",
-      "summary": "helps where it should and harms nothing: 3 wins, 0 losses, 5 ties over 8 relevant episodes; 0 regressions"
+      "summary": "helps where it should, beyond noise, and harms nothing: relevant: 3 wins, 0 losses, 5 ties (p=0.002); past successes: 0 worse, 0 better (p=1.000); noise: 0 of 14 A/A pairs decisive (r=0.06)"
     },
     {
       "seed": 5,
@@ -400,7 +400,7 @@
       "good": true,
       "why": "repairs undone-commit",
       "result": "pass",
-      "summary": "helps where it should and harms nothing: 8 wins, 0 losses, 0 ties over 8 relevant episodes; 0 regressions"
+      "summary": "helps where it should, beyond noise, and harms nothing: relevant: 8 wins, 0 losses, 0 ties (p=0.000); past successes: 0 worse, 0 better (p=1.000); noise: 0 of 14 A/A pairs decisive (r=0.06)"
     },
     {
       "seed": 5,
@@ -408,7 +408,7 @@
       "good": true,
       "why": "repairs sed-noop",
       "result": "pass",
-      "summary": "helps where it should and harms nothing: 3 wins, 0 losses, 5 ties over 8 relevant episodes; 0 regressions"
+      "summary": "helps where it should, beyond noise, and harms nothing: relevant: 3 wins, 0 losses, 5 ties (p=0.002); past successes: 0 worse, 0 better (p=1.000); noise: 0 of 14 A/A pairs decisive (r=0.06)"
     },
     {
       "seed": 5,
@@ -416,7 +416,7 @@
       "good": false,
       "why": "irrelevant: changes nothing",
       "result": "fail",
-      "summary": "changes nothing where it should help: 0 wins, 0 losses, 8 ties over 8 relevant episodes; 0 regressions"
+      "summary": "changes nothing where it should help: relevant: 0 wins, 0 losses, 8 ties (p=1.000); past successes: 0 worse, 0 better (p=1.000); noise: 0 of 14 A/A pairs decisive (r=0.06)"
     },
     {
       "seed": 5,
@@ -424,7 +424,7 @@
       "good": false,
       "why": "irrelevant to every simulated failure",
       "result": "fail",
-      "summary": "changes nothing where it should help: 0 wins, 0 losses, 8 ties over 8 relevant episodes; 0 regressions"
+      "summary": "changes nothing where it should help: relevant: 0 wins, 0 losses, 8 ties (p=1.000); past successes: 0 worse, 0 better (p=1.000); noise: 0 of 14 A/A pairs decisive (r=0.06)"
     },
     {
       "seed": 5,
@@ -432,7 +432,7 @@
       "good": false,
       "why": "harmful: a failing extra step everywhere",
       "result": "fail",
-      "summary": "harms past successes it is not about: 0 wins, 8 losses, 0 ties over 8 relevant episodes; 6 regressions"
+      "summary": "harms past successes it is not about, beyond noise: relevant: 0 wins, 8 losses, 0 ties (p=1.000); past successes: 6 worse, 0 better (p=0.000); noise: 0 of 14 A/A pairs decisive (r=0.06)"
     },
     {
       "seed": 5,
@@ -440,7 +440,7 @@
       "good": false,
       "why": "plausible but wrong in a Go repository",
       "result": "fail",
-      "summary": "harms past successes it is not about: 0 wins, 8 losses, 0 ties over 8 relevant episodes; 4 regressions"
+      "summary": "harms past successes it is not about, beyond noise: relevant: 0 wins, 8 losses, 0 ties (p=1.000); past successes: 3 worse, 0 better (p=0.001); noise: 0 of 14 A/A pairs decisive (r=0.06)"
     },
     {
       "seed": 5,
@@ -448,7 +448,7 @@
       "good": false,
       "why": "reintroduces the sed no-op failure",
       "result": "fail",
-      "summary": "needs 2 wins and 3× more wins than losses: 0 wins, 8 losses, 0 ties over 8 relevant episodes; 0 regressions"
+      "summary": "harms past successes it is not about, beyond noise: relevant: 0 wins, 8 losses, 0 ties (p=1.000); past successes: 2 worse, 0 better (p=0.013); noise: 0 of 14 A/A pairs decisive (r=0.06)"
     }
   ]
 }

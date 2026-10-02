@@ -157,3 +157,26 @@ func TestReplayWireGolden(t *testing.T) {
 		}
 	}
 }
+
+// A relative -helix-bin must still be found after the replay directory is
+// set somewhere else (found live: bin/helix with -replay-dir ~).
+func TestRelativeBinaryWorksWithAnotherReplayDir(t *testing.T) {
+	t.Setenv("FAKE_HELIX", "ok")
+	wd, _ := os.Getwd()
+	rel, err := filepath.Rel(wd, os.Args[0])
+	if err != nil || strings.HasPrefix(rel, "..") {
+		// The test binary lives outside the working directory; build a
+		// relative path to it through a symlink instead.
+		link := filepath.Join(t.TempDir(), "helix-test-bin")
+		if err := os.Symlink(os.Args[0], link); err != nil {
+			t.Skip(err)
+		}
+		t.Chdir(filepath.Dir(link))
+		rel = "./" + filepath.Base(link)
+	}
+	h := &Host{Command: rel, Dir: t.TempDir(), Timeout: 5 * time.Second}
+	defer func() { _ = h.Close() }()
+	if _, err := h.Replay(context.Background(), ep("build the project"), nil); err != nil {
+		t.Fatalf("relative binary with another replay dir: %v", err)
+	}
+}

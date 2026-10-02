@@ -5,6 +5,51 @@ change it. Don't reverse a decision without adding a new entry that says why.
 
 ---
 
+### D-018 · 2026-10-02 · The nutrient test on a noisy host: noise floor, calibrated tests, asymmetric bars
+**Supersedes the decision rule in D-015.**
+
+**What happened:** the first nutrient test on real Helix replays (Jev judge)
+eliminated all four real lessons for "regressions". The saved comparisons
+showed the lessons working: the task-list lesson won its three relevant
+episodes at 0.96 to 0.99. The regressions were noise: Helix's planner plans
+the same request differently each time, and the judge confidently picked
+between two equivalent plans (two paraphrases of the same answer at 0.60; a
+relative versus absolute path at 0.52). D-015 counted only losses on past
+successes, failed a lesson on a single one, and relied on "identical plans
+are a tie", which never happens with a nondeterministic planner. The
+simulator's deterministic replays could not have revealed any of this.
+
+**Decision:**
+- **Noise floor.** Each episode's baseline is replayed twice and judged
+  against itself (A/A), once per run, cached. r = (decisive A/A + 1) /
+  (A/A + 2). On a deterministic host the baselines are identical and cost
+  no judge call.
+- **Calibrated tests.** If a lesson did nothing, each comparison would be a
+  decisive win with probability r/2, a decisive loss with r/2, and a tie
+  otherwise. `p_help`, `p_harm` and the "worse where it applies" p-value are
+  binomial tails under that null. Past-success outcomes are counted both
+  ways.
+- **Asymmetric bars.** Promotion to trial is reversible (Phase 3 credit keeps
+  testing), so it needs p ≤ 0.1 and ≥ 2 decisive wins. Elimination is
+  permanent, so "harms past successes" and "makes things worse" need
+  p ≤ 0.02 and ≥ 2 decisive losses. Quarantined lessons need ≥ 4 wins and
+  p ≤ 0.02.
+- **Inconclusive** when the evidence does not clear the noise: the lesson
+  stays where it is, never eliminated on a guess.
+
+**Evidence:**
+- `TestDecisionsHoldOnANoisyHost`: a simulated noisy host and a judge that
+  reads noise as preference, 20 lessons per case, run 3 times. Correct
+  lessons were accepted 59/60 and eliminated 1/60. Harmful lessons were
+  eliminated 60/60. The irrelevant lesson was eliminated 0/60, inconclusive
+  57/60, and promoted to trial 3/60 (the reversible cost of the 0.1 bar).
+- The deterministic simulator still scores 100% (`make baseline-sim`).
+
+**Revisit when:** labelled real comparisons show the judge's noise is not
+symmetric, or enough real runs exist to tune the levels.
+
+---
+
 ### D-017 · 2026-10-01 · Real replay is `helix replay`: plan-only, no conversation, NDJSON
 **Decision:**
 - The engine replays through a long-running `helix replay` process speaking
@@ -46,7 +91,7 @@ and where key handling is made boring.
 
 ---
 
-### D-015 · 2026-10-01 · The nutrient test's decision rule
+### D-015 · 2026-10-01 · The nutrient test's decision rule (rule superseded by D-018)
 **Decision:** replay *relevant* episodes (the lesson's sources plus similar ones
 found by episodic memory, up to 8) and a *regression* sample (up to 6 past
 successes in scope that the lesson is not about), each with and without the

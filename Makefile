@@ -124,10 +124,10 @@ helix-verify: helix-branch check-wire ## Helix's integration tests, lint and ful
 	cd $(HELIX) && CGO_ENABLED=$(HELIX_CGO) go test -count=1 ./... > /dev/null && echo "✔ Helix full suite passes"
 	@cd $(HELIX) && if command -v golangci-lint >/dev/null; then CGO_ENABLED=$(HELIX_CGO) golangci-lint run ./...; fi
 
-helix-build: helix-branch ## build Helix from the integration branch into bin/helix
+helix-build: helix-branch build ## build Helix (integration branch) and Metabolism into bin/
 	@mkdir -p bin
 	cd $(HELIX) && CGO_ENABLED=$(HELIX_CGO) go build -o $(CURDIR)/bin/helix ./cmd/helix
-	@echo "✔ built bin/helix from $(HELIX_BRANCH). Run it with: ./bin/helix"
+	@echo "✔ built bin/helix from $(HELIX_BRANCH) and bin/metabolism from this checkout"
 
 doctor: build ## what the real Helix pipeline looks like right now
 	@$(BIN) doctor -journal $(JOURNAL) -from $(HELIX_FILE)
