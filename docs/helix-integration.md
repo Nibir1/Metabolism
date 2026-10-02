@@ -152,6 +152,49 @@ real config, recorded and ingested into a scratch journal.
   replanning around the refusal. The turn is recorded as `open-work` with a
   `declined` outcome when a person said no.
 
+### Driven session (2026-10-02)
+
+45 requests submitted through the Helix daemon (`helix remote submit`), with
+recording on, then ingested into a separate journal,
+`.demo/helix-driven.db`. The requests were written by Claude, not the user, so
+this is real Helix behaviour on scripted work, **not a usage baseline**. It
+yielded 42 planner episodes, 100% labelled: 30 done, 4 budget-exhausted,
+7 failed, 1 open work.
+
+**Fixed during the session (Helix branch):**
+- **The daemon hung on git's pager.** `git log` opened `less` on the daemon's
+  terminal and waited 22 minutes for a keypress. `daemon.DisablePagers` sets
+  `PAGER`, `GIT_PAGER` and `MANPAGER` to `cat`, in the daemon and in
+  `helix replay`; tested with a real `git log`.
+
+**Found, not yet fixed (Helix):**
+1. **The daemon's working directory drifts between requests.** A `cd` in one
+   turn ("run the tests for the episodic package") is executed natively in
+   the daemon process, so every later turn, for every client, resolved paths
+   under `Metabolism/episodic`. 7 of the 12 failures and budget exhaustions
+   trace to it. A daemon should restore its directory before each request.
+2. **Plain English is misrouted to the shell.** "summarise …" ran `summarise`
+   (exit 127), and "find the config.yaml for …" ran `find` with English
+   arguments. The classifier decides on the first word, and these turns
+   never reach the planner, so they are not recorded either.
+3. **The daemon offers the planner a task-list tool it cannot use.** "build
+   the project" and "check the dependencies" failed with `no task list is
+   loaded` (3 episodes).
+4. **Shell failures outside agentic mode are recorded as OK.** Exit codes are
+   captured only when `/agentic` is on, so `go test ./internal/immune/...` (a
+   wrong path, setup failed) was recorded as done. This is a recording
+   accuracy gap.
+5. **The daemon listens to the microphone by default.** Wake listening is on
+   unless `speech.wake_word.enabled` is false, and `helix remote manual` does
+   not close the stream. It was disabled for this session and the user's
+   config restored afterwards.
+6. `mkdir` is graded low risk and runs without asking, by design: a request
+   to create a directory did create one.
+
+**Found in Metabolism:** repeat detection compares a request only with the
+*immediately preceding* turn, so the same question asked again after a
+detour (the Dockerfile and config-loader requests) was not marked `repeated`.
+
 Cost observed: about 4 model calls and about 16.8k estimated tokens per
 finished turn. A file lookup earns a follow-up planner call to answer from
 its results.
