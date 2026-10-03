@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -128,5 +129,45 @@ func TestCreditEvalCommand(t *testing.T) {
 	}
 	if !strings.Contains(out.String(), "lessons that harm, eliminated") {
 		t.Fatalf("credit-eval:\n%s", out.String())
+	}
+}
+
+// A daily run tests new lessons before re-testing inconclusive ones, and the
+// longest-untested of those first.
+func TestTestOrderPutsNewLessonsFirst(t *testing.T) {
+	ctx := context.Background()
+	j, err := sqlite.Open(ctx, filepath.Join(t.TempDir(), "j.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = j.Close() }()
+	t0 := time.Date(2026, 10, 3, 9, 0, 0, 0, time.UTC)
+	src := types.Episode{ID: types.NewID(t0), Host: "t", Scope: types.Scope{Level: types.ScopeGlobal},
+		StartedAt: t0, EndedAt: t0, Request: types.Request{Text: "x", Provenance: types.ProvUserTyped}, End: types.RunFailed}
+	_ = j.AppendEpisode(ctx, src)
+	m, _ := metabolome.Load(ctx, j)
+	var ids []types.ID
+	for i := range 4 {
+		m.SetClock(func() time.Time { return t0.Add(time.Duration(i) * time.Minute) })
+		l, err := m.Create(ctx, types.Lesson{Kind: types.KindPattern, Scope: types.Scope{Level: types.ScopeGlobal},
+			Text: fmt.Sprintf("lesson %d", i), Sources: []types.ID{src.ID}, Provenance: types.ProvUserTyped}, "t")
+		if err != nil {
+			t.Fatal(err)
+		}
+		ids = append(ids, l.ID)
+	}
+	tested := func(id types.ID, at time.Time) {
+		m.SetClock(func() time.Time { return at })
+		if _, err := m.RecordEvidence(ctx, types.Evidence{LessonID: id, Kind: types.EvidenceNutrientTest,
+			Result: types.ResultInconclusive, Summary: "x"}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	tested(ids[0], t0.Add(48*time.Hour)) // tested yesterday
+	tested(ids[1], t0.Add(24*time.Hour)) // tested the day before
+	got := testOrder(m, ids)
+	want := []types.ID{ids[2], ids[3], ids[1], ids[0]}
+	if !slices.Equal(got, want) {
+		t.Fatalf("order %v, want %v", got, want)
 	}
 }

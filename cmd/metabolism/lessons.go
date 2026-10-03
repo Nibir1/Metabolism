@@ -8,6 +8,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"text/tabwriter"
 	"time"
@@ -240,6 +241,26 @@ func cmdDigest(ctx context.Context, args []string, out io.Writer) error {
 	return nil
 }
 
+// testOrder puts lessons never tested first (oldest first), then lessons whose
+// last test is oldest. An inconclusive lesson stays a candidate; without this,
+// a daily run with -max would re-test the same few every day and never reach
+// the new ones.
+func testOrder(m *metabolome.Metabolome, ids []types.ID) []types.ID {
+	last := func(id types.ID) time.Time {
+		e, _ := m.Get(id)
+		var t time.Time
+		for _, ev := range e.Evidence {
+			if ev.Kind == types.EvidenceNutrientTest && ev.At.After(t) {
+				t = ev.At
+			}
+		}
+		return t
+	}
+	out := slices.Clone(ids)
+	slices.SortStableFunc(out, func(a, b types.ID) int { return last(a).Compare(last(b)) })
+	return out
+}
+
 func cmdVerify(ctx context.Context, args []string, out io.Writer) error {
 	fs := flag.NewFlagSet("verify", flag.ContinueOnError)
 	fs.SetOutput(out)
@@ -253,6 +274,7 @@ func cmdVerify(ctx context.Context, args []string, out io.Writer) error {
 	judgeModel := fs.String("judge-model", "", "model for an ollama, deepseek or jev judge")
 	allowRemote := fs.Bool("allow-remote", false, "allow a remote judge to receive replayed plans")
 	only := fs.String("lesson", "", "test one lesson (default: every candidate and quarantined lesson)")
+	maxTest := fs.Int("max", 0, "test at most this many lessons, oldest first (0: all)")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
@@ -294,6 +316,10 @@ func cmdVerify(ctx context.Context, args []string, out io.Writer) error {
 	} else {
 		for _, l := range m.Lessons(types.StateCandidate, types.StateQuarantined) {
 			ids = append(ids, l.ID)
+		}
+		if *maxTest > 0 && len(ids) > *maxTest {
+			ids = testOrder(m, ids)[:*maxTest]
+			say(out, "testing %d of the untested or inconclusive lessons (-max): never tested first, then the longest since a test\n", *maxTest)
 		}
 	}
 	if len(ids) == 0 {

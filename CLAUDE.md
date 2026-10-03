@@ -47,6 +47,7 @@ the source of truth for what, why and how.
   | `adapters/remote/` | the only code that reaches beyond the machine: `llm` (Ollama, DeepSeek), `jev` (typesafe-go), `helix` (drives `helix replay`). Imported only by the CLI, behind `-allow-remote` (D-016, D-017) |
   | `internal/privacyguard` | test: no network code outside `adapters/remote/` |
   | `hosts/helixsim` | simulated Helix |
+  | `hosts/helixuser` | synthetic Helix user: writes a day's requests for `metabolism auto` (D-023) |
   | `bench/` | metrics, curves, recall evaluation, nutrient-test and credit evaluation, judge agreement (κ) |
   | `cmd/metabolism` | CLI |
 
@@ -57,6 +58,10 @@ the source of truth for what, why and how.
   delivery file v1 (D-019). `make check-wire` compares them all.
 - Helix is built and tested with `CGO_ENABLED=0` on this machine (the cgo
   linker fails; see [docs/verifying.md](docs/verifying.md)).
+- `metabolism auto -allow-remote` runs one automated day into `.runs/auto/`
+  (D-023): a synthetic user drives real Helix, then ingest, digest, verify,
+  credit. It changes the user's Helix config only during the run and
+  restores it byte for byte.
 - `make demo` (and so `make verify`) deletes and rebuilds `.demo/cli/`. Keep
   journals and files from live runs in `.runs/`, which no target touches.
   The first live-run data was lost to an older demo that cleared all of

@@ -277,6 +277,12 @@ The randomised delivery gives the gate a second comparison besides the
 Phase 0 baseline: turns with lessons against turns where the coin withheld
 them, over the same weeks.
 
+**Two gates (D-023).** A synthetic-use gate runs on `metabolism auto`: a
+model writes each day's requests and real Helix runs them, first with lessons
+off (the baseline), then on. It gives evidence in days instead of weeks, and
+it is labelled synthetic everywhere. The real-use gate still needs the user's
+own weeks of Helix, and only it can support a rubric claim.
+
 Exit criteria:
 
 - [ ] Real credit: lessons decided by live Helix turns (accepted or

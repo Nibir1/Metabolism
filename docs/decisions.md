@@ -5,6 +5,50 @@ change it. Don't reverse a decision without adding a new entry that says why.
 
 ---
 
+### D-023 · 2026-10-03 · Automated evidence: a synthetic user drives real Helix, labelled as synthetic
+**What happened:** Phase 3's exit criteria need weeks of real Helix use, first
+with lessons off (the baseline), then on. The user cannot give that time now.
+
+**Decision:**
+- `metabolism auto` runs one automated day:
+  - a model writes the day's requests from the projects' file outlines and
+    README openings (`hosts/helixuser`);
+  - they go through a real Helix daemon, with real recording;
+  - then ingest, digest, verify (at most `-verify-max` lessons, oldest
+    first), credit, and a line in `.runs/auto/report.md`.
+- Lessons stay off until `-baseline` episodes (300) are recorded; after that
+  they are delivered by coin flip, as for a person (D-019, D-020).
+- The synthetic user works on fresh clones of the projects in
+  `.runs/auto/workspace`, never the real checkouts.
+- The user's Helix config and delivery file are backed up byte for byte,
+  changed for the run, and restored on every exit. A run killed before
+  restoring is recovered by the next one first. The run refuses to start
+  while a daemon is running, an interactive session is fresh, or the user's
+  own recording exists.
+- **The evidence is labelled synthetic** everywhere it appears. The roadmap
+  gets two gates: a synthetic-use go/no-go now, and the real-use one when the
+  user uses Helix. No rubric claim rests on synthetic evidence alone.
+
+**What keeps the synthetic user honest:**
+- It never sees a lesson, an episode or an outcome, so it cannot write
+  requests that favour what was learned.
+- Each day's requests are new (a fixed list can be learned by heart), and 10%
+  repeat earlier ones, as people do.
+- It drops destructive requests (delete, push, install, sudo, and so on)
+  before they reach Helix, whatever Helix's own gates would do.
+
+**Known limits:**
+- A model's requests are not a person's: less varied in intent, and no real
+  stakes or follow-ups.
+- The daemon refuses every confirmation, so edits never happen and
+  declined-confirmation outcomes do not arise.
+- Every request starts from home, so turns name long workspace paths.
+
+**Revisit when:** real use exists to compare against. If synthetic and real
+evidence disagree, the real one wins and this decision is re-examined.
+
+---
+
 ### D-022 · 2026-10-02 · Helix's file-lookup budget: earned rounds and a last-round notice
 **What happened:** after the read fix, 5 of 42 driven turns still ran out of
 follow-up rounds. Two were reading steadily through new parts of a file, one
@@ -259,6 +303,11 @@ of it.
   are about to send.
 - Keys come only from `DEEPSEEK_API_KEY` and `TYPESAFE_API_KEY`. They are
   never flags, never logged, never in an error (tested).
+- **Update (2026-10-03):** the CLI also reads them from a `.env` file in the
+  repository root (gitignored), so they need not be pasted into every
+  terminal or be missing from a scheduled run. The file is read only when it
+  is owner-only (`chmod 600`), only these known variables are taken from it,
+  and a variable already in the environment wins.
 - Model judges see the two plans as A and B in a per-episode hashed order, so a
   judge that favours the first option cannot pass as one that favours lessons.
 

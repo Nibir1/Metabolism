@@ -1,0 +1,161 @@
+package main
+
+import (
+	"bytes"
+	"context"
+	"encoding/json"
+	"fmt"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"strings"
+	"testing"
+	"time"
+)
+
+const userConfig = `{
+  "provider": "deepseek",
+  "user_preferences": {"typing_effect": true},
+  "speech": {"wake_word": {"phrase": "hey helix"}}
+}
+`
+
+func newSetup(t *testing.T, withLessons bool) *helixSetup {
+	t.Helper()
+	home := filepath.Join(t.TempDir(), ".helix")
+	_ = os.MkdirAll(filepath.Join(home, "metabolism"), 0o700)
+	if err := os.WriteFile(filepath.Join(home, "config.json"), []byte(userConfig), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if withLessons {
+		_ = os.WriteFile(filepath.Join(home, "metabolism", "lessons.json"), []byte("the user's own"), 0o600)
+	}
+	return &helixSetup{home: home, state: filepath.Join(t.TempDir(), "state")}
+}
+
+// The user's Helix setup comes back byte for byte, whatever the run did.
+func TestHelixSetupAppliesAndRestoresExactly(t *testing.T) {
+	for _, withLessons := range []bool{true, false} {
+		h := newSetup(t, withLessons)
+		delivery := filepath.Join(t.TempDir(), "lessons.json")
+		_ = os.WriteFile(delivery, []byte("today's lessons"), 0o600)
+		if err := h.apply(true, delivery); err != nil {
+			t.Fatal(err)
+		}
+		var doc map[string]any
+		data, _ := os.ReadFile(h.configPath())
+		if err := json.Unmarshal(data, &doc); err != nil {
+			t.Fatal(err)
+		}
+		prefs := doc["user_preferences"].(map[string]any)
+		wake := doc["speech"].(map[string]any)["wake_word"].(map[string]any)
+		if prefs["metabolism_record"] != true || prefs["metabolism_lessons"] != true || wake["enabled"] != false ||
+			prefs["typing_effect"] != true || wake["phrase"] != "hey helix" || doc["provider"] != "deepseek" {
+			t.Fatalf("applied config: %s", data)
+		}
+		if l, _ := os.ReadFile(h.lessonsPath()); string(l) != "today's lessons" {
+			t.Fatalf("delivery file: %q", l)
+		}
+
+		if err := h.restore(); err != nil {
+			t.Fatal(err)
+		}
+		if data, _ := os.ReadFile(h.configPath()); string(data) != userConfig {
+			t.Fatalf("config not restored exactly:\n%s", data)
+		}
+		l, err := os.ReadFile(h.lessonsPath())
+		switch {
+		case withLessons && string(l) != "the user's own":
+			t.Fatalf("the user's delivery file was not restored: %q", l)
+		case !withLessons && err == nil:
+			t.Fatal("a delivery file the user did not have was left behind")
+		}
+		if entries, _ := os.ReadDir(h.state); len(entries) != 0 {
+			t.Fatalf("backups left after restore: %v", entries)
+		}
+	}
+}
+
+// A run killed between apply and restore is put right by the next run.
+func TestHelixSetupRecoversAKilledRun(t *testing.T) {
+	h := newSetup(t, true)
+	if ok, err := h.recover(); ok || err != nil {
+		t.Fatalf("nothing to recover: %v %v", ok, err)
+	}
+	if err := h.apply(false, ""); err != nil {
+		t.Fatal(err)
+	}
+	// ...the process dies here...
+	again := &helixSetup{home: h.home, state: h.state}
+	if ok, err := again.recover(); !ok || err != nil {
+		t.Fatalf("recover: %v %v", ok, err)
+	}
+	if data, _ := os.ReadFile(h.configPath()); string(data) != userConfig {
+		t.Fatalf("config after recovery:\n%s", data)
+	}
+}
+
+// The run refuses to share Helix with anything the user is doing.
+func TestPreflightRefusals(t *testing.T) {
+	ctx := context.Background()
+	h := newSetup(t, false)
+	missing := filepath.Join(t.TempDir(), "no-helix") // status fails: no daemon
+	if err := preflight(ctx, h.home, missing); err != nil {
+		t.Fatalf("a quiet Helix was refused: %v", err)
+	}
+	lock := fmt.Sprintf(`{"kind":"tty","pid":1,"ts":%d}`, time.Now().Unix())
+	_ = os.WriteFile(filepath.Join(h.home, "active.lock"), []byte(lock), 0o600)
+	if err := preflight(ctx, h.home, missing); err == nil || !strings.Contains(err.Error(), "interactive") {
+		t.Fatalf("fresh session lock: %v", err)
+	}
+	_ = os.WriteFile(filepath.Join(h.home, "active.lock"), []byte(`{"kind":"tty","pid":1,"ts":1}`), 0o600)
+	_ = os.WriteFile(filepath.Join(h.home, "metabolism", "episodes.ndjson"), []byte("{}\n"), 0o600)
+	if err := preflight(ctx, h.home, missing); err == nil || !strings.Contains(err.Error(), "recording") {
+		t.Fatalf("the user's own recording: %v", err)
+	}
+}
+
+// The synthetic user works in a clone, never in the real checkout, and a new
+// run replaces the clone (yesterday's edits are gone).
+func TestCloneProjectUsesAFreshClone(t *testing.T) {
+	if _, err := exec.LookPath("git"); err != nil {
+		t.Skip("no git")
+	}
+	home := t.TempDir()
+	src := filepath.Join(home, "Dev", "proj")
+	_ = os.MkdirAll(src, 0o755)
+	_ = os.WriteFile(filepath.Join(src, "main.go"), []byte("package main\n"), 0o644)
+	for _, args := range [][]string{{"init", "-q"}, {"add", "."}, {"-c", "user.name=t", "-c", "user.email=t@t", "commit", "-qm", "init"}} {
+		cmd := exec.Command("git", args...)
+		cmd.Dir = src
+		if b, err := cmd.CombinedOutput(); err != nil {
+			t.Fatalf("git %v: %v %s", args, err, b)
+		}
+	}
+	ws := filepath.Join(home, "runs", "workspace")
+	rel, err := cloneProject(context.Background(), home, "Dev/proj", ws)
+	if err != nil || rel != "runs/workspace/proj" {
+		t.Fatalf("clone: %q %v", rel, err)
+	}
+	_ = os.WriteFile(filepath.Join(ws, "proj", "scratch.txt"), []byte("an edit"), 0o644)
+	if _, err := cloneProject(context.Background(), home, "Dev/proj", ws); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(filepath.Join(ws, "proj", "scratch.txt")); !os.IsNotExist(err) {
+		t.Fatal("yesterday's edit survived the new clone")
+	}
+	if _, err := os.Stat(filepath.Join(src, "scratch.txt")); !os.IsNotExist(err) {
+		t.Fatal("the real checkout was touched")
+	}
+	if _, err := cloneProject(context.Background(), home, "Dev/proj", filepath.Join(t.TempDir(), "elsewhere")); err == nil {
+		t.Fatal("a workspace outside home was accepted (the daemon resolves requests from home)")
+	}
+}
+
+func TestAutoNeedsRemoteOptIn(t *testing.T) {
+	var out bytes.Buffer
+	err := run(context.Background(), []string{"auto", "-dir", t.TempDir(), "-helix-home", t.TempDir()}, &out)
+	if err == nil || !strings.Contains(err.Error(), "-allow-remote") {
+		t.Fatalf("auto without opt-in: %v", err)
+	}
+}

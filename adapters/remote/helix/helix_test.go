@@ -26,7 +26,41 @@ func TestMain(m *testing.M) {
 		fakeHelix(mode)
 		os.Exit(0)
 	}
+	if state := os.Getenv("FAKE_HELIX_DAEMON"); state != "" && len(os.Args) > 1 {
+		os.Exit(fakeDaemon(state, os.Args[1:]))
+	}
 	os.Exit(m.Run())
+}
+
+// fakeDaemon plays `helix daemon` and `helix remote ...`; a marker file is
+// the daemon's socket.
+func fakeDaemon(state string, args []string) int {
+	marker := filepath.Join(state, "running")
+	switch {
+	case args[0] == "daemon":
+		_ = os.WriteFile(marker, nil, 0o600)
+		for {
+			if _, err := os.Stat(marker); err != nil {
+				return 0
+			}
+			time.Sleep(50 * time.Millisecond)
+		}
+	case len(args) >= 2 && args[0] == "remote" && args[1] == "status":
+		if _, err := os.Stat(marker); err != nil {
+			return 1
+		}
+		return 0
+	case len(args) >= 2 && args[0] == "remote" && args[1] == "stop":
+		_ = os.Remove(marker)
+		return 0
+	case len(args) >= 3 && args[0] == "remote" && args[1] == "submit":
+		if args[2] == "slow" {
+			time.Sleep(5 * time.Second)
+		}
+		_ = json.NewEncoder(os.Stdout).Encode(map[string]string{"reply": "done: " + args[2]})
+		return 0
+	}
+	return 2
 }
 
 func fakeHelix(mode string) {
@@ -235,5 +269,36 @@ func TestReplayWireGoldenV2(t *testing.T) {
 	}
 	if r.Rounds != 3 || r.End != "answered" || r.Steps[2].Outcome != "failed" {
 		t.Fatalf("decoded %+v", r)
+	}
+}
+
+func TestDaemonStartSubmitStop(t *testing.T) {
+	t.Setenv("FAKE_HELIX_DAEMON", t.TempDir())
+	ctx := context.Background()
+	d := &Daemon{Command: os.Args[0]}
+	if _, err := d.Submit(ctx, "x", time.Second); err == nil {
+		t.Fatal("submit before start was accepted")
+	}
+	if err := d.Start(ctx, 10*time.Second); err != nil {
+		t.Fatal(err)
+	}
+	if err := (&Daemon{Command: os.Args[0]}).Start(ctx, time.Second); err == nil {
+		t.Fatal("a second daemon started while one was running")
+	}
+	reply, err := d.Submit(ctx, "build the project", 5*time.Second)
+	if err != nil || reply != "done: build the project" {
+		t.Fatalf("reply %q err %v", reply, err)
+	}
+	if _, err := d.Submit(ctx, "slow", 300*time.Millisecond); err == nil || !strings.Contains(err.Error(), "no reply within") {
+		t.Fatalf("slow submit: %v", err)
+	}
+	if err := d.Stop(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if Status(ctx, d.bin) == nil {
+		t.Fatal("the daemon still answers after Stop")
+	}
+	if err := d.Stop(ctx); err != nil {
+		t.Fatal("stopping twice must be harmless")
 	}
 }

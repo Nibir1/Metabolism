@@ -108,12 +108,17 @@ you have used Helix for a while.
 
 ## 2b. Live models
 
-Keys go in your environment, never in a command line or a chat:
+Keys go in `.env` in the repository root (gitignored), never in a command
+line or a chat:
 
-```bash
-export DEEPSEEK_API_KEY=...   # in your shell profile or a secrets manager
-export TYPESAFE_API_KEY=...
 ```
+DEEPSEEK_API_KEY=...
+TYPESAFE_API_KEY=...
+```
+
+`bin/metabolism` reads it at startup, only if it is owner-only
+(`chmod 600 .env`), and only these variables (plus `OLLAMA_HOST` and
+`METABOLISM_JOURNAL`). A variable already exported in your shell wins.
 
 **Check a judge against ground truth.** On the simulator the right answer for
 every planted lesson is known, so this measures how often a real judge's
@@ -266,6 +271,42 @@ eliminated`, and the reason in `bin/metabolism lessons -id <id>`.
 `bin/metabolism doctor` shows the delivery file and both preferences.
 
 Share the output of `credit-eval`, `/lessons`, and `credit`.
+
+## 2e. Automated days (D-023)
+
+Build first (`make helix-build`), and make sure no Helix daemon or
+interactive session is running. Try it with a small day:
+
+```bash
+bin/metabolism auto -allow-remote -plan-only -requests 20
+```
+
+`-plan-only` only writes the day's requests
+(`.runs/auto/days/<time>/requests.json`) so you can read what the synthetic
+user would ask. Then a real day:
+
+```bash
+bin/metabolism auto -allow-remote -requests 20
+```
+
+It clones the projects into `.runs/auto/workspace`, turns Helix recording on
+(and wake listening off) for the run, starts the daemon, sends the requests,
+stops it, restores your config byte for byte, and runs ingest, digest,
+verify and credit on `.runs/auto/journal.db`. Each run adds a line to
+`.runs/auto/report.md`; everything else is in the run's `days/` folder.
+Lessons are delivered only after `-baseline` episodes (default 300) are
+recorded. The nutrient test is skipped until the journal holds
+`-verify-after` episodes (default 100): on fewer, replay noise swamps any
+effect. After that each run tests up to `-verify-max` lessons (default 5),
+never-tested ones first. A full day is `-requests 100`.
+
+The synthetic user never starts a request with a command name: Helix runs
+such a line as a shell command and it never reaches the planner (6 of 20
+requests on the first day).
+
+What it sends: the projects' file outlines and README openings to DeepSeek
+(the request writer); each request through Helix to its provider; lessons to
+DeepSeek (digest) and comparisons to Jev (verify).
 
 ## 3. Once there are weeks of data
 

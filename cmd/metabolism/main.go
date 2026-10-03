@@ -17,6 +17,7 @@
 //	metabolism credit  -journal PATH [-apply]
 //	metabolism export  -journal PATH [-to FILE]
 //	metabolism credit-eval [-seeds 5] [-turns 3000] [-out DIR]
+//	metabolism auto    -allow-remote [-dir .runs/auto] [-requests 100] [-plan-only]
 //
 // The journal defaults to $METABOLISM_JOURNAL, then ~/.metabolism/journal.db.
 package main
@@ -60,11 +61,16 @@ commands:
   credit   what live turns say about each delivered lesson; -apply accepts or eliminates
   export   write the lessons Helix may deliver (~/.helix/metabolism/lessons.json)
   credit-eval  does the credit ledger accept what helps and eliminate what harms? (simulator)
+  auto     one automated day: a synthetic user drives real Helix, then ingest, digest, verify, credit
 
 run "metabolism <command> -h" for a command's flags
 `
 
 func main() {
+	if err := loadDotEnv(dotEnvFile); err != nil {
+		fmt.Fprintln(os.Stderr, "metabolism:", err)
+		os.Exit(1)
+	}
 	if err := run(context.Background(), os.Args[1:], os.Stdout); err != nil {
 		fmt.Fprintln(os.Stderr, "metabolism:", err)
 		os.Exit(1)
@@ -111,11 +117,13 @@ func run(ctx context.Context, args []string, out io.Writer) error {
 		return cmdExport(ctx, args[1:], out)
 	case "credit-eval":
 		return cmdCreditEval(ctx, args[1:], out)
+	case "auto":
+		return cmdAuto(ctx, args[1:], out)
 	case "help", "-h", "--help":
 		_, _ = fmt.Fprint(out, usage)
 		return nil
 	}
-	return fmt.Errorf("unknown command %q (try: doctor, ingest, sim, curves, inspect, recall, recall-eval, digest, verify, lessons, nutrient-eval, replay, label, crosscheck, credit, export, credit-eval)", args[0])
+	return fmt.Errorf("unknown command %q (try: doctor, ingest, sim, curves, inspect, recall, recall-eval, digest, verify, lessons, nutrient-eval, replay, label, crosscheck, credit, export, credit-eval, auto)", args[0])
 }
 
 func defaultJournal() string {
