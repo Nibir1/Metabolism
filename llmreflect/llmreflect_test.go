@@ -117,10 +117,12 @@ func TestReflectCapsLessons(t *testing.T) {
 type sequenceModel struct {
 	replies []string
 	calls   int
+	last    ports.ModelRequest
 }
 
 func (s *sequenceModel) Name() string { return "sequence" }
-func (s *sequenceModel) Complete(context.Context, ports.ModelRequest) (ports.ModelResponse, error) {
+func (s *sequenceModel) Complete(_ context.Context, req ports.ModelRequest) (ports.ModelResponse, error) {
+	s.last = req
 	r := s.replies[min(s.calls, len(s.replies)-1)]
 	s.calls++
 	return ports.ModelResponse{Text: r, FinishReason: "stop"}, nil
@@ -131,6 +133,9 @@ func TestReflectRetriesAnEmptyAnswerOnce(t *testing.T) {
 	ls, err := (&Reflector{Model: m}).Reflect(context.Background(), batch(t), nil)
 	if err != nil || len(ls) != 1 || m.calls != 2 {
 		t.Fatalf("lessons %d, calls %d, err %v", len(ls), m.calls, err)
+	}
+	if !m.last.DisableThinking {
+		t.Fatal("the retry may think again, and run out of budget the same way")
 	}
 	m = &sequenceModel{replies: []string{""}}
 	if _, err := (&Reflector{Model: m}).Reflect(context.Background(), batch(t), nil); err == nil ||

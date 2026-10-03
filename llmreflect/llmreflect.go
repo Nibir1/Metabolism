@@ -133,7 +133,12 @@ func (r *Reflector) Reflect(ctx context.Context, batch []types.Experience, exist
 	lessons, dropped, err := Parse(resp.Text)
 	if err != nil {
 		// One retry with a reminder; JSON modes occasionally return nothing.
+		// The retry answers directly, without hidden reasoning: on the first
+		// lessons-on day DeepSeek spent all 8000 tokens thinking over 430
+		// episodes, twice, and wrote nothing. A direct answer is the
+		// fallback that cannot run out that way.
 		req.User += "\n\nAnswer with the JSON object only."
+		req.DisableThinking = true
 		if resp, err = r.Model.Complete(ctx, req); err != nil {
 			return nil, err
 		}
