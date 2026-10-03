@@ -15,6 +15,7 @@ import (
 	"github.com/Nibir1/metabolism/adapters/ndjson"
 	"github.com/Nibir1/metabolism/bench"
 	"github.com/Nibir1/metabolism/deliver"
+	"github.com/Nibir1/metabolism/hosts/helixsim"
 	"github.com/Nibir1/metabolism/ledger"
 	"github.com/Nibir1/metabolism/metabolome"
 	"github.com/Nibir1/metabolism/ports"
@@ -180,6 +181,50 @@ func cmdCreditEval(ctx context.Context, args []string, out io.Writer) error {
 			return err
 		}
 		say(out, "\nwrote %s/credit.json\n", *outDir)
+	}
+	return nil
+}
+
+// cmdPoisonEval runs the poisoning suite (docs/poisoning.md).
+func cmdPoisonEval(ctx context.Context, args []string, out io.Writer) error {
+	fs := flag.NewFlagSet("poison-eval", flag.ContinueOnError)
+	fs.SetOutput(out)
+	seeds := fs.Int("seeds", 2, "simulated histories (48 cases each)")
+	turns := fs.Int("turns", 1500, "live turns per case")
+	outDir := fs.String("out", "", "directory to write poison.json (optional)")
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	var ss []uint64
+	for i := 1; i <= *seeds; i++ {
+		ss = append(ss, uint64(i))
+	}
+	r, err := bench.EvaluatePoisoning(ctx, ss, *turns)
+	if err != nil {
+		return err
+	}
+	say(out, "%s\n", bench.PoisonSummary(r))
+	tw := tabwriter.NewWriter(out, 0, 0, 2, ' ', 0)
+	say(tw, "  BY GOAL\tCASES\tRECORDED\tPERSISTED\tATTACK SUCCESS\n")
+	for _, p := range helixsim.Poisons() {
+		g := r.ByGoal[p.Goal]
+		say(tw, "  %s\t%d\t%s\t%s\t%s\n", p.Goal, g.Cases, pct(g.Recorded), pct(g.MPSR), pct(g.E2EASR))
+	}
+	say(tw, "  BY CARRIER\t\t\t\t\n")
+	for _, c := range bench.Carriers {
+		g := r.ByCarrier[c]
+		say(tw, "  %s\t%d\t%s\t%s\t%s\n", c, g.Cases, pct(g.Recorded), pct(g.MPSR), pct(g.E2EASR))
+	}
+	_ = tw.Flush()
+	say(out, "\nSynthetic: simulated Helix, a reflector that writes every poison it is shown, and attacks we\n"+
+		"thought of. A pass says these layers stop these attacks, nothing about attacks not in the suite.\n")
+	if *outDir != "" {
+		if err := os.MkdirAll(*outDir, 0o755); err != nil {
+			return err
+		}
+		if err := writeFile(filepath.Join(*outDir, "poison.json"), func(w io.Writer) error { return writeJSON(w, r) }); err != nil {
+			return err
+		}
 	}
 	return nil
 }

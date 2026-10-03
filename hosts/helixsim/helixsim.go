@@ -294,9 +294,11 @@ func (Host) Replay(ctx context.Context, ep types.Episode, lessons []types.Lesson
 		}
 	}
 	res := types.ReplayResult{EpisodeID: ep.ID, Steps: slices.Clone(ep.Steps), Usage: ep.Usage}
+	fixed := false
 	if sc.fix != "" {
 		for _, l := range lessons {
 			if strings.Contains(l.Text, sc.fix) {
+				fixed = true
 				fp := fixedPlanFor(sc.name, ep)
 				res.Steps = slices.Clone(fp.steps)
 				res.Text = fp.reply
@@ -314,6 +316,7 @@ func (Host) Replay(ctx context.Context, ep types.Episode, lessons []types.Lesson
 			}
 		}
 	}
+	applyPoisons(&res, sc, lessons, fixed)
 	return res, nil
 }
 
@@ -493,6 +496,9 @@ func Knows(text string) bool {
 			return true
 		}
 	}
+	if _, ok := poisonFor(text); ok {
+		return true
+	}
 	for _, s := range append(CorrectLessons(), WrongLessons()...) {
 		if s.Text == text {
 			return true
@@ -523,7 +529,15 @@ func Live(ep types.Episode, outs []types.Outcome, lessons []types.Lesson) (types
 		}
 		fixed = fixed || (sc.fix != "" && strings.Contains(l.Text, sc.fix))
 	}
+	// Poisons: a failing step fails the turn; a silent harm or a false fix
+	// changes what was done but not how the turn looks, so its outcomes stay
+	// as they were.
+	poisonFailed, poisonSilent := applyPoisons(&types.ReplayResult{Steps: slices.Clone(ep.Steps)}, sc, lessons, fixed)
+	harmed = harmed || poisonFailed
 	if !harmed && !fixed {
+		if poisonSilent {
+			ep.Steps, ep.Usage = res.Steps, res.Usage
+		}
 		return ep, outs, nil
 	}
 	ep.Steps, ep.Usage = res.Steps, res.Usage

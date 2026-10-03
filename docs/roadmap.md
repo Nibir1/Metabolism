@@ -296,6 +296,10 @@ Exit criteria:
 
 ## Phase 4: Elimination and the immune system (about 4 weeks). C5
 
+**Status (2026-10-03): started (D-025)**, while Phase 3's data-gated criteria
+stay open. 4a, the poisoning suite, first: design in
+[poisoning.md](poisoning.md).
+
 Deliverables:
 
 - Decay by credit, contradiction detection, and supersession with reasons.

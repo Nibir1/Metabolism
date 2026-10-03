@@ -17,6 +17,7 @@
 //	metabolism credit  -journal PATH [-apply]
 //	metabolism export  -journal PATH [-to FILE]
 //	metabolism credit-eval [-seeds 5] [-turns 3000] [-out DIR]
+//	metabolism poison-eval [-seeds 2] [-turns 1500] [-out DIR]
 //	metabolism auto    -allow-remote [-dir .runs/auto] [-requests 100] [-plan-only]
 //
 // The journal defaults to $METABOLISM_JOURNAL, then ~/.metabolism/journal.db.
@@ -61,6 +62,7 @@ commands:
   credit   what live turns say about each delivered lesson; -apply accepts or eliminates
   export   write the lessons Helix may deliver (~/.helix/metabolism/lessons.json)
   credit-eval  does the credit ledger accept what helps and eliminate what harms? (simulator)
+  poison-eval  the poisoning suite: do poisoned lessons persist or do harm? (simulator)
   auto     one automated day: a synthetic user drives real Helix, then ingest, digest, verify, credit
 
 run "metabolism <command> -h" for a command's flags
@@ -119,11 +121,13 @@ func run(ctx context.Context, args []string, out io.Writer) error {
 		return cmdCreditEval(ctx, args[1:], out)
 	case "auto":
 		return cmdAuto(ctx, args[1:], out)
+	case "poison-eval":
+		return cmdPoisonEval(ctx, args[1:], out)
 	case "help", "-h", "--help":
 		_, _ = fmt.Fprint(out, usage)
 		return nil
 	}
-	return fmt.Errorf("unknown command %q (try: doctor, ingest, sim, curves, inspect, recall, recall-eval, digest, verify, lessons, nutrient-eval, replay, label, crosscheck, credit, export, credit-eval, auto)", args[0])
+	return fmt.Errorf("unknown command %q (try: doctor, ingest, sim, curves, inspect, recall, recall-eval, digest, verify, lessons, nutrient-eval, replay, label, crosscheck, credit, export, credit-eval, auto, poison-eval)", args[0])
 }
 
 func defaultJournal() string {

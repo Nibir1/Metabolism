@@ -60,7 +60,7 @@ file before each phase that depends on it. URLs are in
 | Evo-Memory / ReMem | Big gains on repetitive embodied tasks, small ones on reasoning. |
 | LifelongAgentBench | Plain experience replay helps little and hits context limits. |
 | "Ground Truth First" (Jul 2026) | Best at 3 weeks falls to 72% at 9 weeks. Rankings flip with tenure. |
-| MemSecBench (Jul 2026) | 84% of poison persists; 50% end-to-end attack success; 56% selective repair. |
+| MemSecBench (Jul 2026) | 84.2% of poison persists; 59.6% exploitation; 50.3% end-to-end attack success; 56.1% selective repair (24 configurations, no defences evaluated). Our suite: [poisoning.md](poisoning.md). |
 | TRACE | Weight-level continual learning still forgets. |
 | METR time horizons | Each task is a fresh episode; measures no on-the-job learning. |
 

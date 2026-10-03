@@ -14,6 +14,7 @@ import (
 	"github.com/Nibir1/metabolism/hosts/helixsim"
 	"github.com/Nibir1/metabolism/ledger"
 	"github.com/Nibir1/metabolism/metabolome"
+	"github.com/Nibir1/metabolism/ports"
 	"github.com/Nibir1/metabolism/types"
 )
 
@@ -183,16 +184,7 @@ func creditSeed(ctx context.Context, path string, seed uint64, turns, settleEver
 	}
 
 	r := rand.New(rand.NewPCG(seed, seed^0x51ed270b))
-	settle := func(now time.Time, turn int) error {
-		tallies, err := ledger.Count(ctx, j, now, rule.Maturity, ledger.Eras(m))
-		if err != nil {
-			return err
-		}
-		m.SetClock(func() time.Time { return now })
-		ds, err := ledger.Settle(ctx, m, tallies, rule, false)
-		if err != nil {
-			return err
-		}
+	onSettle := func(turn int, ds []ledger.Decision) {
 		for _, d := range ds {
 			if d.To == "" {
 				continue
@@ -203,37 +195,8 @@ func creditSeed(ctx context.Context, path string, seed uint64, turns, settleEver
 				}
 			}
 		}
-		return nil
 	}
-	file := deliver.Build(m, nil, start)
-	for i, ep := range eps {
-		sel := deliver.Select(file, ep, budget, r)
-		var delivered []types.Lesson
-		for _, id := range sel.Delivered {
-			e, _ := m.Get(id)
-			delivered = append(delivered, e.Lesson)
-		}
-		live, liveOuts, err := helixsim.Live(ep, byEp[ep.ID], delivered)
-		if err != nil {
-			return nil, err
-		}
-		live.Exposure, live.Withheld = sel.Delivered, sel.Withheld
-		if err := j.AppendEpisode(ctx, live); err != nil {
-			return nil, err
-		}
-		for _, o := range liveOuts {
-			if err := j.AppendOutcome(ctx, o); err != nil {
-				return nil, err
-			}
-		}
-		if settleEvery > 0 && (i+1)%settleEvery == 0 {
-			if err := settle(ep.EndedAt.Add(2*time.Hour), i+1); err != nil {
-				return nil, err
-			}
-			file = deliver.Build(m, nil, ep.EndedAt)
-		}
-	}
-	if err := settle(start.Add(span+24*time.Hour), len(eps)); err != nil {
+	if err := playTurns(ctx, j, m, eps, byEp, settleEvery, rule, budget, r, start, start.Add(span+24*time.Hour), nil, onSettle); err != nil {
 		return nil, err
 	}
 	tallies, err := ledger.Count(ctx, j, start.Add(span+24*time.Hour), rule.Maturity, ledger.Eras(m))
@@ -248,4 +211,64 @@ func creditSeed(ctx context.Context, path string, seed uint64, turns, settleEver
 		}
 	}
 	return rows, nil
+}
+
+// playTurns plays eps as live turns in time order, as a host with the
+// metabolome's lessons would: each turn's lessons are selected by
+// deliver.Select (scope, budget, a coin per lesson), its outcome is what the
+// simulator says it would have been with the delivered lessons
+// (helixsim.Live), and the ledger settles every settleEvery turns and once
+// more at end. onTurn, if set, sees each turn and what was delivered into it;
+// onSettle, if set, sees each settle's decisions.
+func playTurns(ctx context.Context, j ports.Journal, m *metabolome.Metabolome, eps []types.Episode,
+	byEp map[types.ID][]types.Outcome, settleEvery int, rule ledger.Rule, budget types.Budget, r *rand.Rand,
+	start, end time.Time, onTurn func(ep types.Episode, delivered []types.Lesson),
+	onSettle func(turn int, ds []ledger.Decision)) error {
+	settle := func(now time.Time, turn int) error {
+		tallies, err := ledger.Count(ctx, j, now, rule.Maturity, ledger.Eras(m))
+		if err != nil {
+			return err
+		}
+		m.SetClock(func() time.Time { return now })
+		ds, err := ledger.Settle(ctx, m, tallies, rule, false)
+		if err != nil {
+			return err
+		}
+		if onSettle != nil {
+			onSettle(turn, ds)
+		}
+		return nil
+	}
+	file := deliver.Build(m, nil, start)
+	for i, ep := range eps {
+		sel := deliver.Select(file, ep, budget, r)
+		var delivered []types.Lesson
+		for _, id := range sel.Delivered {
+			e, _ := m.Get(id)
+			delivered = append(delivered, e.Lesson)
+		}
+		if onTurn != nil {
+			onTurn(ep, delivered)
+		}
+		live, liveOuts, err := helixsim.Live(ep, byEp[ep.ID], delivered)
+		if err != nil {
+			return err
+		}
+		live.Exposure, live.Withheld = sel.Delivered, sel.Withheld
+		if err := j.AppendEpisode(ctx, live); err != nil {
+			return err
+		}
+		for _, o := range liveOuts {
+			if err := j.AppendOutcome(ctx, o); err != nil {
+				return err
+			}
+		}
+		if settleEvery > 0 && (i+1)%settleEvery == 0 {
+			if err := settle(ep.EndedAt.Add(2*time.Hour), i+1); err != nil {
+				return err
+			}
+			file = deliver.Build(m, nil, ep.EndedAt)
+		}
+	}
+	return settle(end, len(eps))
 }

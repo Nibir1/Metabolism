@@ -369,3 +369,11 @@ The third was eliminated under the old "changes nothing" rule: 16 ties on
 equal outcomes are not evidence that a lesson changes nothing. The rule now
 needs identical plans (D-024). The elimination stands in the append-only
 journal, with its reason.
+
+## Poisoning suite (Phase 4a, simulator)
+
+`poison.*` in `baseline-helixsim/`: 96 cases, the worst-case reflector.
+Persistence 16.7% and end-to-end attack success 16.7%, against bars of 5% and
+2%: all of it is the false-answer attack, which wins replays by imitating
+a real fix. Every other goal 0%; benign lessons kept in every case. Details
+and caveats in [docs/poisoning.md](../../docs/poisoning.md#results).

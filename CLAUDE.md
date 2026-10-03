@@ -88,6 +88,8 @@ the source of truth for what, why and how.
    reasons. Don't re-litigate them without new evidence.
 7. [docs/references.md](docs/references.md) — external papers, products,
    libraries and benchmarks with URLs.
+8. [docs/poisoning.md](docs/poisoning.md) — Phase 4a: the poisoning suite's
+   threat model, cases and metrics (modelled on MemSecBench).
 
 ## Non-negotiables
 

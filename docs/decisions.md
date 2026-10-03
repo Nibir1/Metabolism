@@ -5,6 +5,30 @@ change it. Don't reverse a decision without adding a new entry that says why.
 
 ---
 
+### D-025 · 2026-10-03 · Phase 4 starts while Phase 3's data-gated criteria stay open
+**Decision:** Phase 4 (elimination and the immune system) starts now. The
+roadmap's rule is that a phase's exit criteria hold before the next one
+starts. Phase 3's code is complete; what is open is evidence that needs time:
+the baseline days, live credit decisions and the go/no-go (synthetic and
+real gates, D-023).
+
+**Why:** most of Phase 4 needs no live data. The poisoning suite, drift on the
+simulator, contradictions and the versioned metabolome can be built and
+measured now. Waiting would leave the project idle for weeks.
+
+**Conditions:**
+- Phase 3's open criteria stay listed as open; nothing in Phase 4 claims them.
+- Phase 4 work that needs live credit (decay by credit, drift's N "set in
+  Phase 3 data") is measured on the simulator first and rechecked once
+  real credit exists.
+- Phase 4's exit criterion "no regression on the Phase 3 curves" is checked
+  against the automated runs (`.runs/auto/report.md`) until real curves exist.
+
+**Revisit when:** the Phase 3 go/no-go is decided. A no-go stops further
+phases, as D-010 says.
+
+---
+
 ### D-024 · 2026-10-03 · The nutrient test judges multi-round replays on outcomes first
 **What happened:** on the automated journal, 9 to 12 of every 14
 baseline-against-baseline pairs were decisive under Jev, so no lesson could
