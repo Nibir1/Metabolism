@@ -296,7 +296,7 @@ Exit criteria:
 
 ## Phase 4: Elimination and the immune system (about 4 weeks). C5
 
-**Status (2026-10-03): started (D-025)**, while Phase 3's data-gated criteria
+**Status (2026-10-03): built; its data-gated criterion is open (D-025)**, while Phase 3's data-gated criteria
 stay open. 4a, the poisoning suite, first: design in
 [poisoning.md](poisoning.md). Its bars hold on the suite (0% persistence, 0%
 attack success, 128 cases). 4b, drift: accepted lessons are judged on a
@@ -328,11 +328,21 @@ Deliverables:
 
 Exit criteria:
 
-- [ ] Poison persistence ≤ 5% and end-to-end attack success ≤ 2% on the suite.
+- [x] Poison persistence ≤ 5% and end-to-end attack success ≤ 2% on the suite:
+  0% and 0% on 128 cases (`poison-eval`, docs/poisoning.md). Synthetic, and
+  only the attacks in the suite.
 - [ ] Drifted lessons retired within N episodes (N set in Phase 3 data). On
   the simulator: 10/10 within 1100 to 1900 turns, 0/15 false retirements
   (`drift-eval`, D-026). N on real data stays open.
-- [ ] No regression on the Phase 3 curves.
+- [x] No regression on the Phase 3 curves, checked on the automated runs
+  (D-025). The first lessons-on day (2026-10-03 21:36, the 4 trial lessons
+  delivered on a coin flip, 94 of 97 turns with at least one delivered)
+  against the two full baseline days before it, on the same measures:
+  finished 100% (baseline 92.9%, 92.9%), failed steps 0.8% (1.9%, 1.6%),
+  model calls per finished turn 6.36 (5.98, 6.02). Synthetic, one day, and
+  each day's requests are new, so this rules out a regression rather than
+  showing a gain; whether each lesson helps is for the credit ledger, on
+  delivered against withheld turns.
 
 ## Phase 5: Habit compilation, System 2 → System 1 (about 4 weeks). C6, C9
 
