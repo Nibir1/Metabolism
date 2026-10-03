@@ -5,6 +5,50 @@ change it. Don't reverse a decision without adding a new entry that says why.
 
 ---
 
+### D-024 · 2026-10-03 · The nutrient test judges multi-round replays on outcomes first
+**What happened:** on the automated journal, 9 to 12 of every 14
+baseline-against-baseline pairs were decisive under Jev, so no lesson could
+pass. Multi-round replays differ a lot from run to run, and a model judge
+confidently prefers one of two equally successful answers.
+
+**Decision:**
+- **Outcome first** (`judge.Outcome`, `-judge outcome+jev`, the default for
+  `metabolism auto`). If both replays ran their reads, they ended
+  measurably: answered within the rounds, or ran out of them. Different ends
+  are decisive (the one that answered wins); equal ends are a tie. The model
+  judge reads only pairs with nothing measurable (first-plan replays, or
+  replays that stopped at a step a replay never runs).
+- **More comparisons:** up to 16 relevant episodes and 10 past successes per
+  lesson (from 8 and 6).
+- **"Changes nothing" needs identical plans.** It eliminates permanently, so
+  it now requires the plans with and without the lesson to be identical
+  everywhere the lesson applies. A lesson that changed the plans but no
+  outcome is inconclusive and stays a candidate.
+
+**Evidence (real Helix, automated journal, 3 lessons):**
+- Noise fell from 9–12 of 14 decisive baseline pairs (Jev alone) to 5 of 26,
+  0 of 26 and 6 of 25.
+- Of the first lesson's 15 multi-round comparisons, 12 were ties on equal
+  outcomes and 3 were outcome wins. Jev judged only the first-plan pairs.
+- Two lessons passed to trial ("use absolute paths in `cd`"; "for simple
+  build or test requests, go straight to the shell command").
+- One ("to explain package X, start with list or glob and grep") was
+  eliminated under the old "changes nothing" rule, with 0 wins, 0 losses and
+  16 ties. That is the mistake the identical-plans rule now prevents. The
+  journal is append-only, so the elimination stands, with its reason, in
+  that lesson's history.
+- On the simulator, the nutrient test still rejects 25 of 25 wrong lessons
+  and accepts 30 of 30 correct ones.
+
+**Known limit:** answer quality on equal outcomes is not measured. A lesson
+whose only effect is a better answer cannot pass the nutrient test; live
+credit has the same limit (D-020).
+
+**Revisit when:** a judge can read answer quality with low noise (measured by
+A/A pairs), or human labels show that outcome ties hide real differences.
+
+---
+
 ### D-023 · 2026-10-03 · Automated evidence: a synthetic user drives real Helix, labelled as synthetic
 **What happened:** Phase 3's exit criteria need weeks of real Helix use, first
 with lessons off (the baseline), then on. The user cannot give that time now.

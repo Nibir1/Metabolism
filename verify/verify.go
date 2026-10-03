@@ -31,8 +31,12 @@ import (
 
 // Config holds the decision rule (D-018). The zero value selects the defaults.
 type Config struct {
-	MaxRelevant      int // relevant episodes replayed (default 8)
-	RegressionSample int // past successes replayed (default 6)
+	// Episodes replayed per lesson: relevant ones (default 16) and past
+	// successes (default 10). Raised from 8 and 6 (D-024) once journals
+	// held hundreds of episodes: with a planner that varies run to run, a
+	// lesson needs more comparisons to clear the noise floor.
+	MaxRelevant      int
+	RegressionSample int
 	MinCompared      int // fewer relevant comparisons is inconclusive (default 3)
 	MinWins          int // decisive wins needed to pass (default 2)
 	// Alpha is the level for "helps", which moves a lesson to trial
@@ -63,8 +67,8 @@ func (c Config) withDefaults() Config {
 			*v = d
 		}
 	}
-	def(&c.MaxRelevant, 8)
-	def(&c.RegressionSample, 6)
+	def(&c.MaxRelevant, 16)
+	def(&c.RegressionSample, 10)
 	def(&c.MinCompared, 3)
 	def(&c.MinWins, 2)
 	def(&c.MinHarm, 2)
@@ -235,6 +239,9 @@ func (v *Verifier) Test(ctx context.Context, m *metabolome.Metabolome, id types.
 			default:
 				ev.Compared++
 				ev.Ties++
+				if !c.Judged && c.Verdict.Reason == "identical plans" {
+					ev.Identical++
+				}
 			}
 		}
 	}
@@ -296,8 +303,15 @@ func decide(ev types.Evidence, quarantined bool, cfg Config) (types.TestResult, 
 		return types.ResultFail, "harms past successes it is not about, beyond noise: " + counts
 	case ev.Compared < cfg.MinCompared:
 		return types.ResultInconclusive, fmt.Sprintf("too few relevant episodes to judge (need %d): %s", cfg.MinCompared, counts)
+	// "Changes nothing" is permanent, so it needs the plans to have been
+	// identical with and without the lesson everywhere it applies. A lesson
+	// that changed the plans without changing an outcome stays a candidate:
+	// under the outcome-first judge (D-024) equal outcomes are ties, and a
+	// plan that is better but no more successful is not "nothing".
+	case ev.Wins == 0 && ev.Losses == 0 && ev.Identical == ev.Compared:
+		return types.ResultFail, "changes nothing where it should help (identical plans): " + counts
 	case ev.Wins == 0 && ev.Losses == 0:
-		return types.ResultFail, "changes nothing where it should help: " + counts
+		return types.ResultInconclusive, "changed the plans but no outcome: " + counts
 	case ev.Losses >= cfg.MinHarm && pHurt <= cfg.HarmAlpha:
 		return types.ResultFail, "makes things worse where it applies, beyond noise: " + counts
 	case quarantined && ev.Wins >= cfg.QuarantineMinWins && ev.PHelp <= cfg.QuarantineAlpha:

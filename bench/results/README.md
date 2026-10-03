@@ -339,3 +339,33 @@ answered within the 4 rounds:
 - 5 of the 8 still run out of rounds either way. The live follow-up budget
   for a file lookup (3 rounds) is tight for explanatory questions that need
   several windows of a file; that is a Helix design question, not a lesson.
+
+## Automated days (synthetic user, D-023)
+
+Two runs on 2026-10-03, lessons off: 20 requests (14 planner episodes, 92.9%
+finished) and 100 requests (95 episodes, 93.7% finished, no budget
+exhaustions). Running log: `.runs/auto/report.md`. Synthetic evidence: a
+model writes the requests.
+
+### The noise floor, and the outcome-first judge (D-024)
+
+| Judge | Decisive baseline-vs-baseline pairs |
+|---|---|
+| Jev alone (7 lessons, two runs) | 9 to 12 of 14 |
+| Outcome first, then Jev (3 lessons) | 5 of 26, 0 of 26, 6 of 25 |
+
+Under Jev alone, 7 lessons from two automated runs were all inconclusive:
+nothing could clear a floor that high. With outcome first, of one lesson's 15
+multi-round comparisons, 12 were ties on equal outcomes and 3 were wins on
+outcome (the lesson's plan answered, the other ran out of rounds).
+
+| Lesson | Result | Relevant W/L/T | Noise |
+|---|---|---|---|
+| Use absolute paths in `cd` for shell commands here | **pass → trial** | 5/0/11 | 5/26 |
+| For simple build/test/vet requests, go straight to the shell command | **pass → trial** | 5/1/9 | 6/25 |
+| To explain package X, start with list or glob and grep | eliminated ("changes nothing") | 0/0/16 | 0/26 |
+
+The third was eliminated under the old "changes nothing" rule: 16 ties on
+equal outcomes are not evidence that a lesson changes nothing. The rule now
+needs identical plans (D-024). The elimination stands in the append-only
+journal, with its reason.

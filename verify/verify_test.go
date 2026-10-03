@@ -411,3 +411,46 @@ func TestFailedReplaysSkipTheEpisodeNotTheTest(t *testing.T) {
 		t.Fatalf("every replay failing: %v", err)
 	}
 }
+
+// changingHost adds a harmless step whenever a lesson is in context: the plan
+// changes, the outcome does not.
+type changingHost struct{ helixsim.Host }
+
+func (c changingHost) Replay(ctx context.Context, ep types.Episode, ls []types.Lesson) (types.ReplayResult, error) {
+	r, err := c.Host.Replay(ctx, ep, nil)
+	if len(ls) > 0 {
+		r.Steps = append(slices.Clone(r.Steps), types.Step{Tool: "file", Action: "list", Subject: "list .", OK: true})
+	}
+	return r, err
+}
+
+type neitherJudge struct{}
+
+func (neitherJudge) Name() string { return "neither" }
+func (neitherJudge) Compare(context.Context, types.Episode, []types.Outcome, types.ReplayResult, types.ReplayResult) (types.Verdict, error) {
+	return types.Verdict{Prefer: types.PreferNeither, Confidence: 1, Reason: "outcome: both answered; equal outcomes are a tie"}, nil
+}
+
+// Permanent elimination for "changes nothing" needs identical plans. A lesson
+// that changed the plans but no outcome stays a candidate (D-024).
+func TestChangedPlansWithEqualOutcomesAreNotNothing(t *testing.T) {
+	w := newWorld(t)
+	id := w.lessonFrom(t, "answer", spec(t, "summary line", false), types.ProvUserTyped)
+	v := &Verifier{Host: changingHost{}, Judge: neitherJudge{}, History: w.h}
+	rep, err := v.Test(context.Background(), w.m, id)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if rep.Evidence.Result != types.ResultInconclusive || rep.To != types.StateCandidate || rep.Evidence.Identical != 0 {
+		t.Fatalf("changed plans, equal outcomes: %s → %s, %s", rep.From, rep.To, rep.Evidence.Summary)
+	}
+	// The same lesson on a host where it changes nothing at all is eliminated.
+	other := w.lessonFrom(t, "answer", spec(t, "YAML", false), types.ProvUserTyped)
+	rep, err = w.verifier().Test(context.Background(), w.m, other)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if rep.To != types.StateEliminated || rep.Evidence.Identical != rep.Evidence.Compared {
+		t.Fatalf("identical plans: %s, identical %d of %d", rep.Evidence.Summary, rep.Evidence.Identical, rep.Evidence.Compared)
+	}
+}

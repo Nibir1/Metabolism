@@ -135,7 +135,7 @@ func pickHost(name, bin, dir string, rounds int, r remote) (ports.Host, error) {
 // checkPair refuses combinations that cannot mean anything: the heuristic
 // judge counts failed steps, and a real replay only plans, so nothing failed.
 func checkPair(host, judgeName string) error {
-	if host == "helix" && judgeName == "heuristic" {
+	if host == "helix" && strings.TrimPrefix(judgeName, "outcome+") == "heuristic" {
 		return fmt.Errorf("the heuristic judge cannot read real plans (nothing ran, so nothing failed); use -judge jev, deepseek or ollama")
 	}
 	return nil
@@ -148,6 +148,15 @@ func closeHost(h ports.Host) {
 }
 
 func pickJudge(name, model string, r remote) (ports.Judge, error) {
+	// outcome+<judge>: compare multi-round replays on what happened first,
+	// and ask <judge> only when there is nothing measurable (D-024).
+	if inner, ok := strings.CutPrefix(name, "outcome+"); ok {
+		m, err := pickJudge(inner, model, r)
+		if err != nil {
+			return nil, err
+		}
+		return judge.Outcome{Model: m}, nil
+	}
 	switch name {
 	case "heuristic":
 		return judge.Heuristic{}, nil
@@ -163,10 +172,13 @@ func pickJudge(name, model string, r remote) (ports.Judge, error) {
 		}
 		return jev.New(model)
 	}
-	return nil, fmt.Errorf("-judge %q is not available (have: heuristic, ollama, deepseek, jev)", name)
+	return nil, fmt.Errorf("-judge %q is not available (have: heuristic, ollama, deepseek, jev, and outcome+ any of them)", name)
 }
 
-func isRemote(name string) bool { return name == "deepseek" || name == "jev" }
+func isRemote(name string) bool {
+	name = strings.TrimPrefix(name, "outcome+")
+	return name == "deepseek" || name == "jev"
+}
 
 func parseDay(flagName, s string) (time.Time, error) {
 	if s == "" {
@@ -270,7 +282,7 @@ func cmdVerify(ctx context.Context, args []string, out io.Writer) error {
 	replayDir := fs.String("replay-dir", "", "directory Helix plans replays in (default: this one); episodes record only a hashed project key")
 	rounds := fs.Int("rounds", defaultRounds, "planner rounds per Helix replay; between rounds only read-only file steps run (1: first plan only)")
 	save := fs.String("save", "", "append every judged comparison to this NDJSON file, for metabolism label")
-	judgeName := fs.String("judge", "heuristic", "what compares replays: heuristic, ollama, deepseek, jev")
+	judgeName := fs.String("judge", "heuristic", "what compares replays: heuristic, ollama, deepseek, jev; outcome+<judge> compares multi-round outcomes first (D-024)")
 	judgeModel := fs.String("judge-model", "", "model for an ollama, deepseek or jev judge")
 	allowRemote := fs.Bool("allow-remote", false, "allow a remote judge to receive replayed plans")
 	only := fs.String("lesson", "", "test one lesson (default: every candidate and quarantined lesson)")

@@ -185,3 +185,46 @@ func TestPlanLinesForMultiRoundReplays(t *testing.T) {
 		t.Errorf("first-plan view changed: %q", got)
 	}
 }
+
+// stubJudge records whether it was asked.
+type stubJudge struct{ asked *int }
+
+func (stubJudge) Name() string { return "stub" }
+func (s stubJudge) Compare(context.Context, types.Episode, []types.Outcome, types.ReplayResult, types.ReplayResult) (types.Verdict, error) {
+	*s.asked++
+	return types.Verdict{Prefer: types.PreferWith, Confidence: 0.9, Reason: "model"}, nil
+}
+
+func TestOutcomeJudgeComparesFactsFirst(t *testing.T) {
+	asked := 0
+	o := Outcome{Model: stubJudge{asked: &asked}}
+	answered := types.ReplayResult{Rounds: 3, End: types.ReplayEndAnswered, Text: "it does X"}
+	ranOut := types.ReplayResult{Rounds: 4, End: types.ReplayEndBudget}
+	acting := types.ReplayResult{Rounds: 1, End: types.ReplayEndUnexecuted}
+	firstPlan := types.ReplayResult{}
+	ctx := context.Background()
+
+	if v, _ := o.Compare(ctx, types.Episode{}, nil, answered, ranOut); v.Prefer != types.PreferWith || v.Confidence < 0.9 {
+		t.Errorf("answered vs ran out: %+v", v)
+	}
+	if v, _ := o.Compare(ctx, types.Episode{}, nil, ranOut, answered); v.Prefer != types.PreferWithout {
+		t.Errorf("ran out vs answered: %+v", v)
+	}
+	if v, _ := o.Compare(ctx, types.Episode{}, nil, answered, answered); v.Prefer != types.PreferNeither {
+		t.Errorf("both answered: %+v", v)
+	}
+	if v, _ := o.Compare(ctx, types.Episode{}, nil, ranOut, ranOut); v.Prefer != types.PreferNeither {
+		t.Errorf("both ran out: %+v", v)
+	}
+	if asked != 0 {
+		t.Fatalf("the model was asked %d times about measurable outcomes", asked)
+	}
+	for _, pair := range [][2]types.ReplayResult{{acting, acting}, {firstPlan, firstPlan}, {answered, acting}} {
+		if v, _ := o.Compare(ctx, types.Episode{}, nil, pair[0], pair[1]); v.Reason != "model" {
+			t.Errorf("a pair with nothing measurable on one side was not given to the model: %+v", v)
+		}
+	}
+	if asked != 3 || o.Name() != "outcome+stub" {
+		t.Fatalf("asked %d, name %q", asked, o.Name())
+	}
+}
