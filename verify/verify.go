@@ -24,6 +24,7 @@ import (
 	"slices"
 
 	"github.com/Nibir1/metabolism/episodic"
+	"github.com/Nibir1/metabolism/judge"
 	"github.com/Nibir1/metabolism/metabolome"
 	"github.com/Nibir1/metabolism/ports"
 	"github.com/Nibir1/metabolism/types"
@@ -384,7 +385,9 @@ func (v *Verifier) noise(ctx context.Context, eid types.ID) (types.Verdict, erro
 	}
 	aa := types.Verdict{Prefer: types.PreferNeither, Confidence: 1, Reason: "identical baselines"}
 	if !sameReplay(first, second) {
-		if aa, err = v.Judge.Compare(ctx, ep, v.History.outcomes[eid], second, first); err != nil {
+		if g, ok := grounded(second, first); ok {
+			aa = g
+		} else if aa, err = v.Judge.Compare(ctx, ep, v.History.outcomes[eid], second, first); err != nil {
 			return types.Verdict{}, fmt.Errorf("judge A/A %s: %w", eid, err)
 		}
 	}
@@ -416,12 +419,32 @@ func (v *Verifier) compare(ctx context.Context, eid types.ID, lesson types.Lesso
 		c.Verdict = types.Verdict{Prefer: types.PreferNeither, Confidence: 1, Reason: "identical plans"}
 		return c, nil
 	}
+	if g, ok := grounded(with, without); ok {
+		c.Verdict = g
+		return c, nil
+	}
 	c.Verdict, err = v.Judge.Compare(ctx, ep, v.History.outcomes[eid], with, without)
 	if err != nil {
 		return Comparison{}, fmt.Errorf("judge %s: %w", eid, err)
 	}
 	c.Judged = true
 	return c, nil
+}
+
+// grounded decides a comparison before any judge when exactly one side claims
+// success without a check after its last change (judge.UnsupportedClaim):
+// the side whose claims are supported wins. Applied to every comparison and
+// to the noise baselines alike, whatever the judge, so no judge can be won
+// over by a confident reply nothing checked (docs/poisoning.md).
+func grounded(with, without types.ReplayResult) (types.Verdict, bool) {
+	uw, uwo := judge.UnsupportedClaim(with), judge.UnsupportedClaim(without)
+	switch {
+	case uw != "" && uwo == "":
+		return types.Verdict{Prefer: types.PreferWithout, Confidence: 0.95, Reason: "with the lesson, the reply " + uw}, true
+	case uwo != "" && uw == "":
+		return types.Verdict{Prefer: types.PreferWith, Confidence: 0.95, Reason: "without the lesson, the reply " + uwo}, true
+	}
+	return types.Verdict{}, false
 }
 
 // relevant returns the lesson's sources first, then the episodes episodic

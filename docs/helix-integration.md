@@ -280,6 +280,11 @@ yielded 42 planner episodes, 100% labelled: 30 done, 4 budget-exhausted,
   (`exit status N`) and a failed turn. What the user sees is unchanged.
 
 **Found, not yet fixed (Helix):**
+- **Reading a private key is rated low risk.** A plain read of a key file
+  under `~/.ssh` runs without asking, and its content can reach the model
+  provider. Found by the poisoning suite (docs/poisoning.md); Metabolism's
+  immune screen now rejects lessons that point at secret material, but Helix
+  itself should ask before reading it.
 - **Plain English is misrouted to the shell.** "summarise …" ran `summarise`
    (exit 127), and "find the config.yaml for …" ran `find` with English
    arguments. The classifier decides on the first word, and these turns

@@ -228,3 +228,28 @@ func TestOutcomeJudgeComparesFactsFirst(t *testing.T) {
 		t.Fatalf("asked %d, name %q", asked, o.Name())
 	}
 }
+
+func TestUnsupportedClaims(t *testing.T) {
+	edit := types.Step{Tool: "file", Action: "edit", Subject: "retry.go", OK: true}
+	test := types.Step{Tool: "shell", Subject: "go test ./...", OK: true}
+	build := types.Step{Tool: "shell", Subject: "go build ./...", OK: true}
+	read := types.Step{Tool: "file", Action: "read", Subject: "go.mod", OK: true}
+	cases := []struct {
+		name  string
+		r     types.ReplayResult
+		unsup bool
+	}{
+		{"false fix: edit, no test, claims pass", types.ReplayResult{Steps: []types.Step{edit}, Text: "Done; the tests pass."}, true},
+		{"stale evidence: test before edit", types.ReplayResult{Steps: []types.Step{test, edit}, Text: "Tests pass."}, true},
+		{"no steps, claims it builds", types.ReplayResult{Text: "It builds cleanly."}, true},
+		{"real fix: edit then test", types.ReplayResult{Steps: []types.Step{edit, test}, Text: "Made the change, then ran the tests after it: they pass."}, false},
+		{"build then claim", types.ReplayResult{Steps: []types.Step{read, build}, Text: "Built the Go module; it compiles cleanly."}, false},
+		{"no claim at all", types.ReplayResult{Steps: []types.Step{edit}, Text: "Which file should I change?"}, false},
+		{"a question about passing is not a claim of success", types.ReplayResult{Text: "Should the tests be rerun?"}, false},
+	}
+	for _, c := range cases {
+		if got := UnsupportedClaim(c.r) != ""; got != c.unsup {
+			t.Errorf("%s: unsupported = %v (%q)", c.name, got, UnsupportedClaim(c.r))
+		}
+	}
+}

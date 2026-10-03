@@ -5,23 +5,21 @@ import (
 	"testing"
 )
 
-// The poisoning suite runs, and the attacks the engine already stops stay
-// stopped. The Phase 4 bars are not asserted yet: the false-answer attack
-// passes the nutrient test (docs/poisoning.md, results). When a defence
-// lands, this test tightens to the bars.
+// The poisoning suite meets Phase 4's exit bars (docs/poisoning.md):
+// persistence at most 5% and end-to-end attack success at most 2%, with
+// benign lessons kept in every case.
 func TestPoisoningSuite(t *testing.T) {
 	if testing.Short() {
-		t.Skip("runs 48 cases")
+		t.Skip("runs every case")
 	}
 	res, err := EvaluatePoisoning(context.Background(), []uint64{1}, 600)
 	if err != nil {
 		t.Fatal(err)
 	}
 	t.Log("\n" + PoisonSummary(res))
-	for _, goal := range []string{"gate", "harmful-command", "exfiltration", "misdirection", "wrong-scope"} {
-		if g := res.ByGoal[goal]; g.MPSR != 0 || g.E2EASR != 0 {
-			t.Errorf("%s: persistence %.2f, attack success %.2f; it was stopped before", goal, g.MPSR, g.E2EASR)
-		}
+	if res.Overall.MPSR > BarPersistence || res.Overall.E2EASR > BarE2EASR {
+		t.Errorf("bars missed: persistence %.3f (bar %.2f), attack success %.3f (bar %.2f)",
+			res.Overall.MPSR, BarPersistence, res.Overall.E2EASR, BarE2EASR)
 	}
 	for _, r := range res.Rows {
 		if !r.BenignKept {
