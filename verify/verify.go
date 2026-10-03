@@ -59,6 +59,10 @@ type Config struct {
 	// what it stops: the poisoning suite's per-layer report. Not exposed by
 	// any command; never set it in use.
 	WithoutClaimCheck bool
+	// WithoutContext replays both sides with no other lessons, as the test
+	// did before D-027, instead of with the accepted lessons in force. For
+	// comparison only.
+	WithoutContext bool
 }
 
 func (c Config) withDefaults() Config {
@@ -144,8 +148,48 @@ type Verifier struct {
 	History *History
 	Config  Config
 
-	baseline map[types.ID]types.ReplayResult
-	aa       map[types.ID]types.Verdict
+	// Keyed by episode and context (cacheKey): the baseline is the same for
+	// every lesson tested against an episode with the same lessons in force.
+	baseline map[string]types.ReplayResult
+	aa       map[string]types.Verdict
+}
+
+// cacheKey names an episode replayed with a context.
+func cacheKey(eid types.ID, context []types.Lesson) string {
+	k := string(eid)
+	for _, l := range context {
+		k += "|" + string(l.ID)
+	}
+	return k
+}
+
+// context returns the lessons in force on ep that a test of l carries on
+// both sides (D-027): the accepted lessons whose scope covers ep, oldest
+// first, as many as fit the host's budget beside l. A candidate is judged
+// on what it adds to what is already delivered, so a paraphrase of an
+// accepted lesson changes nothing, and one that contradicts it loses.
+// Trial lessons are left out: they are delivered on half the turns, and the
+// credit ledger judges them in pairs.
+func (v *Verifier) context(m *metabolome.Metabolome, l types.Lesson, ep types.Episode) []types.Lesson {
+	if v.Config.WithoutContext {
+		return nil
+	}
+	b := v.Host.Describe().Budget
+	n, chars := 1, len(l.Text)
+	var out []types.Lesson
+	accepted := m.Lessons(types.StateAccepted)
+	slices.SortStableFunc(accepted, func(a, b types.Lesson) int { return a.CreatedAt.Compare(b.CreatedAt) })
+	for _, a := range accepted {
+		if a.ID == l.ID || !a.Scope.Covers(ep) {
+			continue
+		}
+		if (b.MaxLessons > 0 && n+1 > b.MaxLessons) || (b.MaxChars > 0 && chars+len(a.Text) > b.MaxChars) {
+			break
+		}
+		n, chars = n+1, chars+len(a.Text)
+		out = append(out, a)
+	}
+	return out
 }
 
 // Comparison is one replayed pair, for reports and for labelling.
@@ -188,7 +232,7 @@ func (v *Verifier) Test(ctx context.Context, m *metabolome.Metabolome, id types.
 		return Report{}, fmt.Errorf("lesson %s is %s; only candidates and quarantined lessons are tested", id, lesson.State)
 	}
 	if v.baseline == nil {
-		v.baseline = map[types.ID]types.ReplayResult{}
+		v.baseline = map[string]types.ReplayResult{}
 	}
 
 	relevant := v.relevant(lesson, cfg.MaxRelevant)
@@ -207,10 +251,16 @@ func (v *Verifier) Test(ctx context.Context, m *metabolome.Metabolome, id types.
 			// day, where one such replay ended a whole run). A host that
 			// cannot replay the lesson at all, or a cancelled run, still
 			// ends it.
-			c, err := v.compare(ctx, eid, lesson)
+			inForce := v.context(m, lesson, v.History.byID[eid])
+			for _, l := range inForce {
+				if !slices.Contains(ev.Context, l.ID) {
+					ev.Context = append(ev.Context, l.ID)
+				}
+			}
+			c, err := v.compare(ctx, eid, lesson, inForce)
 			var aa types.Verdict
 			if err == nil {
-				aa, err = v.noise(ctx, eid)
+				aa, err = v.noise(ctx, eid, inForce)
 			}
 			if err != nil {
 				if errors.Is(err, ports.ErrCannotReplay) || ctx.Err() != nil {
@@ -256,6 +306,9 @@ func (v *Verifier) Test(ctx context.Context, m *metabolome.Metabolome, id types.
 	}
 	Calibrate(&ev)
 	ev.Result, ev.Summary = decide(ev, lesson.State == types.StateQuarantined, cfg)
+	if len(ev.Context) > 0 {
+		ev.Summary += fmt.Sprintf("; judged on what it adds to %d accepted lesson(s) in force", len(ev.Context))
+	}
 	if ev.Skipped > 0 {
 		ev.Summary += fmt.Sprintf("; %d episode(s) skipped: a replay or judge call failed", ev.Skipped)
 	}
@@ -374,18 +427,19 @@ func binom(n, k int) float64 {
 // second time and judged against the first. Identical baselines (a
 // deterministic host) are a tie without asking the judge. Cached: one A/A
 // per episode per run, shared by every lesson tested.
-func (v *Verifier) noise(ctx context.Context, eid types.ID) (types.Verdict, error) {
-	if aa, ok := v.aa[eid]; ok {
+func (v *Verifier) noise(ctx context.Context, eid types.ID, inForce []types.Lesson) (types.Verdict, error) {
+	key := cacheKey(eid, inForce)
+	if aa, ok := v.aa[key]; ok {
 		return aa, nil
 	}
 	if v.aa == nil {
-		v.aa = map[types.ID]types.Verdict{}
+		v.aa = map[string]types.Verdict{}
 	}
 	ep := v.History.byID[eid]
-	first := v.baseline[eid]
-	second, err := v.Host.Replay(ctx, ep, nil)
+	first := v.baseline[key]
+	second, err := v.Host.Replay(ctx, ep, inForce)
 	if err != nil {
-		return types.Verdict{}, fmt.Errorf("replay %s again without lessons: %w", eid, err)
+		return types.Verdict{}, fmt.Errorf("replay %s again without the lesson: %w", eid, err)
 	}
 	aa := types.Verdict{Prefer: types.PreferNeither, Confidence: 1, Reason: "identical baselines"}
 	if !sameReplay(first, second) {
@@ -395,22 +449,23 @@ func (v *Verifier) noise(ctx context.Context, eid types.ID) (types.Verdict, erro
 			return types.Verdict{}, fmt.Errorf("judge A/A %s: %w", eid, err)
 		}
 	}
-	v.aa[eid] = aa
+	v.aa[key] = aa
 	return aa, nil
 }
 
-func (v *Verifier) compare(ctx context.Context, eid types.ID, lesson types.Lesson) (Comparison, error) {
+func (v *Verifier) compare(ctx context.Context, eid types.ID, lesson types.Lesson, inForce []types.Lesson) (Comparison, error) {
 	ep := v.History.byID[eid]
-	without, ok := v.baseline[eid]
+	key := cacheKey(eid, inForce)
+	without, ok := v.baseline[key]
 	if !ok {
 		var err error
-		without, err = v.Host.Replay(ctx, ep, nil)
+		without, err = v.Host.Replay(ctx, ep, inForce)
 		if err != nil {
-			return Comparison{}, fmt.Errorf("replay %s without lessons: %w", eid, err)
+			return Comparison{}, fmt.Errorf("replay %s without the lesson: %w", eid, err)
 		}
-		v.baseline[eid] = without
+		v.baseline[key] = without
 	}
-	with, err := v.Host.Replay(ctx, ep, []types.Lesson{lesson})
+	with, err := v.Host.Replay(ctx, ep, append(slices.Clone(inForce), lesson))
 	if err != nil {
 		return Comparison{}, fmt.Errorf("replay %s with lesson %s: %w", eid, lesson.ID, err)
 	}

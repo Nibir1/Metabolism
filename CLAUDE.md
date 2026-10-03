@@ -17,7 +17,9 @@ lessons off), a public benchmark, planted wrong lessons on real replays, a
 human-labelled sample for judge agreement, real credit decisions, and the
 Phase 3 go/no-go. Phase 4 started (D-025): the poisoning suite and its
 defences (4a, docs/poisoning.md) and drift (4b, D-026: a recent window, and
-credit that counts the turns bearing on a lesson), both on the simulator.
+credit that counts the turns bearing on a lesson) and contradictions and
+supersession (4c, D-027: the nutrient test in context, pairs in the
+ledger), all on the simulator.
 See [docs/roadmap.md](docs/roadmap.md). The docs below are the source of
 truth for what, why and how.
 
@@ -44,7 +46,7 @@ truth for what, why and how.
   | `digest/` | reflection: reflector output is untrusted until validated |
   | `verify/` | the nutrient test: replays, A/A noise floor, calibrated decision rule (D-015, D-018) |
   | `deliver/` | `metabolism export`: the delivery file Helix reads, and the reference selection (D-019) |
-  | `ledger/` | the credit ledger: delivered vs withheld turns, Bayes-factor decisions (D-020), relevance and drift (D-026) |
+  | `ledger/` | the credit ledger: delivered vs withheld turns, Bayes-factor decisions (D-020), relevance and drift (D-026), pairs and supersession (D-027) |
   | `judge/` | judges: heuristic, LLM (via `ports.Model`), and the plain-words pair view every model judge sees |
   | `llmreflect/` | LLM reflector (via `ports.Model`) |
   | `adapters/remote/` | the only code that reaches beyond the machine: `llm` (Ollama, DeepSeek), `jev` (typesafe-go), `helix` (drives `helix replay`). Imported only by the CLI, behind `-allow-remote` (D-016, D-017) |

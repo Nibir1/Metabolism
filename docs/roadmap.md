@@ -302,11 +302,18 @@ stay open. 4a, the poisoning suite, first: design in
 attack success, 128 cases). 4b, drift: accepted lessons are judged on a
 recent window too, and credit counts the turns that bear on a lesson
 (D-026). On the simulator 10 of 10 drifted lessons were retired, none
-wrongly.
+wrongly. 4c, contradictions and supersession (D-027): the nutrient test
+replays a candidate beside the accepted lessons in force, and the ledger
+judges lessons in pairs on the turns they share. On the simulator no two
+rivals stayed in force (from 6 of 10), and no lesson without a pair was set
+aside.
 
 Deliverables:
 
 - Decay by credit, contradiction detection, and supersession with reasons.
+  Contradiction and supersession are built (D-027). Decay by credit is the
+  ledger's elimination and drift rules (D-020, D-026); no lesson decays by
+  age.
 - A quarantine tier for low-trust provenance, with extra verification.
 - A poisoning test suite in CI, modelled on MemSecBench: persistence, attack
   success and repair.

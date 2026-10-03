@@ -41,7 +41,7 @@ test: ## unit tests (fast, no race detector)
 	go test ./...
 
 race: ## all tests with the race detector
-	go test -race -count=1 ./...
+	go test -race -count=1 -timeout 30m ./...
 
 lint: ## gofmt, go vet, golangci-lint
 	@# Dot-folders (.runs, .demo) are skipped, as go vet and go test skip them:
@@ -113,6 +113,8 @@ baseline-sim: ## regenerate the synthetic baseline in bench/results/
 		| tee bench/results/baseline-helixsim/poison-layers.txt
 	go run ./cmd/metabolism drift-eval -seeds 5 -before 3000 -after 3000 -out bench/results/baseline-helixsim \
 		| tee bench/results/baseline-helixsim/drift.txt
+	go run ./cmd/metabolism pairs-eval -seeds 5 -turns 6000 -out bench/results/baseline-helixsim \
+		| tee bench/results/baseline-helixsim/pairs.txt
 	rm -f bench/results/baseline-helixsim/journal.db*
 
 # ---------------------------------------------------------------- Helix

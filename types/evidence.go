@@ -63,6 +63,15 @@ type Evidence struct {
 	WithheldSuccesses int     `json:"withheld_successes,omitempty"`
 	PBetter           float64 `json:"p_better,omitempty"`
 	BayesFactor       float64 `json:"bayes_factor,omitempty"`
+
+	// Context lists the lessons in force (accepted) that both sides of a
+	// nutrient test's replays carried: the lesson is judged on what it adds
+	// to them (D-027).
+	Context []ID `json:"context,omitempty"`
+	// Other is the lesson a contradiction or redundancy is with. For those
+	// kinds the credit counts above are this lesson's turns with Other
+	// delivered: this one delivered against withheld.
+	Other ID `json:"other,omitempty"`
 }
 
 // Passed reports whether the evidence supports the lesson.
@@ -111,6 +120,9 @@ func (e Evidence) Validate() error {
 	if e.PHelp < 0 || e.PHelp > 1 || e.PHarm < 0 || e.PHarm > 1 {
 		errs = append(errs, errors.New("p-value outside [0, 1]"))
 	}
+	if (e.Kind == EvidenceContradiction || e.Kind == EvidenceRedundancy) && (!e.Other.Valid() || e.Other == e.LessonID) {
+		errs = append(errs, fmt.Errorf("%s evidence must name the other lesson", e.Kind))
+	}
 	if e.Wins+e.Losses+e.Ties > e.Compared {
 		errs = append(errs, errors.New("wins + losses + ties exceeds compared"))
 	}
@@ -126,14 +138,19 @@ const (
 	// EvidenceCredit: outcome credit from live turns, delivered against
 	// withheld (Phase 3, D-020).
 	EvidenceCredit EvidenceKind = "credit"
-	// EvidenceContradiction: conflict with another lesson (Phase 4).
+	// EvidenceContradiction: on the turns two lessons share, delivering
+	// this one hurts when the other is delivered too (D-027). Other names
+	// the other lesson.
 	EvidenceContradiction EvidenceKind = "contradiction"
+	// EvidenceRedundancy: on the turns two lessons share, neither adds
+	// anything to the other (D-027). Other names the lesson kept.
+	EvidenceRedundancy EvidenceKind = "redundancy"
 )
 
 // Valid reports whether k is a known evidence kind.
 func (k EvidenceKind) Valid() bool {
 	switch k {
-	case EvidenceNutrientTest, EvidenceCredit, EvidenceContradiction:
+	case EvidenceNutrientTest, EvidenceCredit, EvidenceContradiction, EvidenceRedundancy:
 		return true
 	}
 	return false

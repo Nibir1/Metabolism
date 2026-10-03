@@ -125,7 +125,7 @@ func cmdExport(ctx context.Context, args []string, out io.Writer) error {
 	if err != nil {
 		return err
 	}
-	f := deliver.Build(m, tallies, now)
+	f := deliver.Build(m, tallies.Lessons, now)
 	if err := deliver.Write(*to, f); err != nil {
 		return err
 	}
@@ -290,6 +290,67 @@ func cmdDriftEval(ctx context.Context, args []string, out io.Writer) error {
 			return err
 		}
 		return writeFile(filepath.Join(*outDir, "drift.json"), func(w io.Writer) error { return writeJSON(w, r) })
+	}
+	return nil
+}
+
+// cmdPairsEval checks contradictions and supersession on the simulator
+// (Phase 4c, D-027): once with pair decisions, once without.
+func cmdPairsEval(ctx context.Context, args []string, out io.Writer) error {
+	fs := flag.NewFlagSet("pairs-eval", flag.ContinueOnError)
+	fs.SetOutput(out)
+	seeds := fs.Int("seeds", 5, "simulated histories")
+	turns := fs.Int("turns", 6000, "live turns per history")
+	outDir := fs.String("out", "", "directory to write pairs.json (optional)")
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	var ss []uint64
+	for i := 1; i <= *seeds; i++ {
+		ss = append(ss, uint64(i))
+	}
+	with, err := bench.EvaluatePairs(ctx, ss, *turns, ledger.Rule{})
+	if err != nil {
+		return err
+	}
+	without, err := bench.EvaluatePairs(ctx, ss, *turns, ledger.Rule{WithoutPairs: true})
+	if err != nil {
+		return err
+	}
+	say(out, "contradictions and supersession on simulated Helix · %d histories × %d turns · every lesson good alone\n\n", with.Seeds, with.Turns)
+	tw := tabwriter.NewWriter(out, 0, 0, 2, ' ', 0)
+	say(tw, "  \tWITH PAIR DECISIONS\tWITHOUT\n")
+	say(tw, "  rivals both still in force\t%d / %d\t%d / %d\n", with.RivalsBothInForce, with.Rivals, without.RivalsBothInForce, without.Rivals)
+	say(tw, "  turns failed by two rivals together (second half)\t%d\t%d\n", with.ContradictedTurns, without.ContradictedTurns)
+	say(tw, "  paraphrases both still in force\t%d / %d\t%d / %d\n", with.ParaphrasesBoth, with.Paraphrases, without.ParaphrasesBoth, without.Paraphrases)
+	say(tw, "  turns spending two places on one lesson (second half)\t%d\t%d\n", with.DoubledTurns, without.DoubledTurns)
+	say(tw, "  good lessons eliminated (permanent)\t%d\t%d\n", with.GoodEliminated, without.GoodEliminated)
+	say(tw, "  lessons with no pair set aside (wrong)\t%d / %d\t%d / %d\n", with.UnpairedSuperseded, with.Unpaired, without.UnpairedSuperseded, without.Unpaired)
+	_ = tw.Flush()
+	say(out, "\n")
+	tw = tabwriter.NewWriter(out, 0, 0, 2, ' ', 0)
+	say(tw, "  SEED\tKIND\tOLDER\tNEWER\tSET ASIDE\tAT TURN\tNEWER LESSON\n")
+	for _, r := range with.Rows {
+		kind := "paraphrase"
+		if r.Conflict {
+			kind = "rival"
+		}
+		at := "-"
+		if r.At > 0 {
+			at = fmt.Sprint(r.At)
+		}
+		say(tw, "  %d\t%s\t%s\t%s\t%s\t%s\t%s\n", r.Seed, kind, r.OlderEnd, r.NewerEnd, orDash(r.Superseded), at, truncate(r.Newer, 50))
+	}
+	_ = tw.Flush()
+	say(out, "\nRivals repair the same failure two ways and fail together; paraphrases repair it the same way.\n"+
+		"Synthetic: the simulator's lessons and their interactions are written to be found (D-027).\n")
+	if *outDir != "" {
+		if err := os.MkdirAll(*outDir, 0o755); err != nil {
+			return err
+		}
+		return writeFile(filepath.Join(*outDir, "pairs.json"), func(w io.Writer) error {
+			return writeJSON(w, map[string]bench.PairsResult{"with_pairs": with, "without_pairs": without})
+		})
 	}
 	return nil
 }

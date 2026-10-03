@@ -118,7 +118,7 @@ func ratio(a, b int) float64 {
 // Credit counts the live turns in j for m's lessons under rule: in each
 // lesson's era, and only the turns that bear on it unless rule.AllTurns. rel
 // may be nil; keep one across repeated calls to read only what j gained.
-func Credit(ctx context.Context, j ports.Journal, m *metabolome.Metabolome, now time.Time, rule Rule, rel *Relevance) (map[types.ID]*Tally, error) {
+func Credit(ctx context.Context, j ports.Journal, m *metabolome.Metabolome, now time.Time, rule Rule, rel *Relevance) (Book, error) {
 	rule = rule.Defaults()
 	eras := Eras(m)
 	var fn Relevant
@@ -128,10 +128,28 @@ func Credit(ctx context.Context, j ports.Journal, m *metabolome.Metabolome, now 
 		}
 		var err error
 		if fn, err = rel.Update(ctx, j, m, eras); err != nil {
-			return nil, err
+			return Book{}, err
 		}
 	}
-	return Count(ctx, j, now, rule.Maturity, eras, fn)
+	eps, outs, err := load(ctx, j)
+	if err != nil {
+		return Book{}, err
+	}
+	var order []types.ID
+	for _, l := range inForce(m) {
+		order = append(order, l.ID)
+	}
+	return Book{
+		Lessons: Tallies(eps, outs, now, rule.Maturity, eras, fn),
+		Pairs:   PairTallies(eps, outs, now, rule.Maturity, Periods(m), fn, order),
+	}, nil
+}
+
+// inForce lists the trial and accepted lessons, oldest first.
+func inForce(m *metabolome.Metabolome) []types.Lesson {
+	ls := m.Lessons(types.StateTrial, types.StateAccepted)
+	slices.SortStableFunc(ls, func(a, b types.Lesson) int { return a.CreatedAt.Compare(b.CreatedAt) })
+	return ls
 }
 
 // Eras returns, for every trial and accepted lesson, when it entered its
@@ -156,12 +174,20 @@ func Eras(m *metabolome.Metabolome) map[types.ID]time.Time {
 // counts every episode), and that rel says bears on it (nil: every episode).
 // Episodes that ended after now-maturity are counted as immature only.
 func Count(ctx context.Context, j ports.Journal, now time.Time, maturity time.Duration, eras map[types.ID]time.Time, rel Relevant) (map[types.ID]*Tally, error) {
+	eps, outs, err := load(ctx, j)
+	if err != nil {
+		return nil, err
+	}
+	return Tallies(eps, outs, now, maturity, eras, rel), nil
+}
+
+func load(ctx context.Context, j ports.Journal) ([]types.Episode, map[types.ID][]types.Outcome, error) {
 	var eps []types.Episode
 	outs := map[types.ID][]types.Outcome{}
 	q := types.JournalQuery{Kinds: []types.RecordKind{types.RecordEpisode, types.RecordOutcome}}
 	for r, err := range j.Scan(ctx, q) {
 		if err != nil {
-			return nil, fmt.Errorf("ledger: %w", err)
+			return nil, nil, fmt.Errorf("ledger: %w", err)
 		}
 		switch r.Kind {
 		case types.RecordEpisode:
@@ -170,7 +196,7 @@ func Count(ctx context.Context, j ports.Journal, now time.Time, maturity time.Du
 			outs[r.Outcome.EpisodeID] = append(outs[r.Outcome.EpisodeID], *r.Outcome)
 		}
 	}
-	return Tallies(eps, outs, now, maturity, eras, rel), nil
+	return eps, outs, nil
 }
 
 // Tallies is Count over episodes already in memory. With rel, each tally
@@ -283,6 +309,12 @@ type Rule struct {
 	// on, as D-020 first did, instead of only the turns that bear on it
 	// (Relevance, D-026). For comparison.
 	AllTurns bool
+	// Redundant is the Bayes factor in favour of "delivering it changes
+	// nothing" that supersedes a lesson beside another that covers the same
+	// turns (default 30; D-027).
+	Redundant float64
+	// WithoutPairs skips pair decisions (D-027). For comparison.
+	WithoutPairs bool
 }
 
 // Defaults returns r with every zero field set to its default.
@@ -299,6 +331,9 @@ func (r Rule) Defaults() Rule {
 	if r.Eliminate <= 0 {
 		r.Eliminate = 300
 	}
+	if r.Redundant <= 0 {
+		r.Redundant = 30
+	}
 	if r.Maturity <= 0 {
 		r.Maturity = time.Hour
 	}
@@ -312,31 +347,55 @@ type Decision struct {
 	// To is the state the lesson moved to; empty when it stays.
 	To     types.LessonState
 	Reason string
+	// Other is the lesson a supersession was for (D-027).
+	Other types.ID
 }
 
 // Settle decides every trial and accepted lesson from its tally, and unless
 // dryRun, records the evidence and moves the lesson. A lesson without enough
 // turns is reported and left alone.
-func Settle(ctx context.Context, m *metabolome.Metabolome, tallies map[types.ID]*Tally, rule Rule, dryRun bool) ([]Decision, error) {
+func Settle(ctx context.Context, m *metabolome.Metabolome, book Book, rule Rule, dryRun bool) ([]Decision, error) {
 	rule = rule.Defaults()
+	tallies := book.Lessons
 	var out []Decision
 	for _, l := range m.Lessons(types.StateTrial, types.StateAccepted) {
 		t := Tally{LessonID: l.ID}
 		if got := tallies[l.ID]; got != nil {
 			t = *got
 		}
-		d := decide(l, t, rule)
-		out = append(out, d)
-		if dryRun || d.To == "" {
+		out = append(out, decide(l, t, rule))
+	}
+	// Each lesson's own elimination comes first: a harmful lesson is
+	// eliminated, not set aside. Pairs come next, before acceptance, so a
+	// lesson that only repeats another is set aside rather than accepted
+	// and set aside a settle later (D-027).
+	if !rule.WithoutPairs {
+		skip := map[types.ID]bool{}
+		for _, d := range out {
+			if d.To == types.StateEliminated {
+				skip[d.Lesson.ID] = true
+			}
+		}
+		pds, err := settlePairs(ctx, m, book.Pairs, rule, dryRun, skip)
+		for _, pd := range pds {
+			i := slices.IndexFunc(out, func(d Decision) bool { return d.Lesson.ID == pd.Loser.ID })
+			out[i] = Decision{Lesson: pd.Loser, Tally: pd.Tally, To: types.StateSuperseded, Reason: pd.Reason, Other: pd.Winner.ID}
+		}
+		if err != nil {
+			return out, err
+		}
+	}
+	for _, d := range out {
+		if dryRun || d.To == "" || d.To == types.StateSuperseded {
 			continue
 		}
 		result := types.ResultPass
 		if d.To == types.StateEliminated {
 			result = types.ResultFail
 		}
-		t = d.Tally // the counts the decision rests on: a view or a window
+		t := d.Tally // the counts the decision rests on: a view or a window
 		ev, err := m.RecordEvidence(ctx, types.Evidence{
-			LessonID: l.ID, Kind: types.EvidenceCredit, Result: result, Summary: d.Reason,
+			LessonID: d.Lesson.ID, Kind: types.EvidenceCredit, Result: result, Summary: d.Reason,
 			Exposed: t.Exposed, ExposedSuccesses: t.ExposedSuccesses,
 			Withheld: t.Withheld, WithheldSuccesses: t.WithheldSuccesses, PBetter: round4(t.PBetter()),
 			BayesFactor: math.Round(t.BayesFactor()*100) / 100,
@@ -344,9 +403,14 @@ func Settle(ctx context.Context, m *metabolome.Metabolome, tallies map[types.ID]
 		if err != nil {
 			return out, err
 		}
-		if err := m.Move(ctx, l.ID, d.To, d.Reason, ev.ID); err != nil {
+		if err := m.Move(ctx, d.Lesson.ID, d.To, d.Reason, ev.ID); err != nil {
 			return out, err
 		}
+	}
+	restored, err := restore(ctx, m, dryRun)
+	out = append(out, restored...)
+	if err != nil {
+		return out, err
 	}
 	slices.SortFunc(out, func(a, b Decision) int {
 		switch {

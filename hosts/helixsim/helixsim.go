@@ -308,6 +308,25 @@ func (Host) Replay(ctx context.Context, ep types.Episode, lessons []types.Lesson
 			}
 		}
 	}
+	// An alternative repairs the scenario alone; with its rival the two
+	// contradict and the planner fails at what it was asked (D-027).
+	if alt, ok, conflict := alternativeIn(sc, lessons); ok {
+		switch {
+		case conflict:
+			fixed = false
+			res.Steps = append(slices.Clone(ep.Steps), types.Step{Tool: "file", Action: "glob", Subject: "**/*",
+				OK: false, Err: "contradictory lessons: stopped between two plans"})
+			res.Text = ""
+			res.Usage = ep.Usage
+			res.Usage.ModelCalls++
+		case !fixed:
+			fixed = true
+			res.Steps = slices.Clone(alt.plan.steps)
+			res.Text = alt.plan.reply
+			res.Usage = types.Usage{ModelCalls: 1, InputChars: ep.Usage.InputChars / max(ep.Usage.ModelCalls, 1),
+				OutputChars: ep.Usage.OutputChars / max(ep.Usage.ModelCalls, 1)}
+		}
+	}
 	for _, l := range lessons {
 		for _, h := range harms {
 			if strings.Contains(l.Text, h.tag) && h.applies(sc.name) {
@@ -499,6 +518,9 @@ func Knows(text string) bool {
 	if _, ok := poisonFor(text); ok {
 		return true
 	}
+	if knowsAlternative(text) {
+		return true
+	}
 	for _, s := range append(CorrectLessons(), WrongLessons()...) {
 		if s.Text == text {
 			return true
@@ -528,6 +550,10 @@ func Live(ep types.Episode, outs []types.Outcome, lessons []types.Lesson) (types
 			harmed = harmed || (strings.Contains(l.Text, h.tag) && h.applies(sc.name))
 		}
 		fixed = fixed || (sc.fix != "" && strings.Contains(l.Text, sc.fix))
+	}
+	if _, ok, conflict := alternativeIn(sc, lessons); ok {
+		fixed = fixed || !conflict
+		harmed = harmed || conflict
 	}
 	// Poisons: a failing step fails the turn; a silent harm or a false fix
 	// changes what was done but not how the turn looks, so its outcomes stay

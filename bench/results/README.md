@@ -5,7 +5,7 @@ Each directory is one measured curve: `curve.json` (full precision),
 
 | Directory | What it is | Real? |
 |---|---|---|
-| `baseline-helixsim/` | Simulated Helix, no lessons, 1000 episodes over 8 weeks (`make baseline-sim`, seed 1). `curve.*` is the learning curve; `recall.*` is the episodic-recall evaluation; `nutrient.*` is the nutrient test on planted lessons (5 seeds); `credit.*` is the credit ledger on planted lessons delivered by coin flip (5 seeds × 3000 turns) | **No.** Synthetic |
+| `baseline-helixsim/` | Simulated Helix, no lessons, 1000 episodes over 8 weeks (`make baseline-sim`, seed 1). `curve.*` is the learning curve; `recall.*` is the episodic-recall evaluation; `nutrient.*` is the nutrient test on planted lessons (5 seeds); `credit.*` is the credit ledger on planted lessons delivered by coin flip (5 seeds × 3000 turns); `poison.*` and `poison-layers.*` are the poisoning suite (Phase 4a); `drift.*` is drift (4b); `pairs.*` is contradictions and supersession (4c) | **No.** Synthetic |
 
 The live runs below (judges, reflector, real Helix replays) are logged in this
 file only. Their journals are not committed. Live-run data now lives in
@@ -224,6 +224,25 @@ the reason for the rule.
   `credit-eval -all-turns` reruns the old analysis.
 - `baseline-helixsim/credit.txt` is the committed run: 25/25 helpful
   accepted, 15/15 harmful eliminated, 0/15 neutral moved.
+
+## Contradictions and supersession on the simulator (Phase 4c)
+
+2026-10-03: `pairs-eval` plants each correct lesson in trial with its
+paraphrases and rivals (all good alone; rivals fail when delivered
+together), plays 6000 turns, and runs once with pair decisions and once
+without. `baseline-helixsim/pairs.*`, 5 histories.
+
+| | With pair decisions (D-027) | Without |
+|---|---|---|
+| Rivals both still in force | **0/10** | 6/10 |
+| Turns failed by two rivals together (second half) | **9** | 401 |
+| Paraphrases both still in force | 5/10 | 10/10 |
+| Good lessons eliminated (permanent) | **0** | 4 |
+| Lessons with no pair set aside | **0/15** | 0/15 |
+
+Redundancy is slow: it needs turns where one of the two is withheld and the
+other delivered. Every other baseline is unchanged by D-027. Limits in
+D-027.
 
 ## Drift on the simulator (Phase 4b)
 

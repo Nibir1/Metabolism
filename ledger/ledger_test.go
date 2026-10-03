@@ -159,7 +159,7 @@ func TestSettleAcceptsEliminatesAndWaits(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	ds, err := Settle(ctx, m, tallies, Rule{}, false)
+	ds, err := Settle(ctx, m, Book{Lessons: tallies}, Rule{}, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -181,7 +181,7 @@ func TestSettleAcceptsEliminatesAndWaits(t *testing.T) {
 
 	// A dry run decides without writing.
 	before := len(e.Evidence)
-	if _, err := Settle(ctx, m, tallies, Rule{}, true); err != nil {
+	if _, err := Settle(ctx, m, Book{Lessons: tallies}, Rule{}, true); err != nil {
 		t.Fatal(err)
 	}
 	if e, _ := m.Get(good.ID); len(e.Evidence) != before {

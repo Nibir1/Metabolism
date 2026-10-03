@@ -66,9 +66,12 @@ distribute are on the host's hot path and must be fast and never fail the host.
 ## Lesson lifecycle
 
 ```
- candidate ──▶ quarantined ──▶ trial ──▶ accepted ──▶ superseded
-     │              │            │           │
-     └──────────────┴────────────┴───────────┴──▶ eliminated (with reason, kept in log)
+ candidate ──▶ quarantined ──▶ trial ──▶ accepted
+     │              │           ▲ │          │
+     │              │           │ ▼          ▼
+     │              │         superseded ◀───┘
+     │              │            │
+     └──────────────┴────────────┴──────────────▶ eliminated (with reason, kept in log)
 ```
 
 - **candidate**: proposed by reflection, linked to source episodes.
@@ -80,7 +83,10 @@ distribute are on the host's hot path and must be fast and never fail the host.
   turns (D-020).
 - **accepted**: passed the credit ledger on live turns. Delivered on 90% of
   the turns it applies to; the 10% holdout keeps it measured.
-- **superseded**: replaced by a better lesson. Kept visible and restorable.
+- **superseded**: set aside for another lesson that covers the same turns,
+  because the two contradict each other or it adds nothing to the other
+  (D-027). Kept visible. It comes back through trial when that lesson
+  leaves.
 - **eliminated**: removed from use, with a reason. The log entry remains so
   "why did it forget X?" is answerable. Hard deletion happens only on the
   user's explicit forget-with-proof request (privacy).
@@ -92,10 +98,11 @@ distribute are on the host's hot path and must be fast and never fail the host.
 For candidate lesson *L* (`verify/`, decision rule D-018):
 
 1. Choose episodes. **Relevant:** *L*'s source episodes plus similar ones found
-   by episodic memory, up to 8. **Regression:** up to 6 past successes in
-   scope that *L* is not about.
+   by episodic memory, up to 16. **Regression:** up to 10 past successes in
+   scope that *L* is not about (D-024).
 2. Replay each through the host's **side-effect-free replay port**, once with
-   *L* in context and once without. For Helix that is `helix replay` (D-017):
+   *L* in context and once without. Both sides carry the accepted lessons in
+   force on that episode, so *L* is judged on what it adds to them (D-027). For Helix that is `helix replay` (D-017):
    it plans the turn's rounds, runs only read-only file steps between them
    (D-021), and never runs anything that would change something. Baselines
    are cached per run.
@@ -147,6 +154,10 @@ what makes C6 measurable.
   request resembles its sources' (`ledger.Relevance`, D-026). Harm counts
   on every turn. An accepted lesson is also judged on its last 200 turns, so
   one that stops holding is retired (drift).
+- Lessons are also judged in pairs on the turns they share (D-027). Each
+  coin is flipped on its own, so every combination occurs. A lesson that
+  hurts when the other is delivered (contradiction), or adds nothing beside
+  it while helping without it (redundancy), is superseded by the other.
 
 ### Habit compilation (Phase 5)
 
@@ -284,7 +295,8 @@ metabolism/
   hosts/helixsim/        simulated Helix (the real Helix code lives in Helix)
 ```
 
-Planned: `eliminate/` (contradiction and supersession, Phase 4), `compile/` (habit compilation, Phase 5),
+Contradiction and supersession live in `ledger/` (pairs) and `verify/`
+(context), not a separate `eliminate/` package. Planned: `compile/` (habit compilation, Phase 5),
 `consolidate/` (parametric tier, Phase 7), and a scheduler that runs the slow
 stages when the host is idle.
 

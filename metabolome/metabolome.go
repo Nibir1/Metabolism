@@ -206,7 +206,43 @@ func (m *Metabolome) Move(ctx context.Context, id types.ID, to types.LessonState
 	if to == types.StateAccepted && from == types.StateTrial && !cites(e, evidence, types.EvidenceCredit) {
 		return fmt.Errorf("%w (lesson %s)", ErrNoEvidence, id)
 	}
+	// Superseded names the lesson that covers the same turns better, and
+	// rests on pair evidence about it (D-027).
+	if to == types.StateSuperseded && !citesAny(e, evidence, types.EvidenceContradiction, types.EvidenceRedundancy) {
+		return fmt.Errorf("%w (lesson %s)", ErrNoPairEvidence, id)
+	}
 	return m.appendEvent(ctx, id, from, to, reason, evidence)
+}
+
+// ErrNoPairEvidence: a move to superseded did not cite contradiction or
+// redundancy evidence.
+var ErrNoPairEvidence = errors.New("a lesson is superseded only on contradiction or redundancy evidence naming the other lesson")
+
+// citesAny reports whether cited names evidence of one of kinds for e,
+// whatever its result.
+func citesAny(e *Entry, cited []types.ID, kinds ...types.EvidenceKind) bool {
+	for _, ev := range e.Evidence {
+		if slices.Contains(kinds, ev.Kind) && slices.Contains(cited, ev.ID) {
+			return true
+		}
+	}
+	return false
+}
+
+// SupersededBy returns the lesson a superseded lesson was set aside for:
+// the Other of the evidence its last move cited.
+func (m *Metabolome) SupersededBy(id types.ID) (types.ID, bool) {
+	e, ok := m.entries[id]
+	if !ok || e.Lesson.State != types.StateSuperseded || len(e.Events) == 0 {
+		return "", false
+	}
+	last := e.Events[len(e.Events)-1]
+	for _, ev := range e.Evidence {
+		if slices.Contains(last.Evidence, ev.ID) && ev.Other != "" {
+			return ev.Other, true
+		}
+	}
+	return "", false
 }
 
 // cites reports whether cited names passing evidence of kind for e.

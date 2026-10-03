@@ -206,7 +206,7 @@ func creditSeed(ctx context.Context, path string, seed uint64, turns, settleEver
 	for i, id := range ids {
 		e, _ := m.Get(id)
 		rows[i].Final = e.Lesson.State
-		if t := tallies[id]; t != nil {
+		if t := tallies.Lessons[id]; t != nil {
 			rows[i].Tally = *t
 		}
 	}

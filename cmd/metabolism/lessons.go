@@ -460,12 +460,23 @@ func lessonWhy(m *metabolome.Metabolome, id types.ID, out io.Writer) error {
 	if len(e.Evidence) > 0 {
 		say(out, "\nevidence:\n")
 		for _, ev := range e.Evidence {
+			if ev.Kind != types.EvidenceNutrientTest {
+				// Credit, contradiction and redundancy rest on live turns.
+				say(out, "  %s  %s %s\n    %s\n", ev.At.UTC().Format(time.DateTime), ev.Kind, ev.Result, ev.Summary)
+				if ev.Other != "" {
+					say(out, "    with lesson %s\n", ev.Other)
+				}
+				continue
+			}
 			say(out, "  %s  %s %s by %s over %d episodes\n", ev.At.UTC().Format(time.DateTime), ev.Kind, ev.Result,
 				orDash(ev.Judge), len(ev.Episodes))
 			say(out, "    relevant: %d wins, %d losses, %d ties (p_help %.3f)\n", ev.Wins, ev.Losses, ev.Ties, ev.PHelp)
 			say(out, "    past successes: %d worse, %d better (p_harm %.3f)\n", ev.Regressions, ev.RegressionWins, ev.PHarm)
 			if ev.NoiseCompared > 0 {
 				say(out, "    noise floor: %d of %d baseline-vs-baseline pairs judged decisively\n", ev.NoiseDecisive, ev.NoiseCompared)
+			}
+			if len(ev.Context) > 0 {
+				say(out, "    replayed beside %d accepted lesson(s): %s\n", len(ev.Context), joinIDs(ev.Context))
 			}
 		}
 	}
@@ -553,4 +564,12 @@ func orDash(s string) string {
 		return "-"
 	}
 	return s
+}
+
+func joinIDs(ids []types.ID) string {
+	parts := make([]string, len(ids))
+	for i, id := range ids {
+		parts[i] = string(id)
+	}
+	return strings.Join(parts, ", ")
 }

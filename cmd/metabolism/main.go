@@ -19,6 +19,7 @@
 //	metabolism credit-eval [-seeds 5] [-turns 3000] [-out DIR]
 //	metabolism poison-eval [-seeds 2] [-turns 1500] [-out DIR]
 //	metabolism drift-eval [-seeds 5] [-before 3000] [-after 3000] [-out DIR]
+//	metabolism pairs-eval [-seeds 5] [-turns 6000] [-out DIR]
 //	metabolism auto    -allow-remote [-dir .runs/auto] [-requests 100] [-plan-only]
 //
 // The journal defaults to $METABOLISM_JOURNAL, then ~/.metabolism/journal.db.
@@ -65,6 +66,7 @@ commands:
   credit-eval  does the credit ledger accept what helps and eliminate what harms? (simulator)
   poison-eval  the poisoning suite: do poisoned lessons persist or do harm? (simulator)
   drift-eval   are accepted lessons retired when the world changes under them? (simulator)
+  pairs-eval   are contradicting and redundant lessons set aside? (simulator)
   auto     one automated day: a synthetic user drives real Helix, then ingest, digest, verify, credit
 
 run "metabolism <command> -h" for a command's flags
@@ -123,6 +125,8 @@ func run(ctx context.Context, args []string, out io.Writer) error {
 		return cmdCreditEval(ctx, args[1:], out)
 	case "auto":
 		return cmdAuto(ctx, args[1:], out)
+	case "pairs-eval":
+		return cmdPairsEval(ctx, args[1:], out)
 	case "drift-eval":
 		return cmdDriftEval(ctx, args[1:], out)
 	case "poison-eval":
@@ -131,7 +135,7 @@ func run(ctx context.Context, args []string, out io.Writer) error {
 		_, _ = fmt.Fprint(out, usage)
 		return nil
 	}
-	return fmt.Errorf("unknown command %q (try: doctor, ingest, sim, curves, inspect, recall, recall-eval, digest, verify, lessons, nutrient-eval, replay, label, crosscheck, credit, export, credit-eval, auto, poison-eval, drift-eval)", args[0])
+	return fmt.Errorf("unknown command %q (try: doctor, ingest, sim, curves, inspect, recall, recall-eval, digest, verify, lessons, nutrient-eval, replay, label, crosscheck, credit, export, credit-eval, auto, poison-eval, drift-eval, pairs-eval)", args[0])
 }
 
 func defaultJournal() string {

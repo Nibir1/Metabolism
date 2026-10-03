@@ -123,6 +123,45 @@ func TestAcceptedRequiresPassingCreditEvidence(t *testing.T) {
 	}
 }
 
+// Superseded rests on pair evidence naming the other lesson (D-027), and
+// the metabolome remembers which lesson that was.
+func TestSupersededRequiresPairEvidence(t *testing.T) {
+	ctx := context.Background()
+	_, m, ep := setup(t)
+	trial := func(text string) types.Lesson {
+		d := draft(ep, types.ProvUserTyped)
+		d.Text = text
+		l, _ := m.Create(ctx, d, "reflected")
+		pass, _ := m.RecordEvidence(ctx, evidence(l.ID, types.ResultPass))
+		if err := m.Move(ctx, l.ID, types.StateTrial, "passed", pass.ID); err != nil {
+			t.Fatal(err)
+		}
+		return l
+	}
+	a, b := trial("an empty search result is an answer"), trial("widen an empty search once")
+	if err := m.Move(ctx, b.ID, types.StateSuperseded, "trust me"); !errors.Is(err, ErrNoPairEvidence) {
+		t.Fatalf("superseded with no evidence: err = %v", err)
+	}
+	if _, err := m.RecordEvidence(ctx, types.Evidence{LessonID: b.ID, Kind: types.EvidenceContradiction,
+		Result: types.ResultFail, Summary: "no other"}); err == nil {
+		t.Fatal("contradiction evidence without the other lesson was recorded")
+	}
+	ev, err := m.RecordEvidence(ctx, types.Evidence{LessonID: b.ID, Kind: types.EvidenceContradiction,
+		Result: types.ResultFail, Summary: "they contradict", Other: a.ID})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := m.Move(ctx, b.ID, types.StateSuperseded, "they contradict", ev.ID); err != nil {
+		t.Fatal(err)
+	}
+	if by, ok := m.SupersededBy(b.ID); !ok || by != a.ID {
+		t.Fatalf("superseded by %q, %v", by, ok)
+	}
+	if err := m.Move(ctx, b.ID, types.StateAccepted, "back"); err == nil {
+		t.Fatal("a superseded lesson went straight back to accepted")
+	}
+}
+
 func TestIllegalMovesAreRefused(t *testing.T) {
 	ctx := context.Background()
 	_, m, ep := setup(t)

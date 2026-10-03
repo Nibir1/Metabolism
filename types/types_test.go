@@ -99,7 +99,8 @@ func TestLifecycle(t *testing.T) {
 		{StateQuarantined, StateTrial},
 		{StateTrial, StateAccepted},
 		{StateAccepted, StateSuperseded},
-		{StateSuperseded, StateAccepted},
+		{StateTrial, StateSuperseded},
+		{StateSuperseded, StateTrial},
 		{StateAccepted, StateEliminated},
 	}
 	for _, tr := range allowed {
@@ -115,6 +116,9 @@ func TestLifecycle(t *testing.T) {
 		// Elimination is final.
 		{StateEliminated, StateCandidate},
 		{StateEliminated, StateAccepted},
+		// A superseded lesson earns acceptance again through trial.
+		{StateSuperseded, StateAccepted},
+		{StateCandidate, StateSuperseded},
 	}
 	for _, tr := range forbidden {
 		if tr[0].CanTransition(tr[1]) {

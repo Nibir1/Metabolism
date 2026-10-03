@@ -128,3 +128,47 @@ func TestReplayRefusesLessonsItCannotModel(t *testing.T) {
 		}
 	}
 }
+
+// A rival repairs its scenario alone and fails beside the correct lesson;
+// a paraphrase repairs it alone and beside it alike (D-027).
+func TestPairLessons(t *testing.T) {
+	eps, outs := Generate(Config{Seed: 3, Count: 400, Start: time.Date(2026, 9, 1, 9, 0, 0, 0, time.UTC), Span: 20 * 24 * time.Hour})
+	by := map[types.ID][]types.Outcome{}
+	for _, o := range outs {
+		by[o.EpisodeID] = append(by[o.EpisodeID], o)
+	}
+	lesson := func(text string) types.Lesson { return types.Lesson{ID: types.NewID(time.Now()), Text: text} }
+	for _, p := range PairLessons() {
+		if !Knows(p.Text) {
+			t.Errorf("unknown pair lesson %q", p.Text)
+		}
+		seen := false
+		for _, ep := range eps {
+			if ep.Attrs["scenario"] != p.From {
+				continue
+			}
+			seen = true
+			alone, aloneOuts, err := Live(ep, by[ep.ID], []types.Lesson{lesson(p.Text)})
+			if err != nil {
+				t.Fatal(err)
+			}
+			both, bothOuts, err := Live(ep, by[ep.ID], []types.Lesson{lesson(p.With), lesson(p.Text)})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !types.Succeeded(alone, aloneOuts) {
+				t.Errorf("%q alone does not repair %s", p.Text, p.From)
+			}
+			if types.Succeeded(both, bothOuts) == p.Conflict {
+				t.Errorf("%q beside its pair: succeeded %v, conflict %v", p.Text, types.Succeeded(both, bothOuts), p.Conflict)
+			}
+			if Contradicted(ep, []types.Lesson{lesson(p.With), lesson(p.Text)}) != p.Conflict {
+				t.Errorf("Contradicted disagrees for %q", p.Text)
+			}
+			break
+		}
+		if !seen {
+			t.Errorf("no %s episode", p.From)
+		}
+	}
+}

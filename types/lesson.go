@@ -45,14 +45,18 @@ const (
 )
 
 // transitions is the lifecycle. A lesson moves forward only on evidence, and
-// every state can be eliminated. Superseded can come back to accepted, because
-// "set aside" is reversible and "eliminated" is the record of a decision.
+// every state can be eliminated. A trial or accepted lesson is superseded
+// when another lesson covers the same turns and it conflicts with that
+// lesson or adds nothing to it (D-027). Superseded is reversible, because
+// "set aside" is not a verdict on the lesson alone: it comes back through
+// trial, on a coin flip, and earns its place again. Eliminated is the record
+// of a decision.
 var transitions = map[LessonState][]LessonState{
 	StateCandidate:   {StateQuarantined, StateTrial, StateEliminated},
 	StateQuarantined: {StateTrial, StateEliminated},
-	StateTrial:       {StateAccepted, StateEliminated},
+	StateTrial:       {StateAccepted, StateSuperseded, StateEliminated},
 	StateAccepted:    {StateSuperseded, StateEliminated},
-	StateSuperseded:  {StateAccepted, StateEliminated},
+	StateSuperseded:  {StateTrial, StateEliminated},
 	StateEliminated:  nil,
 }
 

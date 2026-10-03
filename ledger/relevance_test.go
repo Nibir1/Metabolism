@@ -98,14 +98,14 @@ func TestRelevanceCreditsTheTurnsThatBearOnTheLesson(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if d := decide(l, *all[l.ID], Rule{}.Defaults()); d.To != "" {
+	if d := decide(l, *all.Lessons[l.ID], Rule{}.Defaults()); d.To != "" {
 		t.Fatalf("setup: over every turn the help should be diluted below the bar, got %q: %s", d.To, d.Reason)
 	}
 	related, err := Credit(ctx, j, m, t0, Rule{}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	got := related[l.ID]
+	got := related.Lessons[l.ID]
 	if got.Exposed != 40 || got.Withheld != 20 || got.Unrelated != 300 || got.All == nil || got.All.Exposed != 240 {
 		t.Fatalf("tally: %d delivered, %d withheld, %d unrelated, all %+v", got.Exposed, got.Withheld, got.Unrelated, got.All)
 	}
@@ -128,7 +128,7 @@ func TestRelevanceKeepsHarmElsewhereInView(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	d := decide(l, *related[l.ID], Rule{}.Defaults())
+	d := decide(l, *related.Lessons[l.ID], Rule{}.Defaults())
 	if d.To != types.StateEliminated || !strings.Contains(d.Reason, "over every turn") {
 		t.Fatalf("to %q: %s", d.To, d.Reason)
 	}

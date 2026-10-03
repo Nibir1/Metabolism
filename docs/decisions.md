@@ -5,6 +5,107 @@ change it. Don't reverse a decision without adding a new entry that says why.
 
 ---
 
+### D-027 · 2026-10-03 · Contradictions and supersession: the nutrient test in context, and pairs in the ledger
+**What was missing:**
+- The nutrient test replayed a candidate against an empty context, a world
+  that does not exist once lessons are accepted. A paraphrase of an accepted
+  lesson passed, because it repairs the failure alone. A lesson that
+  contradicts an accepted one passed too.
+- Each lesson's credit mixes turns with and without every other lesson.
+  Two lessons that each repair a failure their own way, and fail when
+  delivered together, look neutral one at a time: the ledger kept both, and
+  the turns they shared failed. Two that say the same thing are neutral
+  beside each other, so the second one held a delivery place for good.
+  Neutral lessons are never moved (D-020).
+
+**Decision:**
+- **The nutrient test runs in context** (`verify`). Both sides of every
+  replay carry the accepted lessons that would be delivered on that episode
+  (scope, budget, oldest first). A candidate is judged on what it adds. The
+  evidence names them (`Evidence.Context`). Trial lessons are left out:
+  they are delivered on half the turns, and the ledger judges them in pairs.
+- **Pairs in the ledger** (`ledger/pairs.go`). Each lesson's coin is
+  flipped on its own, so on the turns two lessons share (both relevant,
+  D-026) every combination of delivered and withheld happens: a two-by-two
+  experiment the host already runs. For each lesson the ledger counts its
+  credit with the other delivered and with it withheld. Only the lesson's
+  own coin differs between its arms, so these are as fair as its own
+  credit.
+  - **Contradiction:** delivering it hurts when the other is delivered, at
+    the elimination bar (300), while it does not look worse when the other
+    is withheld. A lesson that looks worse either way is just harmful, and
+    its own rule eliminates it. If each hurts the other, the one that does
+    better alone stays; if the turns cannot tell, the older one.
+  - **Redundancy:** delivering it adds nothing when the other is delivered
+    (Bayes factor 30 for "no difference") and helps when the other is
+    withheld (30). Both conditions are needed: a lesson that helps nowhere
+    is neutral, not redundant. The first version lacked the second
+    condition and set aside 4 of 15 lessons with no pair.
+- **The loser is superseded, not eliminated.** It is not wrong alone. New
+  transitions: trial → superseded, and superseded → trial (replacing
+  superseded → accepted). When the winner leaves trial and accepted, the
+  loser comes back through trial on a coin flip and earns its place again.
+  A move to superseded must cite `contradiction` or `redundancy` evidence
+  naming the other lesson (`Evidence.Other`).
+- **Pair evidence is kept per period.** A lesson's delivery probability
+  changes with its state, so turns from different periods cannot be pooled
+  (D-020's eras). Restarting pair evidence at each state change lost it:
+  paraphrases were accepted one by one before their pair evidence could
+  build. So each period keeps its own counts and the periods' Bayes factors
+  are multiplied. Under "no difference" the product over consecutive
+  periods is still a test martingale, so the bars hold however often the
+  ledger is settled.
+- **Settle order:** each lesson's own elimination first (harm, drift), then
+  pairs, then acceptance. A harmful lesson is eliminated, not set aside, and
+  a redundant one is set aside rather than accepted.
+
+**Evidence (simulator):**
+- Nutrient test, with the empty-search lesson accepted: its paraphrase is
+  eliminated ("changes nothing") and its rival fails. Both pass without
+  the context. A lesson about something else passes as before
+  (`TestCandidatesAreJudgedOnWhatTheyAddToTheLessonsInForce`).
+- `pairs-eval`, 5 histories × 6000 turns. Every correct lesson is planted
+  in trial with two paraphrases and two rivals, all good alone:
+
+| | With pair decisions | Without |
+|---|---|---|
+| Rivals both still in force | **0/10** | 6/10 |
+| Turns failed by two rivals together (second half) | **9** | 401 |
+| Paraphrases both still in force | 5/10 | 10/10 |
+| Good lessons eliminated (permanent) | **0** | 4 |
+| Lessons with no pair set aside | **0/15** | 0/15 |
+
+- Without pair decisions, the ordinary ledger permanently eliminated a
+  rival that is good alone in 4 cases: its credit was dominated by the
+  turns it shared with the other lesson.
+- `credit-eval`, `drift-eval`, `nutrient-eval` and the poisoning suite give
+  exactly the same results as before.
+
+**Limits:**
+- **Redundancy is slow.** It needs turns where one lesson is withheld and
+  the other delivered, about 9% of shared turns once both are accepted.
+  Half the paraphrase pairs were still both in force after 6000 turns.
+  The nutrient test in context stops most paraphrases before trial; this
+  covers the ones that entered trial together.
+- **A symmetric contradiction can be decided by a race.** When each lesson
+  hurts the other, whichever direction reaches the bar first decides, so
+  the "older stays" tie-break does not always apply (seed 3: the rival
+  stayed). Both are good alone, so either outcome leaves a working lesson.
+- **The incumbent wins at the gate.** A candidate that contradicts an
+  accepted lesson fails the nutrient test, even if it would do better
+  alone. Replacing an accepted lesson with a better rival needs the two
+  delivered exclusively (one or the other, never both), which is a delivery
+  file change and is not built. Keeping what has live evidence over what
+  only has replays is the safer default, and it is what stops "later
+  experience erasing earlier gains" (research.md).
+- The simulator's rivals and paraphrases are written to be found: tagged
+  fixes, a binary success, two pairs of each kind.
+
+**Revisit when:** real journals show how often lessons share turns, and
+whether real paraphrases get past the nutrient test in context.
+
+---
+
 ### D-026 · 2026-10-03 · Drift: a recent window, and credit counts the turns that bear on a lesson
 **What happened:** the drift evaluation (`drift-eval`) plants the
 simulator's correct lessons, lets them earn acceptance over 3000 turns,

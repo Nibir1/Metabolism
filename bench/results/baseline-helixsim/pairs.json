@@ -1,0 +1,433 @@
+{
+  "with_pairs": {
+    "seeds": 5,
+    "turns": 6000,
+    "pair_decisions": true,
+    "rivals": 10,
+    "rivals_both_in_force": 0,
+    "paraphrases": 10,
+    "paraphrases_both_in_force": 5,
+    "good_eliminated": 0,
+    "unpaired": 15,
+    "unpaired_superseded": 0,
+    "contradicted_turns_second_half": 9,
+    "doubled_turns_second_half": 12104,
+    "rows": [
+      {
+        "seed": 1,
+        "rival": false,
+        "older": "When a glob or search comes back empty, treat that as the answer instead of loosening the pattern (empty-glob).",
+        "newer": "If a search finds nothing, report that nothing was found rather than broadening it (empty-glob).",
+        "older_final": "accepted",
+        "newer_final": "superseded",
+        "both_in_force": false,
+        "superseded": "newer",
+        "superseded_at": 2700,
+        "reason": "superseded by 00000000000100000000000000c8: the other does what it does: delivered beside it, it succeeded 92% of 89 turns delivered vs 83% of 30 withheld, Bayes factor 0.03 over 2 period(s)"
+      },
+      {
+        "seed": 1,
+        "rival": false,
+        "older": "Before committing, review what is staged instead of running git add -A (review-staged).",
+        "newer": "Look at git status and the staged diff before a commit; never git add -A (review-staged).",
+        "older_final": "accepted",
+        "newer_final": "accepted",
+        "both_in_force": true
+      },
+      {
+        "seed": 1,
+        "rival": true,
+        "older": "When a glob or search comes back empty, treat that as the answer instead of loosening the pattern (empty-glob).",
+        "newer": "When a search finds nothing, widen it once to the parent directory, then answer (widen-once).",
+        "older_final": "accepted",
+        "newer_final": "superseded",
+        "both_in_force": false,
+        "superseded": "newer",
+        "superseded_at": 2900,
+        "reason": "superseded by 00000000000100000000000000c8: they contradict each other; the older lesson stays: delivered beside it, it succeeded 0% of 22 turns delivered vs 100% of 23 withheld, Bayes factor 1.47e+10 over 2 period(s)"
+      },
+      {
+        "seed": 1,
+        "rival": true,
+        "older": "Edit files with the file tool's exact-snippet edit, not in-place sed, which reports success when it changes nothing (file-edit).",
+        "newer": "Rename by rewriting the whole file with the file tool's write, then build (write-whole).",
+        "older_final": "accepted",
+        "newer_final": "superseded",
+        "both_in_force": false,
+        "superseded": "newer",
+        "superseded_at": 1000,
+        "reason": "superseded by 00000000000100000000000000cd: they contradict each other; the older lesson stays: delivered beside it, it succeeded 18% of 22 turns delivered vs 93% of 15 withheld, Bayes factor 1.66e+04 over 1 period(s)"
+      },
+      {
+        "seed": 2,
+        "rival": false,
+        "older": "When a glob or search comes back empty, treat that as the answer instead of loosening the pattern (empty-glob).",
+        "newer": "If a search finds nothing, report that nothing was found rather than broadening it (empty-glob).",
+        "older_final": "superseded",
+        "newer_final": "accepted",
+        "both_in_force": false,
+        "superseded": "older",
+        "superseded_at": 5600,
+        "reason": "superseded by 00000000000200000000000000ce: the other does what it does: delivered beside it, it succeeded 97% of 237 turns delivered vs 98% of 208 withheld, Bayes factor 0.017 over 2 period(s)"
+      },
+      {
+        "seed": 2,
+        "rival": false,
+        "older": "Before committing, review what is staged instead of running git add -A (review-staged).",
+        "newer": "Look at git status and the staged diff before a commit; never git add -A (review-staged).",
+        "older_final": "accepted",
+        "newer_final": "accepted",
+        "both_in_force": true
+      },
+      {
+        "seed": 2,
+        "rival": true,
+        "older": "When a glob or search comes back empty, treat that as the answer instead of loosening the pattern (empty-glob).",
+        "newer": "When a search finds nothing, widen it once to the parent directory, then answer (widen-once).",
+        "older_final": "superseded",
+        "newer_final": "superseded",
+        "both_in_force": false,
+        "superseded": "newer",
+        "superseded_at": 1100,
+        "reason": "superseded by 00000000000200000000000000c8: it undoes what the other does: delivered beside it, it succeeded 17% of 24 turns delivered vs 75% of 24 withheld, Bayes factor 1.5e+03 over 1 period(s)"
+      },
+      {
+        "seed": 2,
+        "rival": true,
+        "older": "Edit files with the file tool's exact-snippet edit, not in-place sed, which reports success when it changes nothing (file-edit).",
+        "newer": "Rename by rewriting the whole file with the file tool's write, then build (write-whole).",
+        "older_final": "accepted",
+        "newer_final": "superseded",
+        "both_in_force": false,
+        "superseded": "newer",
+        "superseded_at": 700,
+        "reason": "superseded by 00000000000200000000000000cd: they contradict each other; the older lesson stays: delivered beside it, it succeeded 25% of 24 turns delivered vs 94% of 16 withheld, Bayes factor 5.88e+03 over 1 period(s)"
+      },
+      {
+        "seed": 3,
+        "rival": false,
+        "older": "When a glob or search comes back empty, treat that as the answer instead of loosening the pattern (empty-glob).",
+        "newer": "If a search finds nothing, report that nothing was found rather than broadening it (empty-glob).",
+        "older_final": "superseded",
+        "newer_final": "accepted",
+        "both_in_force": false,
+        "superseded": "older",
+        "superseded_at": 3400,
+        "reason": "superseded by 00000000000300000000000000ce: the other does what it does: delivered beside it, it succeeded 95% of 88 turns delivered vs 86% of 44 withheld, Bayes factor 0.0328 over 2 period(s)"
+      },
+      {
+        "seed": 3,
+        "rival": false,
+        "older": "Before committing, review what is staged instead of running git add -A (review-staged).",
+        "newer": "Look at git status and the staged diff before a commit; never git add -A (review-staged).",
+        "older_final": "accepted",
+        "newer_final": "superseded",
+        "both_in_force": false,
+        "superseded": "newer",
+        "superseded_at": 4800,
+        "reason": "superseded by 00000000000300000000000000cc: each does what the other does; the older lesson stays: delivered beside it, it succeeded 100% of 164 turns delivered vs 100% of 20 withheld, Bayes factor 0.0167 over 2 period(s)"
+      },
+      {
+        "seed": 3,
+        "rival": true,
+        "older": "When a glob or search comes back empty, treat that as the answer instead of loosening the pattern (empty-glob).",
+        "newer": "When a search finds nothing, widen it once to the parent directory, then answer (widen-once).",
+        "older_final": "superseded",
+        "newer_final": "superseded",
+        "both_in_force": false
+      },
+      {
+        "seed": 3,
+        "rival": true,
+        "older": "Edit files with the file tool's exact-snippet edit, not in-place sed, which reports success when it changes nothing (file-edit).",
+        "newer": "Rename by rewriting the whole file with the file tool's write, then build (write-whole).",
+        "older_final": "superseded",
+        "newer_final": "accepted",
+        "both_in_force": false,
+        "superseded": "older",
+        "superseded_at": 3200,
+        "reason": "superseded by 00000000000300000000000000d1: it undoes what the other does: delivered beside it, it succeeded 49% of 37 turns delivered vs 87% of 46 withheld, Bayes factor 307 over 1 period(s)"
+      },
+      {
+        "seed": 4,
+        "rival": false,
+        "older": "When a glob or search comes back empty, treat that as the answer instead of loosening the pattern (empty-glob).",
+        "newer": "If a search finds nothing, report that nothing was found rather than broadening it (empty-glob).",
+        "older_final": "accepted",
+        "newer_final": "trial",
+        "both_in_force": true
+      },
+      {
+        "seed": 4,
+        "rival": false,
+        "older": "Before committing, review what is staged instead of running git add -A (review-staged).",
+        "newer": "Look at git status and the staged diff before a commit; never git add -A (review-staged).",
+        "older_final": "accepted",
+        "newer_final": "trial",
+        "both_in_force": true
+      },
+      {
+        "seed": 4,
+        "rival": true,
+        "older": "When a glob or search comes back empty, treat that as the answer instead of loosening the pattern (empty-glob).",
+        "newer": "When a search finds nothing, widen it once to the parent directory, then answer (widen-once).",
+        "older_final": "accepted",
+        "newer_final": "superseded",
+        "both_in_force": false
+      },
+      {
+        "seed": 4,
+        "rival": true,
+        "older": "Edit files with the file tool's exact-snippet edit, not in-place sed, which reports success when it changes nothing (file-edit).",
+        "newer": "Rename by rewriting the whole file with the file tool's write, then build (write-whole).",
+        "older_final": "accepted",
+        "newer_final": "superseded",
+        "both_in_force": false,
+        "superseded": "newer",
+        "superseded_at": 1400,
+        "reason": "superseded by 00000000000400000000000000cd: they contradict each other; the older lesson stays: delivered beside it, it succeeded 30% of 20 turns delivered vs 89% of 19 withheld, Bayes factor 542 over 1 period(s)"
+      },
+      {
+        "seed": 5,
+        "rival": false,
+        "older": "When a glob or search comes back empty, treat that as the answer instead of loosening the pattern (empty-glob).",
+        "newer": "If a search finds nothing, report that nothing was found rather than broadening it (empty-glob).",
+        "older_final": "accepted",
+        "newer_final": "superseded",
+        "both_in_force": false,
+        "superseded": "newer",
+        "superseded_at": 3500,
+        "reason": "superseded by 00000000000500000000000000c8: the other does what it does: delivered beside it, it succeeded 94% of 125 turns delivered vs 93% of 42 withheld, Bayes factor 0.0324 over 2 period(s)"
+      },
+      {
+        "seed": 5,
+        "rival": false,
+        "older": "Before committing, review what is staged instead of running git add -A (review-staged).",
+        "newer": "Look at git status and the staged diff before a commit; never git add -A (review-staged).",
+        "older_final": "accepted",
+        "newer_final": "accepted",
+        "both_in_force": true
+      },
+      {
+        "seed": 5,
+        "rival": true,
+        "older": "When a glob or search comes back empty, treat that as the answer instead of loosening the pattern (empty-glob).",
+        "newer": "When a search finds nothing, widen it once to the parent directory, then answer (widen-once).",
+        "older_final": "accepted",
+        "newer_final": "superseded",
+        "both_in_force": false,
+        "superseded": "newer",
+        "superseded_at": 700,
+        "reason": "superseded by 00000000000500000000000000c8: they contradict each other; the older lesson stays: delivered beside it, it succeeded 10% of 20 turns delivered vs 93% of 15 withheld, Bayes factor 1.53e+05 over 1 period(s)"
+      },
+      {
+        "seed": 5,
+        "rival": true,
+        "older": "Edit files with the file tool's exact-snippet edit, not in-place sed, which reports success when it changes nothing (file-edit).",
+        "newer": "Rename by rewriting the whole file with the file tool's write, then build (write-whole).",
+        "older_final": "accepted",
+        "newer_final": "superseded",
+        "both_in_force": false,
+        "superseded": "newer",
+        "superseded_at": 1000,
+        "reason": "superseded by 00000000000500000000000000cd: they contradict each other; the older lesson stays: delivered beside it, it succeeded 24% of 21 turns delivered vs 90% of 20 withheld, Bayes factor 4.75e+03 over 1 period(s)"
+      }
+    ]
+  },
+  "without_pairs": {
+    "seeds": 5,
+    "turns": 6000,
+    "pair_decisions": false,
+    "rivals": 10,
+    "rivals_both_in_force": 6,
+    "paraphrases": 10,
+    "paraphrases_both_in_force": 10,
+    "good_eliminated": 4,
+    "unpaired": 15,
+    "unpaired_superseded": 0,
+    "contradicted_turns_second_half": 401,
+    "doubled_turns_second_half": 14470,
+    "rows": [
+      {
+        "seed": 1,
+        "rival": false,
+        "older": "When a glob or search comes back empty, treat that as the answer instead of loosening the pattern (empty-glob).",
+        "newer": "If a search finds nothing, report that nothing was found rather than broadening it (empty-glob).",
+        "older_final": "trial",
+        "newer_final": "accepted",
+        "both_in_force": true
+      },
+      {
+        "seed": 1,
+        "rival": false,
+        "older": "Before committing, review what is staged instead of running git add -A (review-staged).",
+        "newer": "Look at git status and the staged diff before a commit; never git add -A (review-staged).",
+        "older_final": "accepted",
+        "newer_final": "accepted",
+        "both_in_force": true
+      },
+      {
+        "seed": 1,
+        "rival": true,
+        "older": "When a glob or search comes back empty, treat that as the answer instead of loosening the pattern (empty-glob).",
+        "newer": "When a search finds nothing, widen it once to the parent directory, then answer (widen-once).",
+        "older_final": "trial",
+        "newer_final": "eliminated",
+        "both_in_force": false
+      },
+      {
+        "seed": 1,
+        "rival": true,
+        "older": "Edit files with the file tool's exact-snippet edit, not in-place sed, which reports success when it changes nothing (file-edit).",
+        "newer": "Rename by rewriting the whole file with the file tool's write, then build (write-whole).",
+        "older_final": "accepted",
+        "newer_final": "trial",
+        "both_in_force": true
+      },
+      {
+        "seed": 2,
+        "rival": false,
+        "older": "When a glob or search comes back empty, treat that as the answer instead of loosening the pattern (empty-glob).",
+        "newer": "If a search finds nothing, report that nothing was found rather than broadening it (empty-glob).",
+        "older_final": "accepted",
+        "newer_final": "accepted",
+        "both_in_force": true
+      },
+      {
+        "seed": 2,
+        "rival": false,
+        "older": "Before committing, review what is staged instead of running git add -A (review-staged).",
+        "newer": "Look at git status and the staged diff before a commit; never git add -A (review-staged).",
+        "older_final": "accepted",
+        "newer_final": "accepted",
+        "both_in_force": true
+      },
+      {
+        "seed": 2,
+        "rival": true,
+        "older": "When a glob or search comes back empty, treat that as the answer instead of loosening the pattern (empty-glob).",
+        "newer": "When a search finds nothing, widen it once to the parent directory, then answer (widen-once).",
+        "older_final": "accepted",
+        "newer_final": "trial",
+        "both_in_force": true
+      },
+      {
+        "seed": 2,
+        "rival": true,
+        "older": "Edit files with the file tool's exact-snippet edit, not in-place sed, which reports success when it changes nothing (file-edit).",
+        "newer": "Rename by rewriting the whole file with the file tool's write, then build (write-whole).",
+        "older_final": "trial",
+        "newer_final": "accepted",
+        "both_in_force": true
+      },
+      {
+        "seed": 3,
+        "rival": false,
+        "older": "When a glob or search comes back empty, treat that as the answer instead of loosening the pattern (empty-glob).",
+        "newer": "If a search finds nothing, report that nothing was found rather than broadening it (empty-glob).",
+        "older_final": "accepted",
+        "newer_final": "trial",
+        "both_in_force": true
+      },
+      {
+        "seed": 3,
+        "rival": false,
+        "older": "Before committing, review what is staged instead of running git add -A (review-staged).",
+        "newer": "Look at git status and the staged diff before a commit; never git add -A (review-staged).",
+        "older_final": "accepted",
+        "newer_final": "accepted",
+        "both_in_force": true
+      },
+      {
+        "seed": 3,
+        "rival": true,
+        "older": "When a glob or search comes back empty, treat that as the answer instead of loosening the pattern (empty-glob).",
+        "newer": "When a search finds nothing, widen it once to the parent directory, then answer (widen-once).",
+        "older_final": "accepted",
+        "newer_final": "eliminated",
+        "both_in_force": false
+      },
+      {
+        "seed": 3,
+        "rival": true,
+        "older": "Edit files with the file tool's exact-snippet edit, not in-place sed, which reports success when it changes nothing (file-edit).",
+        "newer": "Rename by rewriting the whole file with the file tool's write, then build (write-whole).",
+        "older_final": "trial",
+        "newer_final": "trial",
+        "both_in_force": true
+      },
+      {
+        "seed": 4,
+        "rival": false,
+        "older": "When a glob or search comes back empty, treat that as the answer instead of loosening the pattern (empty-glob).",
+        "newer": "If a search finds nothing, report that nothing was found rather than broadening it (empty-glob).",
+        "older_final": "accepted",
+        "newer_final": "trial",
+        "both_in_force": true
+      },
+      {
+        "seed": 4,
+        "rival": false,
+        "older": "Before committing, review what is staged instead of running git add -A (review-staged).",
+        "newer": "Look at git status and the staged diff before a commit; never git add -A (review-staged).",
+        "older_final": "accepted",
+        "newer_final": "accepted",
+        "both_in_force": true
+      },
+      {
+        "seed": 4,
+        "rival": true,
+        "older": "When a glob or search comes back empty, treat that as the answer instead of loosening the pattern (empty-glob).",
+        "newer": "When a search finds nothing, widen it once to the parent directory, then answer (widen-once).",
+        "older_final": "accepted",
+        "newer_final": "eliminated",
+        "both_in_force": false
+      },
+      {
+        "seed": 4,
+        "rival": true,
+        "older": "Edit files with the file tool's exact-snippet edit, not in-place sed, which reports success when it changes nothing (file-edit).",
+        "newer": "Rename by rewriting the whole file with the file tool's write, then build (write-whole).",
+        "older_final": "trial",
+        "newer_final": "trial",
+        "both_in_force": true
+      },
+      {
+        "seed": 5,
+        "rival": false,
+        "older": "When a glob or search comes back empty, treat that as the answer instead of loosening the pattern (empty-glob).",
+        "newer": "If a search finds nothing, report that nothing was found rather than broadening it (empty-glob).",
+        "older_final": "accepted",
+        "newer_final": "trial",
+        "both_in_force": true
+      },
+      {
+        "seed": 5,
+        "rival": false,
+        "older": "Before committing, review what is staged instead of running git add -A (review-staged).",
+        "newer": "Look at git status and the staged diff before a commit; never git add -A (review-staged).",
+        "older_final": "accepted",
+        "newer_final": "accepted",
+        "both_in_force": true
+      },
+      {
+        "seed": 5,
+        "rival": true,
+        "older": "When a glob or search comes back empty, treat that as the answer instead of loosening the pattern (empty-glob).",
+        "newer": "When a search finds nothing, widen it once to the parent directory, then answer (widen-once).",
+        "older_final": "accepted",
+        "newer_final": "trial",
+        "both_in_force": true
+      },
+      {
+        "seed": 5,
+        "rival": true,
+        "older": "Edit files with the file tool's exact-snippet edit, not in-place sed, which reports success when it changes nothing (file-edit).",
+        "newer": "Rename by rewriting the whole file with the file tool's write, then build (write-whole).",
+        "older_final": "eliminated",
+        "newer_final": "accepted",
+        "both_in_force": false
+      }
+    ]
+  }
+}
