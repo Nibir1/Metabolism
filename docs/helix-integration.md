@@ -93,7 +93,7 @@ delivery).
 | 2 | Late outcomes | **built** |
 | 3 | The `<learned_lessons>` context block | **built**: replay (2c) and live turns (Phase 3, D-019) |
 | 4 | Replay entry point | **built**: `helix replay` (D-017), multi-round with read-only steps (D-021) |
-| 5 | `/lessons` command | **built**: list, `on\|off`, `why`, `forget`. `forget --hard`, snapshot and rollback are Phase 4 |
+| 5 | `/lessons` command | **built**: list, `on\|off`, `why`, `forget`, `forget --hard` (D-028). Snapshot and rollback are engine commands (`metabolism snapshot`, `rollback`), not `/lessons` subcommands |
 | 6 | `/purge` and `helix uninstall` remove Metabolism's state | **built** for Helix's recording (`~/.helix/metabolism/`); the engine's journal (`~/.metabolism/`) is the engine's to remove |
 | 7 | `/doctor` shows the engine's status | not built in Helix; `metabolism doctor` reports recording, delivery and the journal |
 
@@ -178,9 +178,12 @@ The user's own workflow:
      summary, credit.
    - `/lessons why <id>` shows source episodes and nutrient-test evidence.
    - `/lessons forget <id> <reason>` eliminates it with a reason.
-     `/lessons forget --hard <id>` deletes it with an audit record.
-   - `/lessons pause` / `resume` toggles learning. `/lessons snapshot` / `rollback`
-     manages the metabolome.
+     `/lessons forget --hard <id> <reason>` deletes it with an audit record:
+     at once from the delivery file, and from the engine's journal and the
+     recording at the next ingest (built, D-028).
+   - Pausing learning is `/metabolism off`. Versions and rollback are engine
+     commands (`metabolism snapshot`, `versions`, `diff`, `rollback`), since
+     they act on the journal, which Helix never opens.
    - Every change is announced on screen, as `/todo` edits are.
 6. **`/purge` and `helix uninstall`** remove Metabolism's state too.
 7. **`/doctor`** shows engine status, the network opt-in state, and the last digest run.

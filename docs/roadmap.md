@@ -251,8 +251,8 @@ Deliverables:
 - [ ] Backlog: run automated days on a schedule. Not on the current machine
       (a work PC): days are run by hand while the user is at it, so nothing
       changes the Helix setup unattended.
-- [ ] Not in this phase: `/lessons forget --hard`, snapshot and rollback
-      (Phase 4); per-request relevance in delivery.
+- [ ] Not in this phase: per-request relevance in delivery. (`/lessons
+      forget --hard`, snapshot and rollback came in Phase 4d, D-028.)
 
 Known issues carried in from Phase 2 (they distort the data Phase 3 measures):
 
@@ -306,7 +306,11 @@ wrongly. 4c, contradictions and supersession (D-027): the nutrient test
 replays a candidate beside the accepted lessons in force, and the ledger
 judges lessons in pairs on the turns they share. On the simulator no two
 rivals stayed in force (from 6 of 10), and no lesson without a pair was set
-aside.
+aside. 4d, the versioned metabolome (D-028): named versions, the metabolome
+as of any version, diff, rollback that brings lessons back only to trial,
+and forget-with-proof by a guarded delete trigger with an audit record, in
+the journal, Helix's recording and its delivery file (`/lessons forget
+--hard`).
 
 Deliverables:
 
@@ -318,7 +322,7 @@ Deliverables:
 - A poisoning test suite in CI, modelled on MemSecBench: persistence, attack
   success and repair.
 - The versioned metabolome: snapshots, rollback, and forget-with-proof (hard
-  delete plus an audit record).
+  delete plus an audit record). Built (D-028); branches are not.
 - Drift tests: a lesson that stops holding (for example, a repo switches build
   tools) is retired.
 

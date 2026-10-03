@@ -19,7 +19,8 @@ Phase 3 go/no-go. Phase 4 started (D-025): the poisoning suite and its
 defences (4a, docs/poisoning.md) and drift (4b, D-026: a recent window, and
 credit that counts the turns bearing on a lesson) and contradictions and
 supersession (4c, D-027: the nutrient test in context, pairs in the
-ledger), all on the simulator.
+ledger), all on the simulator, and the versioned metabolome (4d, D-028:
+versions, rollback to trial, forget-with-proof).
 See [docs/roadmap.md](docs/roadmap.md). The docs below are the source of
 truth for what, why and how.
 
@@ -39,7 +40,7 @@ truth for what, why and how.
   | `types/` | vocabulary |
   | `ports/` | interfaces; the engine imports only these and `types` |
   | `adapters/journal/sqlite` | durable journal |
-  | `adapters/ndjson` | `metabolism ingest`: reads Helix's recorded episodes (wire v1 and v2) and `/lessons forget` feedback |
+  | `adapters/ndjson` | `metabolism ingest`: reads Helix's recorded episodes (wire v1 and v2) and `/lessons forget [--hard]` feedback; purges forgotten records from them |
   | `episodic/` | tier-1 memory: time-aware case recall over the journal |
   | `metabolome/` | event-sourced lessons; the only code that changes lesson state (D-014) |
   | `immune/` | deterministic screen: no lesson may weaken a safety gate |
@@ -53,6 +54,7 @@ truth for what, why and how.
   | `internal/privacyguard` | test: no network code outside `adapters/remote/` |
   | `hosts/helixsim` | simulated Helix |
   | `hosts/helixuser` | synthetic Helix user: writes a day's requests for `metabolism auto` (D-023) |
+  | `versions/` | the versioned metabolome: named versions, as-of, diff, rollback, forget plans (D-028) |
   | `bench/` | metrics, curves, recall evaluation, nutrient-test and credit evaluation, judge agreement (κ) |
   | `cmd/metabolism` | CLI |
 
@@ -73,8 +75,9 @@ truth for what, why and how.
   The first live-run data was lost to an older demo that cleared all of
   `.demo/`.
 - The journal is append-only by database trigger. Never add a code path that
-  updates or deletes records. Forget-with-proof is a planned, audited Phase 4
-  migration.
+  updates records, or deletes them other than `Journal.Forget`, which deletes
+  only under an append-only forget record (migration 2, D-028). Rollback
+  appends events; it never rewrites.
 
 ## Read in this order
 

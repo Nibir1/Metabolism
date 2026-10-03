@@ -25,6 +25,7 @@ import (
 	"github.com/Nibir1/metabolism/ports"
 	"github.com/Nibir1/metabolism/types"
 	"github.com/Nibir1/metabolism/verify"
+	"github.com/Nibir1/metabolism/versions"
 )
 
 // Reflectors, judges and the models behind them are chosen here, and this is
@@ -391,6 +392,7 @@ func cmdLessons(ctx context.Context, args []string, out io.Writer) error {
 	path := fs.String("journal", defaultJournal(), "journal file")
 	state := fs.String("state", "", "only lessons in this state")
 	id := fs.String("id", "", "show one lesson: its sources, history and evidence")
+	asOf := fs.String("as-of", "", "the lessons as they were at a version (a name from `metabolism versions`, or a record number)")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
@@ -402,9 +404,12 @@ func cmdLessons(ctx context.Context, args []string, out io.Writer) error {
 		return err
 	}
 	defer func() { _ = j.Close() }()
-	m, err := metabolome.Load(ctx, j)
+	m, seq, err := versions.At(ctx, j, *asOf)
 	if err != nil {
 		return err
+	}
+	if seq > 0 && *asOf != "" && *asOf != "now" {
+		say(out, "as of %s (journal record %d)\n", *asOf, seq)
 	}
 	if *id != "" {
 		return lessonWhy(m, types.ID(*id), out)

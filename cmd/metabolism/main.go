@@ -20,6 +20,11 @@
 //	metabolism poison-eval [-seeds 2] [-turns 1500] [-out DIR]
 //	metabolism drift-eval [-seeds 5] [-before 3000] [-after 3000] [-out DIR]
 //	metabolism pairs-eval [-seeds 5] [-turns 6000] [-out DIR]
+//	metabolism snapshot [-note TEXT] NAME
+//	metabolism versions
+//	metabolism diff    FROM [TO]
+//	metabolism rollback [-apply] VERSION
+//	metabolism forget  [-episode ID]... [-lesson ID]... [-match TEXT] [-keep-lessons] -reason R [-apply] [-verify]
 //	metabolism auto    -allow-remote [-dir .runs/auto] [-requests 100] [-plan-only]
 //
 // The journal defaults to $METABOLISM_JOURNAL, then ~/.metabolism/journal.db.
@@ -67,6 +72,11 @@ commands:
   poison-eval  the poisoning suite: do poisoned lessons persist or do harm? (simulator)
   drift-eval   are accepted lessons retired when the world changes under them? (simulator)
   pairs-eval   are contradicting and redundant lessons set aside? (simulator)
+  snapshot name the current version of the metabolome
+  versions list named versions and forget records
+  diff     which lessons changed state between two versions
+  rollback put what is delivered back to what was delivered at a version (-apply records it)
+  forget   delete episodes or lessons with an audit record (forget-with-proof; -apply deletes)
   auto     one automated day: a synthetic user drives real Helix, then ingest, digest, verify, credit
 
 run "metabolism <command> -h" for a command's flags
@@ -125,6 +135,16 @@ func run(ctx context.Context, args []string, out io.Writer) error {
 		return cmdCreditEval(ctx, args[1:], out)
 	case "auto":
 		return cmdAuto(ctx, args[1:], out)
+	case "snapshot":
+		return cmdSnapshot(ctx, args[1:], out)
+	case "versions":
+		return cmdVersions(ctx, args[1:], out)
+	case "diff":
+		return cmdDiff(ctx, args[1:], out)
+	case "rollback":
+		return cmdRollback(ctx, args[1:], out)
+	case "forget":
+		return cmdForget(ctx, args[1:], out)
 	case "pairs-eval":
 		return cmdPairsEval(ctx, args[1:], out)
 	case "drift-eval":
@@ -135,7 +155,7 @@ func run(ctx context.Context, args []string, out io.Writer) error {
 		_, _ = fmt.Fprint(out, usage)
 		return nil
 	}
-	return fmt.Errorf("unknown command %q (try: doctor, ingest, sim, curves, inspect, recall, recall-eval, digest, verify, lessons, nutrient-eval, replay, label, crosscheck, credit, export, credit-eval, auto, poison-eval, drift-eval, pairs-eval)", args[0])
+	return fmt.Errorf("unknown command %q (try: doctor, ingest, sim, curves, inspect, recall, recall-eval, digest, verify, lessons, nutrient-eval, replay, label, crosscheck, credit, export, credit-eval, auto, poison-eval, drift-eval, pairs-eval, snapshot, versions, diff, rollback, forget)", args[0])
 }
 
 func defaultJournal() string {
@@ -177,6 +197,9 @@ func cmdIngest(ctx context.Context, args []string, out io.Writer) error {
 	}
 	_, _ = fmt.Fprintf(out, "read %d records from %d file(s) into %s\n", st.Lines, len(st.Files), *path)
 	_, _ = fmt.Fprintf(out, "  episodes %d · outcomes %d (appended, or already present)\n", st.Episodes, st.Outcomes)
+	if st.Forgotten > 0 {
+		_, _ = fmt.Fprintf(out, "  %d record(s) skipped: forgotten with proof (metabolism forget purges them from the recording)\n", st.Forgotten)
+	}
 	if st.Orphans > 0 {
 		_, _ = fmt.Fprintf(out, "  %d outcome(s) skipped: their episode rotated out before it was ingested\n", st.Orphans)
 	}
@@ -186,7 +209,7 @@ func cmdIngest(ctx context.Context, args []string, out io.Writer) error {
 			_, _ = fmt.Fprintf(out, "    %s\n", p)
 		}
 	}
-	return applyFeedback(ctx, j, st.Feedback, out)
+	return applyFeedback(ctx, j, st.Feedback, *from, out)
 }
 
 func cmdSim(ctx context.Context, args []string, out io.Writer) error {

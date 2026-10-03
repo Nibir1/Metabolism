@@ -26,6 +26,9 @@ var (
 	ErrConflict = errors.New("conflicting record with the same id")
 	// ErrUnknownEpisode: an outcome names an episode the journal never saw.
 	ErrUnknownEpisode = errors.New("outcome for an unknown episode")
+	// ErrForgotten: the record's ID was deleted by a forget-with-proof
+	// (D-028), and it may not come back, however often a host re-sends it.
+	ErrForgotten = errors.New("record was forgotten")
 	// ErrUnknownLesson: an event or evidence names a lesson the journal never saw.
 	ErrUnknownLesson = errors.New("record for an unknown lesson")
 	// ErrCannotReplay: a host cannot replay with this lesson in any way that
@@ -45,6 +48,18 @@ type Journal interface {
 	AppendLesson(ctx context.Context, l types.Lesson) error
 	AppendEvent(ctx context.Context, ev types.LifecycleEvent) error
 	AppendEvidence(ctx context.Context, e types.Evidence) error
+	// AppendTag names a version of the metabolome (D-028).
+	AppendTag(ctx context.Context, t types.Tag) error
+	// Forget deletes the records f.Targets names, with f as their audit
+	// record, in one transaction (D-028). It fills each target's kind, time
+	// and SHA-256 from the stored record and returns f as recorded. It is
+	// the only way a record leaves the journal, and a forgotten ID can never
+	// be appended again (ErrForgotten).
+	Forget(ctx context.Context, f types.Forget) (types.Forget, error)
+	// Compact removes freed bytes from disk after a Forget.
+	Compact(ctx context.Context) error
+	// LastSeq is the Seq of the newest record (0 when empty).
+	LastSeq(ctx context.Context) (int64, error)
 	// Scan yields matching records in Seq order. Stopping the iteration early
 	// releases its resources.
 	Scan(ctx context.Context, q types.JournalQuery) iter.Seq2[types.Record, error]

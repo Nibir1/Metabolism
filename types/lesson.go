@@ -57,7 +57,8 @@ var transitions = map[LessonState][]LessonState{
 	StateTrial:       {StateAccepted, StateSuperseded, StateEliminated},
 	StateAccepted:    {StateSuperseded, StateEliminated},
 	StateSuperseded:  {StateTrial, StateEliminated},
-	StateEliminated:  nil,
+	// Only the user's rollback, citing rollback evidence (D-028).
+	StateEliminated: {StateTrial},
 }
 
 // Valid reports whether s is a known state.

@@ -15,7 +15,7 @@ This runs, in order:
 | Step | Target | Proves |
 |---|---|---|
 | gofmt, vet, golangci-lint | `lint` | the code is clean |
-| every test, race detector on | `race` | the engine: journal durability and crash safety, append-only triggers, retrieval, the recall evaluation (signal *and* noise), the immune screen, digest validation, the nutrient test (including the 20-trial noisy-host test, D-018), the credit ledger (including the simulator acceptance test, D-020), the judges and remote adapters against fakes, the privacy guard, the CLI and its opt-in rules |
+| every test, race detector on | `race` | the engine: journal durability and crash safety, append-only triggers, retrieval, the recall evaluation (signal *and* noise), the immune screen, digest validation, the nutrient test (including the 20-trial noisy-host test, D-018), the credit ledger (including the simulator acceptance test, D-020), versions, rollback and forget-with-proof (including the raw-bytes check, D-028), the judges and remote adapters against fakes, the privacy guard, the CLI and its opt-in rules |
 | golden files match | `check-wire` | Helix and the engine agree on every contract (recording v1 and v2, replay, delivery) byte for byte |
 | Helix on the integration branch | `helix-branch` | you are testing the right Helix |
 | Helix vet + integration tests + full suite + lint | `helix-verify` | the recorder, the agent hooks, decline counting, refused steps, untrusted planner steps, exit codes on every turn, the undo link, the daemon wiring (pagers off, a fresh working directory per request), `helix replay`, lesson delivery and `/lessons`, and that nothing else in Helix broke |
@@ -267,6 +267,24 @@ turns that are an hour old, and a Bayes factor of 30 (accept) or 300
 To try a forget: `/lessons forget <id> <reason>` in Helix, then
 `make helix-ingest`. Expect `feedback: 1 lesson(s) forgotten in Helix
 eliminated`, and the reason in `bin/metabolism lessons -id <id>`.
+
+`/lessons forget --hard <id> <reason>` deletes instead (D-028). The lesson
+leaves `lessons.json` at once; after `make helix-ingest`, expect `1 deleted
+with proof`, `bin/metabolism versions` lists the forget record (`by helix`),
+and `bin/metabolism forget -verify` reports nothing left.
+
+Versions (D-028), on any journal:
+
+- `bin/metabolism snapshot -note "why" NAME` names the current version.
+- `bin/metabolism versions` lists the named versions and the forget records.
+- `bin/metabolism diff NAME` shows which lessons changed state since.
+- `bin/metabolism rollback NAME` shows what a rollback would do, and
+  `-apply` records it. Lessons come back to trial, never straight to
+  accepted. A rollback is undone by rolling back to the `before-rollback-…`
+  version it names.
+- `bin/metabolism forget -match TEXT` lists what would be deleted. Add
+  `-apply -reason "..."` to delete it from the journal, the recording and
+  the delivery file.
 
 `bin/metabolism doctor` shows the delivery file and both preferences.
 

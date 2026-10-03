@@ -20,6 +20,7 @@ import (
 	"errors"
 	"fmt"
 	"slices"
+	"strings"
 	"time"
 
 	"github.com/Nibir1/metabolism/ports"
@@ -45,7 +46,34 @@ type Metabolome struct {
 	// appends are folded at once and then seen again by the next Refresh;
 	// folding must be idempotent or a lesson's history doubles.
 	applied map[types.ID]bool
+	// upTo, when set, is the version this metabolome is: the journal up to
+	// that Seq, read-only (D-028).
+	upTo int64
+	// forgets are the forget records folded, and forgottenText the text
+	// digests of the lessons they deleted.
+	forgets       []types.Forget
+	forgottenText map[string]bool
 }
+
+// Reasons a lesson was eliminated by the user's own decision rather than by
+// evidence. Every elimination of that kind starts with one of them, and a
+// rollback does not undo it (D-028).
+const (
+	ReasonUserForget      = "forgotten by the user"
+	ReasonSourceForgotten = "a source episode was forgotten"
+)
+
+// ByUser reports whether a lesson's elimination was the user's decision.
+func ByUser(e Entry) bool {
+	if e.Lesson.State != types.StateEliminated || len(e.Events) == 0 {
+		return false
+	}
+	r := e.Events[len(e.Events)-1].Reason
+	return strings.HasPrefix(r, ReasonUserForget) || strings.HasPrefix(r, ReasonSourceForgotten)
+}
+
+// ErrPastVersion: a metabolome loaded as of a version is read-only.
+var ErrPastVersion = errors.New("a past version of the metabolome is read-only")
 
 // ErrNoEvidence: a move to trial did not cite passing nutrient-test evidence,
 // or a move to accepted did not cite passing credit evidence.
@@ -54,9 +82,25 @@ var ErrNoEvidence = errors.New("a lesson enters trial only on passing nutrient-t
 
 // Load folds everything in the journal.
 func Load(ctx context.Context, j ports.Journal) (*Metabolome, error) {
-	m := &Metabolome{j: j, now: time.Now, entries: map[types.ID]*Entry{}, applied: map[types.ID]bool{}}
+	return LoadAsOf(ctx, j, 0)
+}
+
+// LoadAsOf folds the journal up to and including seq: the metabolome as it
+// was at that version (D-028). It is read-only. Zero means now. Records a
+// forget deleted since are gone from every version; the forget records say
+// what was removed.
+func LoadAsOf(ctx context.Context, j ports.Journal, seq int64) (*Metabolome, error) {
+	m := &Metabolome{j: j, now: time.Now, entries: map[types.ID]*Entry{}, applied: map[types.ID]bool{},
+		upTo: seq, forgottenText: map[string]bool{}}
 	return m, m.Refresh(ctx)
 }
+
+// Forgets returns the forget records folded so far, oldest first.
+func (m *Metabolome) Forgets() []types.Forget { return slices.Clone(m.forgets) }
+
+// ForgottenText reports whether a lesson with this text was forgotten, by
+// its text digest: the words themselves are gone.
+func (m *Metabolome) ForgottenText(text string) bool { return m.forgottenText[types.TextDigest(text)] }
 
 // SetClock replaces the clock (tests, simulations).
 func (m *Metabolome) SetClock(now func() time.Time) { m.now = now }
@@ -65,8 +109,9 @@ func (m *Metabolome) SetClock(now func() time.Time) { m.now = now }
 // appended by another process.
 func (m *Metabolome) Refresh(ctx context.Context) error {
 	q := types.JournalQuery{
-		Kinds:    []types.RecordKind{types.RecordLesson, types.RecordEvent, types.RecordEvidence},
+		Kinds:    []types.RecordKind{types.RecordLesson, types.RecordEvent, types.RecordEvidence, types.RecordForget},
 		AfterSeq: m.lastSeq,
+		UpToSeq:  m.upTo,
 	}
 	for r, err := range m.j.Scan(ctx, q) {
 		if err != nil {
@@ -87,6 +132,8 @@ func (m *Metabolome) apply(r types.Record) {
 		id = r.Event.ID
 	case r.Evidence != nil:
 		id = r.Evidence.ID
+	case r.Forget != nil:
+		id = r.Forget.ID
 	}
 	if id == "" || m.applied[id] {
 		return
@@ -112,6 +159,29 @@ func (m *Metabolome) apply(r types.Record) {
 		if e, ok := m.entries[r.Evidence.LessonID]; ok {
 			e.Evidence = append(e.Evidence, *r.Evidence)
 		}
+	case r.Forget != nil:
+		m.forget(*r.Forget)
+	}
+}
+
+// forget drops what a forget record deleted from the fold, so a metabolome
+// that was live during the forget matches one loaded after it.
+func (m *Metabolome) forget(f types.Forget) {
+	m.forgets = append(m.forgets, f)
+	gone := map[types.ID]bool{}
+	for _, t := range f.Targets {
+		gone[t.ID] = true
+		if t.TextSHA256 != "" {
+			m.forgottenText[t.TextSHA256] = true
+		}
+		if t.Kind == types.RecordLesson {
+			delete(m.entries, t.ID)
+		}
+	}
+	m.order = slices.DeleteFunc(m.order, func(id types.ID) bool { return gone[id] })
+	for _, e := range m.entries {
+		e.Events = slices.DeleteFunc(e.Events, func(ev types.LifecycleEvent) bool { return gone[ev.ID] })
+		e.Evidence = slices.DeleteFunc(e.Evidence, func(ev types.Evidence) bool { return gone[ev.ID] })
 	}
 }
 
@@ -141,6 +211,9 @@ func (m *Metabolome) Lessons(states ...types.LessonState) []types.Lesson {
 // untrusted provenance is quarantined at once: it may never be injected until
 // it passes the stricter test quarantine requires.
 func (m *Metabolome) Create(ctx context.Context, l types.Lesson, reason string) (types.Lesson, error) {
+	if m.upTo > 0 {
+		return types.Lesson{}, ErrPastVersion
+	}
 	now := m.now()
 	if l.ID == "" {
 		l.ID = types.NewID(now)
@@ -172,6 +245,9 @@ func (m *Metabolome) Create(ctx context.Context, l types.Lesson, reason string) 
 
 // RecordEvidence journals a test result about a lesson.
 func (m *Metabolome) RecordEvidence(ctx context.Context, ev types.Evidence) (types.Evidence, error) {
+	if m.upTo > 0 {
+		return types.Evidence{}, ErrPastVersion
+	}
 	if _, ok := m.entries[ev.LessonID]; !ok {
 		return types.Evidence{}, fmt.Errorf("%w: %s", ports.ErrUnknownLesson, ev.LessonID)
 	}
@@ -190,6 +266,9 @@ func (m *Metabolome) RecordEvidence(ctx context.Context, ev types.Evidence) (typ
 
 // Move changes a lesson's state, citing the evidence that justifies it.
 func (m *Metabolome) Move(ctx context.Context, id types.ID, to types.LessonState, reason string, evidence ...types.ID) error {
+	if m.upTo > 0 {
+		return ErrPastVersion
+	}
 	e, ok := m.entries[id]
 	if !ok {
 		return fmt.Errorf("%w: %s", ports.ErrUnknownLesson, id)
@@ -207,16 +286,26 @@ func (m *Metabolome) Move(ctx context.Context, id types.ID, to types.LessonState
 		return fmt.Errorf("%w (lesson %s)", ErrNoEvidence, id)
 	}
 	// Superseded names the lesson that covers the same turns better, and
-	// rests on pair evidence about it (D-027).
-	if to == types.StateSuperseded && !citesAny(e, evidence, types.EvidenceContradiction, types.EvidenceRedundancy) {
+	// rests on pair evidence about it (D-027), or is the user's rollback to
+	// a version it was not in force in (D-028).
+	if to == types.StateSuperseded && !citesAny(e, evidence, types.EvidenceContradiction, types.EvidenceRedundancy, types.EvidenceRollback) {
 		return fmt.Errorf("%w (lesson %s)", ErrNoPairEvidence, id)
+	}
+	// Elimination is final, except by the user's rollback to a version the
+	// lesson was in force in, and then only to trial (D-028).
+	if from == types.StateEliminated && !citesAny(e, evidence, types.EvidenceRollback) {
+		return fmt.Errorf("%w (lesson %s)", ErrEliminatedIsFinal, id)
 	}
 	return m.appendEvent(ctx, id, from, to, reason, evidence)
 }
 
 // ErrNoPairEvidence: a move to superseded did not cite contradiction or
 // redundancy evidence.
-var ErrNoPairEvidence = errors.New("a lesson is superseded only on contradiction or redundancy evidence naming the other lesson")
+var ErrNoPairEvidence = errors.New("a lesson is superseded only on contradiction or redundancy evidence naming the other lesson, or by rollback")
+
+// ErrEliminatedIsFinal: a move out of eliminated did not cite rollback
+// evidence.
+var ErrEliminatedIsFinal = errors.New("an eliminated lesson comes back only by the user's rollback, to trial")
 
 // citesAny reports whether cited names evidence of one of kinds for e,
 // whatever its result.

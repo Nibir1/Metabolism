@@ -45,7 +45,8 @@ type envelope struct {
 }
 
 // Feedback is what the user told the host about a lesson (wire v2). The
-// only action is "forget": the user eliminated the lesson, with a reason.
+// actions are "forget", the user eliminated the lesson with a reason, and
+// "forget-hard", the user deleted it (D-028).
 // Ingest does not apply it, because lessons change only through the
 // metabolome (D-014); it returns it in Stats for the caller to apply.
 type Feedback struct {
@@ -56,8 +57,12 @@ type Feedback struct {
 	Reason   string    `json:"reason"`
 }
 
-// FeedbackForget is the action that eliminates a lesson.
-const FeedbackForget = "forget"
+// Feedback actions: forget eliminates a lesson; forget-hard deletes it with
+// an audit record (/lessons forget --hard, D-028).
+const (
+	FeedbackForget     = "forget"
+	FeedbackForgetHard = "forget-hard"
+)
 
 // Stats says what an ingest did. Episodes and Outcomes count records that are
 // now in the journal, whether this run appended them or an earlier one did:
@@ -70,6 +75,7 @@ type Stats struct {
 	Orphans   int      `json:"orphans"`   // outcomes whose episode was never ingested (rotated out first)
 	Invalid   int      `json:"invalid"`   // well-formed records that failed validation or conflicted
 	Malformed int      `json:"malformed"` // lines that are not a v1 record (e.g. a line cut off by a crash)
+	Forgotten int      `json:"forgotten"` // records the user forgot with proof, still in the host's file (D-028)
 	Problems  []string `json:"problems,omitempty"`
 	// Feedback lists every feedback record read, in file order, for the
 	// caller to apply. Applying it twice is harmless: an eliminated lesson
@@ -150,6 +156,8 @@ func ingestFile(ctx context.Context, j ports.Journal, path string, st *Stats) er
 		st.Lines++
 		if err := ingestLine(ctx, j, line, st); err != nil {
 			switch {
+			case errors.Is(err, ports.ErrForgotten):
+				st.Forgotten++
 			case errors.Is(err, ports.ErrUnknownEpisode):
 				st.Orphans++
 			case errors.Is(err, ports.ErrInvalid), errors.Is(err, ports.ErrConflict):
@@ -206,7 +214,7 @@ func ingestLine(ctx context.Context, j ports.Journal, line []byte, st *Stats) er
 		if err := strictDecode(env.Feedback, &fb); err != nil {
 			return fmt.Errorf("%w: feedback: %v", errMalformed, err)
 		}
-		if !fb.ID.Valid() || !fb.LessonID.Valid() || fb.At.IsZero() || fb.Action != FeedbackForget || strings.TrimSpace(fb.Reason) == "" {
+		if !fb.ID.Valid() || !fb.LessonID.Valid() || fb.At.IsZero() || (fb.Action != FeedbackForget && fb.Action != FeedbackForgetHard) || strings.TrimSpace(fb.Reason) == "" {
 			return fmt.Errorf("%w: feedback %+v", ports.ErrInvalid, fb)
 		}
 		st.Feedback = append(st.Feedback, fb)

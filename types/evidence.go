@@ -72,6 +72,8 @@ type Evidence struct {
 	// kinds the credit counts above are this lesson's turns with Other
 	// delivered: this one delivered against withheld.
 	Other ID `json:"other,omitempty"`
+	// Version is the journal position a rollback returned to (D-028).
+	Version int64 `json:"version,omitempty"`
 }
 
 // Passed reports whether the evidence supports the lesson.
@@ -120,6 +122,9 @@ func (e Evidence) Validate() error {
 	if e.PHelp < 0 || e.PHelp > 1 || e.PHarm < 0 || e.PHarm > 1 {
 		errs = append(errs, errors.New("p-value outside [0, 1]"))
 	}
+	if e.Kind == EvidenceRollback && e.Version <= 0 {
+		errs = append(errs, errors.New("rollback evidence must name the version"))
+	}
 	if (e.Kind == EvidenceContradiction || e.Kind == EvidenceRedundancy) && (!e.Other.Valid() || e.Other == e.LessonID) {
 		errs = append(errs, fmt.Errorf("%s evidence must name the other lesson", e.Kind))
 	}
@@ -145,12 +150,15 @@ const (
 	// EvidenceRedundancy: on the turns two lessons share, neither adds
 	// anything to the other (D-027). Other names the lesson kept.
 	EvidenceRedundancy EvidenceKind = "redundancy"
+	// EvidenceRollback: the user rolled the metabolome back to a version
+	// (D-028). Version is that version's journal position.
+	EvidenceRollback EvidenceKind = "rollback"
 )
 
 // Valid reports whether k is a known evidence kind.
 func (k EvidenceKind) Valid() bool {
 	switch k {
-	case EvidenceNutrientTest, EvidenceCredit, EvidenceContradiction, EvidenceRedundancy:
+	case EvidenceNutrientTest, EvidenceCredit, EvidenceContradiction, EvidenceRedundancy, EvidenceRollback:
 		return true
 	}
 	return false

@@ -355,8 +355,10 @@ func restore(ctx context.Context, m *metabolome.Metabolome, dryRun bool) ([]Deci
 		if passed == "" {
 			continue
 		}
-		w, _ := m.Get(by)
-		reason := fmt.Sprintf("restored to trial: %s, which superseded it, is now %s", by, w.Lesson.State)
+		reason := fmt.Sprintf("restored to trial: %s, which superseded it, was forgotten", by)
+		if w, ok := m.Get(by); ok {
+			reason = fmt.Sprintf("restored to trial: %s, which superseded it, is now %s", by, w.Lesson.State)
+		}
 		out = append(out, Decision{Lesson: l, To: types.StateTrial, Reason: reason})
 		if dryRun {
 			continue

@@ -72,6 +72,9 @@ distribute are on the host's hot path and must be fast and never fail the host.
      │              │         superseded ◀───┘
      │              │            │
      └──────────────┴────────────┴──────────────▶ eliminated (with reason, kept in log)
+                                                     │
+                     trial ◀── only by the user's ───┘
+                               rollback (D-028)
 ```
 
 - **candidate**: proposed by reflection, linked to source episodes.
@@ -88,8 +91,11 @@ distribute are on the host's hot path and must be fast and never fail the host.
   (D-027). Kept visible. It comes back through trial when that lesson
   leaves.
 - **eliminated**: removed from use, with a reason. The log entry remains so
-  "why did it forget X?" is answerable. Hard deletion happens only on the
-  user's explicit forget-with-proof request (privacy).
+  "why did it forget X?" is answerable. Final, except that the user's
+  rollback to a version the lesson was delivered in brings it back to trial.
+  Hard deletion happens only on the user's explicit forget-with-proof
+  request (privacy, D-028): the records go, an audit record with a hash of
+  each stays.
 
 ## Distinguishing mechanisms
 
@@ -214,6 +220,12 @@ type Journal interface {
     AppendLesson(ctx context.Context, l types.Lesson) error
     AppendEvent(ctx context.Context, ev types.LifecycleEvent) error
     AppendEvidence(ctx context.Context, e types.Evidence) error
+    AppendTag(ctx context.Context, t types.Tag) error // a named version (D-028)
+    // Forget deletes the named records under one audit record; the only
+    // way anything leaves the journal (D-028).
+    Forget(ctx context.Context, f types.Forget) (types.Forget, error)
+    Compact(ctx context.Context) error
+    LastSeq(ctx context.Context) (int64, error)
     Scan(ctx context.Context, q types.JournalQuery) iter.Seq2[types.Record, error]
     Close() error
 }
@@ -250,7 +262,8 @@ type Model interface {
 
 `ports.Store` and `ports.Selector` are still declared but unused. The
 event-sourced `metabolome` replaced the separate mutable store (D-014);
-snapshots and rollback (Phase 4) will be folds of the journal. Selection
+versions are folds of the journal up to a position, and rollback appends
+events (`versions/`, D-028). Selection
 happens in the host, from the delivery file (D-019), so the engine is never
 on the host's hot path.
 
@@ -272,7 +285,9 @@ Built:
 metabolism/
   cmd/metabolism/        CLI: sim, ingest, inspect, curves, recall, recall-eval,
                          digest, verify, lessons, replay, label, crosscheck,
-                         nutrient-eval, credit, export, credit-eval, doctor
+                         nutrient-eval, credit, export, credit-eval, doctor,
+                         auto, poison-eval, drift-eval, pairs-eval, snapshot,
+                         versions, diff, rollback, forget
   types/                 Episode, Outcome, Lesson, Evidence, Credit, Experience…
   ports/                 the interfaces above
   metabolome/            event-sourced lessons, lifecycle and evidence (D-014)
@@ -281,12 +296,16 @@ metabolism/
   llmreflect/            LLM reflector over ports.Model
   verify/                the nutrient test (D-015, D-018)
   deliver/               the delivery file and the reference selection (D-019)
-  ledger/                credit from randomised delivery (D-020)
+  ledger/                credit from randomised delivery (D-020), relevance and
+                         drift (D-026), pairs (D-027)
+  versions/              named versions, as-of, diff, rollback, forget plans (D-028)
   judge/                 heuristic and LLM judges, the plain-words pair view
   episodic/              tier 1: time-aware BM25 case recall
   adapters/
-    journal/sqlite/      modernc.org/sqlite (pure Go, same as Helix), append-only
-    ndjson/              Helix's recorded episodes, wire v1 and v2 (D-013, D-019)
+    journal/sqlite/      modernc.org/sqlite (pure Go, same as Helix), append-only;
+                         deletes only under a forget record (D-028)
+    ndjson/              Helix's recorded episodes, wire v1 and v2 (D-013, D-019),
+                         and purging them of forgotten records (D-028)
     remote/llm/          Ollama, OpenAI-compatible (DeepSeek)   ┐ the only
     remote/jev/          Jev judge via typesafe-go              │ network code;
     remote/helix/        drives `helix replay` (D-017)          ┘ CLI only

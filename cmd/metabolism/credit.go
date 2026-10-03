@@ -21,6 +21,7 @@ import (
 	"github.com/Nibir1/metabolism/metabolome"
 	"github.com/Nibir1/metabolism/ports"
 	"github.com/Nibir1/metabolism/types"
+	"github.com/Nibir1/metabolism/versions"
 )
 
 // defaultLessonsFile is where Helix reads delivered lessons.
@@ -402,11 +403,13 @@ func poisonPerLayer(ctx context.Context, seeds []uint64, turns int, outDir strin
 	return nil
 }
 
-// applyFeedback eliminates the lessons the user forgot in Helix. Lessons
+// applyFeedback eliminates the lessons the user forgot in Helix, and deletes
+// with proof the ones forgotten with --hard (D-028), purging them from the
+// recording read (from) as well once ingest has finished reading it. Lessons
 // change only through the metabolome (D-014), so ingest hands the feedback
 // here. Feedback already applied, or for a lesson this journal does not
 // hold, is reported and skipped.
-func applyFeedback(ctx context.Context, j ports.Journal, fbs []ndjson.Feedback, out io.Writer) error {
+func applyFeedback(ctx context.Context, j ports.Journal, fbs []ndjson.Feedback, from string, out io.Writer) error {
 	if len(fbs) == 0 {
 		return nil
 	}
@@ -414,12 +417,39 @@ func applyFeedback(ctx context.Context, j ports.Journal, fbs []ndjson.Feedback, 
 	if err != nil {
 		return err
 	}
-	applied, already, unknown := 0, 0, 0
+	forgotten := map[types.ID]bool{}
+	for _, f := range m.Forgets() {
+		for _, t := range f.Targets {
+			forgotten[t.ID] = true
+		}
+	}
+	applied, deleted, already, unknown := 0, 0, 0, 0
+	purge := map[types.ID]bool{}
 	for _, fb := range fbs {
 		e, ok := m.Get(fb.LessonID)
 		switch {
+		case forgotten[fb.LessonID]:
+			already++
+			continue
 		case !ok:
 			unknown++
+			continue
+		case fb.Action == ndjson.FeedbackForgetHard:
+			// Deleted with an audit record (D-028): Helix has already
+			// taken it out of its delivery file.
+			plan, err := versions.PlanForget(ctx, j, m, versions.ForgetRequest{Lessons: []types.ID{fb.LessonID}})
+			if err != nil {
+				return err
+			}
+			if _, err := versions.Forget(ctx, j, m, plan, "deleted by the user in Helix (/lessons forget --hard): "+fb.Reason,
+				"helix", time.Now()); err != nil {
+				return err
+			}
+			forgotten[fb.LessonID] = true
+			for id := range plan.IDs() {
+				purge[id] = true
+			}
+			deleted++
 			continue
 		case e.Lesson.State == types.StateEliminated:
 			already++
@@ -427,7 +457,7 @@ func applyFeedback(ctx context.Context, j ports.Journal, fbs []ndjson.Feedback, 
 		}
 		at := fb.At
 		m.SetClock(func() time.Time { return at })
-		reason := fmt.Sprintf("forgotten by the user in Helix (/lessons forget): %s", fb.Reason)
+		reason := fmt.Sprintf("%s in Helix (/lessons forget): %s", metabolome.ReasonUserForget, fb.Reason)
 		if err := m.Move(ctx, fb.LessonID, types.StateEliminated, reason); err != nil {
 			if errors.Is(err, ports.ErrInvalid) {
 				already++
@@ -437,7 +467,12 @@ func applyFeedback(ctx context.Context, j ports.Journal, fbs []ndjson.Feedback, 
 		}
 		applied++
 	}
-	say(out, "  feedback: %d lesson(s) forgotten in Helix eliminated", applied)
+	if len(purge) > 0 {
+		if _, err := ndjson.Purge(from, purge, ""); err != nil && !errors.Is(err, os.ErrNotExist) {
+			return fmt.Errorf("deleted from the journal, not from the recording: %w", err)
+		}
+	}
+	say(out, "  feedback: %d lesson(s) forgotten in Helix eliminated, %d deleted with proof", applied, deleted)
 	if already > 0 {
 		say(out, ", %d already applied", already)
 	}
@@ -445,7 +480,7 @@ func applyFeedback(ctx context.Context, j ports.Journal, fbs []ndjson.Feedback, 
 		say(out, ", %d for lessons this journal does not hold", unknown)
 	}
 	say(out, "\n")
-	if applied > 0 {
+	if applied+deleted > 0 {
 		say(out, "  run `metabolism export` to refresh what Helix delivers\n")
 	}
 	return nil

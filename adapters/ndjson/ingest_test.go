@@ -160,12 +160,15 @@ func TestHelixGoldenV2(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if st.Episodes != 1 || st.Outcomes != 1 || len(st.Feedback) != 1 || st.Invalid+st.Malformed+st.Orphans != 0 {
+	if st.Episodes != 1 || st.Outcomes != 1 || len(st.Feedback) != 2 || st.Invalid+st.Malformed+st.Orphans != 0 {
 		t.Fatalf("stats %+v, problems %v", st, st.Problems)
 	}
 	fb := st.Feedback[0]
 	if fb.Action != FeedbackForget || fb.LessonID != "0199a1b2c3d4e5f6a7b8c9d0e1f4" || fb.Reason == "" {
 		t.Fatalf("feedback %+v", fb)
+	}
+	if hard := st.Feedback[1]; hard.Action != FeedbackForgetHard || hard.LessonID != "0199a1b2c3d4e5f6a7b8c9d0e1f3" {
+		t.Fatalf("hard feedback %+v", hard)
 	}
 	for r, err := range j.Scan(ctx, types.JournalQuery{Kinds: []types.RecordKind{types.RecordEpisode}}) {
 		if err != nil {

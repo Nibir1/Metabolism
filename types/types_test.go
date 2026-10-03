@@ -101,6 +101,8 @@ func TestLifecycle(t *testing.T) {
 		{StateAccepted, StateSuperseded},
 		{StateTrial, StateSuperseded},
 		{StateSuperseded, StateTrial},
+		// Only by the user's rollback, which the metabolome checks (D-028).
+		{StateEliminated, StateTrial},
 		{StateAccepted, StateEliminated},
 	}
 	for _, tr := range allowed {

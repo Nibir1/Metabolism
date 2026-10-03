@@ -5,6 +5,108 @@ change it. Don't reverse a decision without adding a new entry that says why.
 
 ---
 
+### D-028 · 2026-10-03 · The versioned metabolome: versions, rollback to trial, forget-with-proof by guarded delete
+**Context:** Phase 4d. The journal was append-only by trigger, with
+forget-with-proof promised as "a planned, audited migration". Its design was
+agreed with the user before any of it was built:
+- deletion by a guarded trigger, not crypto-shredding or tombstones;
+- forgetting an episode forgets the lessons learned from it, unless
+  `-keep-lessons`;
+- rollback brings an eliminated lesson back only to trial;
+- forget reaches Helix's recording too.
+
+**Decision:**
+- **A version is a journal position.** The metabolome is a fold of the
+  journal (D-014), so "the metabolome at version N" is the fold up to record
+  N (`metabolome.LoadAsOf`, read-only). `metabolism snapshot NAME` appends a
+  `tag` record: the position, a note, and a fingerprint (a hash of every
+  lesson's ID and state). `versions` lists them and says whether each still
+  reproduces its fingerprint. `diff A B` and `lessons -as-of` read any
+  version. Branches (vision.md) are not built: one line of history is what
+  the engine needs now.
+- **Rollback appends; it never rewrites.** Through the metabolome, as
+  rollback evidence naming the version followed by a move:
+  - a lesson in force now and not then is superseded;
+  - a lesson in force then and since eliminated or superseded returns to
+    **trial**, citing the nutrient test it first passed. It is delivered on a
+    coin flip and must earn acceptance again; it never returns straight to
+    accepted;
+  - a lesson in force both times is left alone;
+  - a lesson the user forgot since (`/lessons forget`, or a source episode
+    forgotten with `-keep-lessons`) stays eliminated: rollback undoes the
+    evidence's decisions, not the user's.
+
+  The version before every rollback is tagged automatically, so a rollback
+  can be rolled back. Elimination stays final everywhere else: eliminated →
+  trial is in the lifecycle table, but the metabolome refuses it without
+  rollback evidence.
+- **Forget-with-proof by guarded delete** (journal migration 2):
+  - The no-delete trigger now refuses a delete unless the append-only
+    `forgotten` table names the record. A row there needs a `forget` record
+    already in the journal. Forget records themselves are never deleted.
+    Updates stay forbidden.
+  - A forget record keeps, for each deleted record, its kind, ID, time and a
+    SHA-256 of its stored bytes, plus a digest of a lesson's normalised
+    text. It never keeps the content.
+  - A forgotten ID can never be appended again. Ingest counts such records
+    as "forgotten" and skips them, so re-reading a host's file cannot bring
+    them back. A late outcome of a forgotten episode is refused too.
+  - `secure_delete` zeroes freed pages. `Compact` (VACUUM plus WAL
+    checkpoints) takes the bytes off the disk. A test checks the file's raw
+    bytes.
+  - Digest refuses a proposal whose text digest matches a forgotten lesson,
+    so it is not learned again.
+- **What forget takes:**
+  - an episode with its outcomes;
+  - a lesson with its events and evidence;
+  - lessons learned from a forgotten episode (or, with `-keep-lessons`,
+    eliminates them with the reason);
+  - with `-match TEXT`, every episode and lesson whose records contain the
+    text;
+  - outside the journal: the lines about forgotten records, from Helix's
+    recording and all its rotated generations (rewritten through a temp
+    file, re-read if Helix appended meanwhile), and a forgotten lesson from
+    the delivery file.
+
+  It runs dry by default; `-apply` needs a reason. `forget -verify` checks
+  the journal and the recording.
+- **Helix: `/lessons forget --hard <id> <reason>`.** It stops the lesson at
+  once and removes it from the delivery file, then records feedback with the
+  new action `forget-hard` (wire v2, golden files updated in both repos). At
+  ingest the engine deletes the lesson with proof (`by: helix`) and purges
+  those lines from the recording it has just read.
+
+**Evidence:**
+- Journal: a delete without a forget record fails; so do deleting a forget
+  record, editing `forgotten`, and re-appending a forgotten ID. A unique
+  string in a forgotten episode is on disk before the forget and in neither
+  the file nor the WAL after it.
+- Versions: the fold at a tag reproduces its fingerprint. A past version
+  refuses writes. Rollback restores an eliminated lesson to trial, and
+  undoing the rollback works.
+- End to end (`TestVersionsFromTheCommandLine`): a `forget-hard` from
+  Helix, versions showing tags that no longer reproduce, a rollback that
+  leaves the user's forget alone, a `-match` forget, `-verify`, and the raw
+  journal bytes.
+- Every simulator baseline is unchanged: the ledger and the nutrient test
+  were not touched beyond the shared lifecycle.
+
+**Limits:**
+- Copies outside the journal and the recording are not touched: backups,
+  `.runs/` journals, Time Machine, a judge's or reflector's provider logs
+  for hosted models. The command says so.
+- A line Helix appends between the purge's last check and its rename is
+  lost; the window is microseconds. An interactive session appends rarely.
+- A forget rewrites history for every version: a version taken before it no
+  longer reproduces its fingerprint, and `versions` says so.
+- Forget record IDs and timestamps stay (they are the proof). Forgetting is
+  of content, not of the fact that something was forgotten.
+
+**Revisit when:** the user wants branches (trying a set of lessons without
+leaving the main line), or forget needs to reach hosted providers.
+
+---
+
 ### D-027 · 2026-10-03 · Contradictions and supersession: the nutrient test in context, and pairs in the ledger
 **What was missing:**
 - The nutrient test replayed a candidate against an empty context, a world

@@ -6,17 +6,22 @@
 //   - Durable: WAL with synchronous=FULL, so a record is on disk before
 //     Append returns. The crash test kills a writer mid-stream and checks that
 //     nothing it confirmed is lost.
-//   - Append-only: triggers refuse UPDATE and DELETE at the database level,
-//     so no code path, including a future bug, can rewrite history.
-//     Forget-with-proof (Phase 4) will add a separate, audited redaction path
-//     through its own migration.
+//   - Append-only: triggers refuse UPDATE at the database level, and DELETE
+//     of any record a forget record does not name (D-028), so no code path,
+//     including a future bug, can rewrite history. Forget is the one audited
+//     way out: its record lists what it deleted, with a SHA-256 of each, and
+//     can never itself be deleted. A forgotten ID can never be appended
+//     again. secure_delete zeroes freed pages, and Compact rebuilds the file
+//     so the bytes leave the disk.
 //   - Private: the file and its directory are created 0600 and 0700.
 package sqlite
 
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
 	"database/sql"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -50,6 +55,28 @@ var migrations = []string{
 		BEGIN SELECT RAISE(ABORT, 'journal is append-only'); END;
 	CREATE TRIGGER records_no_delete BEFORE DELETE ON records
 		BEGIN SELECT RAISE(ABORT, 'journal is append-only'); END;`,
+	// 2: forget-with-proof (D-028). A record may be deleted only when the
+	// append-only table forgotten names it, and a row there needs a forget
+	// record that is already in the journal. Forget records are never
+	// deleted, and a forgotten ID never comes back.
+	`CREATE TABLE forgotten (
+		id        TEXT PRIMARY KEY, -- a record a forget deleted
+		forget_id TEXT NOT NULL     -- that forget record
+	);
+	CREATE TRIGGER forgotten_needs_forget BEFORE INSERT ON forgotten
+		WHEN NOT EXISTS (SELECT 1 FROM records WHERE kind = 'forget' AND id = NEW.forget_id)
+		BEGIN SELECT RAISE(ABORT, 'a forgotten row needs its forget record'); END;
+	CREATE TRIGGER forgotten_no_update BEFORE UPDATE ON forgotten
+		BEGIN SELECT RAISE(ABORT, 'forgotten is append-only'); END;
+	CREATE TRIGGER forgotten_no_delete BEFORE DELETE ON forgotten
+		BEGIN SELECT RAISE(ABORT, 'forgotten is append-only'); END;
+	DROP TRIGGER records_no_delete;
+	CREATE TRIGGER records_no_delete BEFORE DELETE ON records
+		WHEN OLD.kind = 'forget' OR NOT EXISTS (SELECT 1 FROM forgotten WHERE id = OLD.id)
+		BEGIN SELECT RAISE(ABORT, 'journal is append-only: a record is deleted only by a forget record that names it'); END;
+	CREATE TRIGGER records_not_forgotten BEFORE INSERT ON records
+		WHEN EXISTS (SELECT 1 FROM forgotten WHERE id = NEW.id)
+		BEGIN SELECT RAISE(ABORT, 'record was forgotten'); END;`,
 }
 
 // SchemaVersion is the schema this build writes.
@@ -81,7 +108,10 @@ func Open(ctx context.Context, path string) (*Journal, error) {
 	dsn := "file:" + path +
 		"?_pragma=journal_mode(WAL)" +
 		"&_pragma=synchronous(FULL)" +
-		"&_pragma=busy_timeout(5000)"
+		"&_pragma=busy_timeout(5000)" +
+		// Freed pages are zeroed, so a forgotten record's bytes do not
+		// linger in the file (D-028).
+		"&_pragma=secure_delete(ON)"
 	db, err := sql.Open("sqlite", dsn)
 	if err != nil {
 		return nil, fmt.Errorf("open journal: %w", err)
@@ -157,6 +187,13 @@ func (j *Journal) AppendOutcome(ctx context.Context, o types.Outcome) error {
 	o.At = o.At.UTC()
 	return j.append(ctx, types.RecordOutcome, o.ID, o.EpisodeID, o.At, o, func(tx *sql.Tx) error {
 		var one int
+		// A late outcome for a forgotten episode is forgotten with it.
+		if err := tx.QueryRowContext(ctx, `SELECT count(*) FROM forgotten WHERE id = ?`, o.EpisodeID).Scan(&one); err != nil {
+			return err
+		}
+		if one > 0 {
+			return fmt.Errorf("%w: outcome of %s", ports.ErrForgotten, o.EpisodeID)
+		}
 		err := tx.QueryRowContext(ctx,
 			`SELECT 1 FROM records WHERE kind = ? AND id = ?`, types.RecordEpisode, o.EpisodeID).Scan(&one)
 		if errors.Is(err, sql.ErrNoRows) {
@@ -196,6 +233,87 @@ func (j *Journal) AppendEvidence(ctx context.Context, e types.Evidence) error {
 	return j.append(ctx, types.RecordEvidence, e.ID, e.LessonID, e.At, e, j.lessonExists(ctx, e.LessonID))
 }
 
+// AppendTag names a version of the metabolome.
+func (j *Journal) AppendTag(ctx context.Context, t types.Tag) error {
+	if err := t.Validate(); err != nil {
+		return fmt.Errorf("%w: %w", ports.ErrInvalid, err)
+	}
+	t.At = t.At.UTC()
+	return j.append(ctx, types.RecordTag, t.ID, "", t.At, t, nil)
+}
+
+// Forget deletes f's targets with f as their audit record, in one
+// transaction: the forget record is appended, the targets are listed in
+// forgotten (which the delete trigger requires), then deleted. Call Compact
+// afterwards to take the freed bytes off the disk.
+func (j *Journal) Forget(ctx context.Context, f types.Forget) (types.Forget, error) {
+	if err := f.Validate(); err != nil {
+		return f, fmt.Errorf("%w: %w", ports.ErrInvalid, err)
+	}
+	f.At = f.At.UTC()
+	tx, err := j.db.BeginTx(ctx, nil)
+	if err != nil {
+		return f, err
+	}
+	defer func() { _ = tx.Rollback() }()
+	for i, t := range f.Targets {
+		var (
+			kind string
+			at   int64
+			body []byte
+		)
+		err := tx.QueryRowContext(ctx, `SELECT kind, at, body FROM records WHERE id = ?`, t.ID).Scan(&kind, &at, &body)
+		if errors.Is(err, sql.ErrNoRows) {
+			return f, fmt.Errorf("%w: forget %s: no such record", ports.ErrInvalid, t.ID)
+		}
+		if err != nil {
+			return f, err
+		}
+		if kind == string(types.RecordForget) {
+			return f, fmt.Errorf("%w: %s is a forget record, which is never deleted", ports.ErrInvalid, t.ID)
+		}
+		sum := sha256.Sum256(body)
+		f.Targets[i].Kind, f.Targets[i].At, f.Targets[i].SHA256 = types.RecordKind(kind), time.Unix(0, at).UTC(), hex.EncodeToString(sum[:])
+	}
+	body, err := json.Marshal(f)
+	if err != nil {
+		return f, err
+	}
+	if _, err := tx.ExecContext(ctx, `INSERT INTO records (kind, id, ref, at, body) VALUES (?, ?, NULL, ?, ?)`,
+		types.RecordForget, f.ID, f.At.UnixNano(), body); err != nil {
+		return f, fmt.Errorf("append forget: %w", err)
+	}
+	for _, t := range f.Targets {
+		if _, err := tx.ExecContext(ctx, `INSERT INTO forgotten (id, forget_id) VALUES (?, ?)`, t.ID, f.ID); err != nil {
+			return f, fmt.Errorf("forget %s: %w", t.ID, err)
+		}
+		if _, err := tx.ExecContext(ctx, `DELETE FROM records WHERE id = ?`, t.ID); err != nil {
+			return f, fmt.Errorf("forget %s: %w", t.ID, err)
+		}
+	}
+	return f, tx.Commit()
+}
+
+// Compact rebuilds the file and empties the write-ahead log, so pages freed
+// by a Forget leave the disk, not just the tables.
+func (j *Journal) Compact(ctx context.Context) error {
+	for _, stmt := range []string{`PRAGMA wal_checkpoint(TRUNCATE)`, `VACUUM`, `PRAGMA wal_checkpoint(TRUNCATE)`} {
+		if _, err := j.db.ExecContext(ctx, stmt); err != nil {
+			return fmt.Errorf("compact: %s: %w", stmt, err)
+		}
+	}
+	return nil
+}
+
+// LastSeq is the Seq of the newest record (0 when empty).
+func (j *Journal) LastSeq(ctx context.Context) (int64, error) {
+	var seq sql.NullInt64
+	if err := j.db.QueryRowContext(ctx, `SELECT max(seq) FROM records`).Scan(&seq); err != nil {
+		return 0, err
+	}
+	return seq.Int64, nil
+}
+
 func (j *Journal) lessonExists(ctx context.Context, id types.ID) func(*sql.Tx) error {
 	return func(tx *sql.Tx) error {
 		var one int
@@ -223,6 +341,13 @@ func (j *Journal) append(ctx context.Context, kind types.RecordKind, id, ref typ
 	}
 	defer func() { _ = tx.Rollback() }()
 
+	var forgotten int
+	if err := tx.QueryRowContext(ctx, `SELECT count(*) FROM forgotten WHERE id = ?`, id).Scan(&forgotten); err != nil {
+		return err
+	}
+	if forgotten > 0 {
+		return fmt.Errorf("%w: %s", ports.ErrForgotten, id)
+	}
 	if check != nil {
 		if err := check(tx); err != nil {
 			return err
@@ -309,6 +434,10 @@ func buildQuery(q types.JournalQuery) (string, []any) {
 		where = append(where, "seq > ?")
 		args = append(args, q.AfterSeq)
 	}
+	if q.UpToSeq > 0 {
+		where = append(where, "seq <= ?")
+		args = append(args, q.UpToSeq)
+	}
 	if !q.Since.IsZero() {
 		where = append(where, "at >= ?")
 		args = append(args, q.Since.UnixNano())
@@ -355,6 +484,12 @@ func decode(r *types.Record, body []byte) error {
 	case types.RecordEvidence:
 		r.Evidence = new(types.Evidence)
 		return json.Unmarshal(body, r.Evidence)
+	case types.RecordTag:
+		r.Tag = new(types.Tag)
+		return json.Unmarshal(body, r.Tag)
+	case types.RecordForget:
+		r.Forget = new(types.Forget)
+		return json.Unmarshal(body, r.Forget)
 	}
 	return fmt.Errorf("unknown record kind %q", r.Kind)
 }

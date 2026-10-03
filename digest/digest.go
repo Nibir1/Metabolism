@@ -6,7 +6,7 @@
 // shown, its kinds and scopes must be ones the host accepts, its text must pass
 // the immune screen, and it must not repeat a lesson already known (including
 // one already eliminated, so a rejected lesson cannot return by being proposed
-// again). Only then is it recorded, as a candidate or, if learned from
+// again, or one the user forgot with proof). Only then is it recorded, as a candidate or, if learned from
 // untrusted content, quarantined.
 package digest
 
@@ -94,6 +94,12 @@ func Run(ctx context.Context, m *metabolome.Metabolome, r ports.Reflector, batch
 			reject(err.Error())
 			continue
 		}
+		// A lesson the user forgot with proof is gone, words and all; only
+		// its digest is kept, so it is not learned again (D-028).
+		if m.ForgottenText(lesson.Text) {
+			reject("forgotten by the user")
+			continue
+		}
 		key := normalize(lesson.Text)
 		if st, dup := known[key]; dup {
 			reject("already known (" + string(st) + ")")
@@ -159,11 +165,7 @@ func shape(p types.Lesson, byID map[types.ID]types.Episode, origin string) (type
 
 // normalize folds case, punctuation and spacing, so trivially reworded copies
 // of a lesson count as the same lesson.
-func normalize(s string) string {
-	return strings.Join(strings.FieldsFunc(strings.ToLower(s), func(r rune) bool {
-		return (r < 'a' || r > 'z') && (r < '0' || r > '9')
-	}), " ")
-}
+func normalize(s string) string { return types.NormalizeText(s) }
 
 func orDefault(s, d string) string {
 	if strings.TrimSpace(s) == "" {
