@@ -129,3 +129,23 @@ func TestBuildProjectOutlinesTheTree(t *testing.T) {
 		t.Error("hidden directories belong out of the outline")
 	}
 }
+
+// One bad element or a broken document costs what is broken, not the day.
+func TestParseSurvivesABadAnswer(t *testing.T) {
+	ps := []Project{{Path: "Dev/Metabolism"}}
+	good := `{"kind":"explain","text":"explain the ledger in Dev/Metabolism"}`
+	for name, text := range map[string]string{
+		"trailing text":   `{"requests":[` + good + `]} hope this helps {}`,
+		"bad element":     `{"requests":[` + good + `,{"kind":"explain","text":"x in Dev/Metabolism","repeat":"no"},{"kind":7}]}`,
+		"unescaped quote": `{"requests":[` + good + `,{"kind":"explain","text":"say "hi" in Dev/Metabolism"}]}`,
+		"cut off":         `{"requests":[` + good + `,{"kind":"explain","text":"unfinished`,
+	} {
+		got, _, err := Parse(text, ps)
+		if err != nil || len(got) == 0 || got[0].Text != "explain the ledger in Dev/Metabolism" {
+			t.Errorf("%s: %v %+v", name, err, got)
+		}
+	}
+	if _, _, err := Parse("I cannot help with that.", ps); err == nil {
+		t.Error("an answer with no JSON gave no reason")
+	}
+}

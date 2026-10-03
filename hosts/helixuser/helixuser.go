@@ -19,6 +19,7 @@ package helixuser
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"math/rand/v2"
 	"os"
@@ -179,7 +180,10 @@ Spread them across the projects. Today the developer is mostly working on %s.
 	if err != nil {
 		return nil, fmt.Errorf("helixuser: %w", err)
 	}
-	gen, dropped := Parse(resp.Text, projects)
+	gen, dropped, err := Parse(resp.Text, projects)
+	if err != nil {
+		return nil, fmt.Errorf("helixuser: %w: %s", err, resp.Describe())
+	}
 	if len(gen) == 0 {
 		return nil, fmt.Errorf("helixuser: the model wrote no usable requests (%d dropped): %s", dropped, resp.Describe())
 	}
@@ -201,30 +205,64 @@ Spread them across the projects. Today the developer is mostly working on %s.
 }
 
 // Parse reads the model's answer, dropping what fails the screen. It returns
-// the usable requests and how many were dropped.
-func Parse(text string, projects []Project) ([]Request, int) {
-	start, end := strings.Index(text, "{"), strings.LastIndex(text, "}")
-	if start < 0 || end <= start {
-		return nil, 0
-	}
-	var doc struct {
-		Requests []Request `json:"requests"`
-	}
-	if err := json.Unmarshal([]byte(text[start:end+1]), &doc); err != nil {
-		return nil, 0
+// the usable requests, how many were dropped, and, when nothing could be
+// read at all, why.
+//
+// One bad element costs that element, not the day: the first automated run
+// after Phase 4 lost a whole batch of 3409 tokens to a document that did not
+// decode as a whole, with no way to see why. So the array is decoded element
+// by element, trailing text after the document is ignored, and a document
+// that does not parse at all (a stray quote, a cut-off answer) is searched
+// for the request objects it does hold.
+func Parse(text string, projects []Project) ([]Request, int, error) {
+	elems, err := requestElements(text)
+	if err != nil {
+		return nil, 0, err
 	}
 	var out []Request
 	dropped := 0
-	for _, q := range doc.Requests {
-		q.Text = strings.Join(strings.Fields(q.Text), " ")
-		if !Screen(q, projects) {
+	for _, raw := range elems {
+		var q struct {
+			Kind string `json:"kind"`
+			Text string `json:"text"`
+		}
+		if json.Unmarshal(raw, &q) != nil {
 			dropped++
 			continue
 		}
-		q.Repeat = false
-		out = append(out, q)
+		r := Request{Kind: q.Kind, Text: strings.Join(strings.Fields(q.Text), " ")}
+		if !Screen(r, projects) {
+			dropped++
+			continue
+		}
+		out = append(out, r)
 	}
-	return out, dropped
+	return out, dropped, nil
+}
+
+// requestObject matches one flat {"kind": ..., "text": ...} object.
+var requestObject = regexp.MustCompile(`\{[^{}]*"text"\s*:[^{}]*\}`)
+
+func requestElements(text string) ([]json.RawMessage, error) {
+	start := strings.Index(text, "{")
+	if start < 0 {
+		return nil, errors.New("no JSON object in the answer")
+	}
+	var doc struct {
+		Requests []json.RawMessage `json:"requests"`
+	}
+	err := json.NewDecoder(strings.NewReader(text[start:])).Decode(&doc)
+	if err == nil {
+		return doc.Requests, nil
+	}
+	var out []json.RawMessage
+	for _, m := range requestObject.FindAllString(text[start:], -1) {
+		out = append(out, json.RawMessage(m))
+	}
+	if len(out) == 0 {
+		return nil, fmt.Errorf("the answer is not a requests document: %w", err)
+	}
+	return out, nil
 }
 
 // destructive matches requests no synthetic user may send, whatever Helix
