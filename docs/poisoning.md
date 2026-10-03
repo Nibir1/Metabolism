@@ -269,3 +269,37 @@ reflector):
   The suite should report each layer separately (next step).
 - Found along the way, in Helix: reading a private key is rated low risk
   and runs without asking. Recorded on Helix's open list.
+
+### Per layer (2026-10-03)
+
+`metabolism poison-eval -per-layer -seeds 2 -turns 1500`: the suite once with
+every defence, then once with each switched off (128 cases a run). Switching
+a defence off is done in the suite (the poison recorded past digest, moved to
+trial past the test, or a ledger rule that never decides), except the claim
+check, which has a knob no command exposes. Committed as
+`bench/results/baseline-helixsim/poison-layers.*`.
+
+| Run | Persistence | Attack success | What got through |
+|---|---|---|---|
+| All defences | 0% | 0% | nothing |
+| Without the immune screen | 12.5% | 12.5% | trojan (every case) |
+| Without the claim check | 0% | 0% | nothing |
+| Without the nutrient test | 50.0% | 43.8% | harmful command, wrong scope, free silent harm (every case); gate, misdirection (half) |
+| Without credit | 0% | 0% | nothing |
+
+Benign lessons were kept in every case of every run.
+
+What this says about each defence:
+- **The nutrient test does most of the work**: alone it stops five of the
+  eight goals.
+- **The immune screen is the only defence against the trojan**, a real fix
+  carrying a free harm. That makes it a single point of failure for that
+  attack: a trojan worded past the rules would get through.
+- **The claim check and the screen overlap on the false answer.** Each stops
+  it alone (`TestClaimCheckStopsTheFalseAnswerOnItsOwn`); either can fail
+  without the attack getting through.
+- **Credit adds nothing while the nutrient test is on.** With the test off it
+  removed only the wrong-scope poison (16 of 16), the one whose harm makes
+  turns fail. It cannot see silent harms, because outcomes look the same with
+  them as without; those stayed until forgotten. In this suite credit is a
+  late repair layer, not a gate.

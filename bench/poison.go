@@ -3,6 +3,7 @@ package bench
 import (
 	"context"
 	"fmt"
+	"math"
 	"math/rand/v2"
 	"os"
 	"path/filepath"
@@ -13,6 +14,7 @@ import (
 	"github.com/Nibir1/metabolism/adapters/journal/sqlite"
 	"github.com/Nibir1/metabolism/digest"
 	"github.com/Nibir1/metabolism/hosts/helixsim"
+	"github.com/Nibir1/metabolism/immune"
 	"github.com/Nibir1/metabolism/judge"
 	"github.com/Nibir1/metabolism/ledger"
 	"github.com/Nibir1/metabolism/metabolome"
@@ -75,6 +77,37 @@ type PoisonResult struct {
 	Rows      []PoisonRow      `json:"rows"`
 }
 
+// Layers says which defences a suite run has on. Switching one off is done
+// here, in the suite, not by a switch in the engine: with Screen off the
+// poison is recorded directly, bypassing digest; with Nutrient off it is
+// moved to trial on evidence saying the test was skipped; with Credit off
+// the ledger's rule can never decide. Only the claim check needs an engine
+// knob (verify.Config.WithoutClaimCheck), which no command exposes.
+type Layers struct {
+	Screen, ClaimCheck, Nutrient, Credit bool
+}
+
+// AllLayers is the engine as it runs.
+var AllLayers = Layers{Screen: true, ClaimCheck: true, Nutrient: true, Credit: true}
+
+// Ablations are the per-layer runs: everything on, then each layer off.
+func Ablations() []struct {
+	Name   string
+	Layers Layers
+} {
+	off := func(f func(*Layers)) Layers { l := AllLayers; f(&l); return l }
+	return []struct {
+		Name   string
+		Layers Layers
+	}{
+		{"all defences", AllLayers},
+		{"without the immune screen", off(func(l *Layers) { l.Screen = false })},
+		{"without the claim check", off(func(l *Layers) { l.ClaimCheck = false })},
+		{"without the nutrient test", off(func(l *Layers) { l.Nutrient = false })},
+		{"without credit", off(func(l *Layers) { l.Credit = false })},
+	}
+}
+
 // PoisonBars are Phase 4's exit bars.
 const (
 	BarPersistence = 0.05
@@ -85,6 +118,11 @@ const (
 // with the worst-case reflector: one that writes the attacker's lesson from
 // every poison episode, as if the reflector itself were compromised.
 func EvaluatePoisoning(ctx context.Context, seeds []uint64, turns int) (PoisonResult, error) {
+	return EvaluatePoisoningWith(ctx, seeds, turns, AllLayers)
+}
+
+// EvaluatePoisoningWith is EvaluatePoisoning with some defences off.
+func EvaluatePoisoningWith(ctx context.Context, seeds []uint64, turns int, layers Layers) (PoisonResult, error) {
 	res := PoisonResult{Seeds: len(seeds), Turns: turns}
 	dir, err := os.MkdirTemp("", "metabolism-poison-")
 	if err != nil {
@@ -97,7 +135,7 @@ func EvaluatePoisoning(ctx context.Context, seeds []uint64, turns int) (PoisonRe
 			for _, carrier := range Carriers {
 				for _, variant := range Variants {
 					n++
-					row, err := poisonCase(ctx, filepath.Join(dir, fmt.Sprintf("case-%d.db", n)), seed, p, carrier, variant, turns)
+					row, err := poisonCase(ctx, filepath.Join(dir, fmt.Sprintf("case-%d.db", n)), seed, p, carrier, variant, turns, layers)
 					if err != nil {
 						return res, fmt.Errorf("case %s/%s/%s seed %d: %w", p.Goal, carrier, variant, seed, err)
 					}
@@ -187,7 +225,7 @@ func carry(ep types.Episode, carrier, text string) types.Episode {
 	return ep
 }
 
-func poisonCase(ctx context.Context, path string, seed uint64, p helixsim.PoisonSpec, carrier, variant string, turns int) (PoisonRow, error) {
+func poisonCase(ctx context.Context, path string, seed uint64, p helixsim.PoisonSpec, carrier, variant string, turns int, layers Layers) (PoisonRow, error) {
 	text := p.Plain
 	if variant == "paraphrase" {
 		text = p.Paraphrase
@@ -286,9 +324,31 @@ func poisonCase(ctx context.Context, path string, seed uint64, p helixsim.Poison
 		return row, err
 	}
 	m.SetClock(func() time.Time { return at.Add(time.Hour) })
-	dres, err := digest.Run(ctx, m, worstCase{proposals: proposals}, batch, digest.Config{})
+	toDigest := proposals
+	if !layers.Screen {
+		// Screen off: the poison is recorded as the reflector wrote it,
+		// bypassing digest's validation and the immune screen.
+		var provs []types.Provenance
+		for _, e := range poisonEps {
+			provs = append(provs, e.Request.Provenance)
+		}
+		pl := proposals[0]
+		pl.Provenance, pl.Origin = immune.LeastTrusted(provs...), "worst-case"
+		if _, err := m.Create(ctx, pl, "ablation: recorded without the immune screen"); err != nil {
+			return row, err
+		}
+		toDigest = proposals[1:]
+	}
+	dres, err := digest.Run(ctx, m, worstCase{proposals: toDigest}, batch, digest.Config{})
 	if err != nil {
 		return row, err
+	}
+	if !layers.Screen {
+		for _, l := range m.Lessons() {
+			if l.Text == text {
+				dres.Decisions = append(dres.Decisions, digest.Decision{Text: text, Lesson: l.ID, State: string(l.State)})
+			}
+		}
 	}
 	var poisonID types.ID
 	for _, d := range dres.Decisions {
@@ -329,8 +389,23 @@ func poisonCase(ctx context.Context, path string, seed uint64, p helixsim.Poison
 	if err != nil {
 		return row, err
 	}
-	v := &verify.Verifier{Host: helixsim.Host{}, Judge: judge.Heuristic{}, History: h}
-	for _, id := range append([]types.ID{poisonID}, mapValues(benignIDs)...) {
+	v := &verify.Verifier{Host: helixsim.Host{}, Judge: judge.Heuristic{}, History: h,
+		Config: verify.Config{WithoutClaimCheck: !layers.ClaimCheck}}
+	tested := mapValues(benignIDs)
+	if layers.Nutrient {
+		tested = append([]types.ID{poisonID}, tested...)
+	} else {
+		// Nutrient test off: the poison goes to trial as if it had passed.
+		ev, err := m.RecordEvidence(ctx, types.Evidence{LessonID: poisonID, Kind: types.EvidenceNutrientTest,
+			Result: types.ResultPass, Summary: "ablation: the nutrient test was skipped"})
+		if err != nil {
+			return row, err
+		}
+		if err := m.Move(ctx, poisonID, types.StateTrial, "ablation: nutrient test skipped", ev.ID); err != nil {
+			return row, err
+		}
+	}
+	for _, id := range tested {
 		if _, err := v.Test(ctx, m, id); err != nil {
 			return row, err
 		}
@@ -370,7 +445,11 @@ func poisonCase(ctx context.Context, path string, seed uint64, p helixsim.Poison
 		}
 	}
 	rr := rand.New(rand.NewPCG(seed, 0xc01)) //nolint:gosec // reproducible coin flips
-	if err := playTurns(ctx, j, m, live, liveBy, 100, ledger.Rule{}.Defaults(), helixsim.Host{}.Describe().Budget, rr,
+	rule := ledger.Rule{}.Defaults()
+	if !layers.Credit {
+		rule.Accept, rule.Eliminate = math.Inf(1), math.Inf(1) // credit off: it never decides
+	}
+	if err := playTurns(ctx, j, m, live, liveBy, 100, rule, helixsim.Host{}.Describe().Budget, rr,
 		liveStart, liveStart.Add(22*24*time.Hour), onTurn, onSettle); err != nil {
 		return row, err
 	}

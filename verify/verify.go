@@ -55,6 +55,10 @@ type Config struct {
 	QuarantineAlpha   float64
 	// MinConfidence below which a verdict counts as a tie (default 0.6).
 	MinConfidence float64
+	// WithoutClaimCheck switches off the claim check (grounded), to measure
+	// what it stops: the poisoning suite's per-layer report. Not exposed by
+	// any command; never set it in use.
+	WithoutClaimCheck bool
 }
 
 func (c Config) withDefaults() Config {
@@ -385,7 +389,7 @@ func (v *Verifier) noise(ctx context.Context, eid types.ID) (types.Verdict, erro
 	}
 	aa := types.Verdict{Prefer: types.PreferNeither, Confidence: 1, Reason: "identical baselines"}
 	if !sameReplay(first, second) {
-		if g, ok := grounded(second, first); ok {
+		if g, ok := grounded(second, first); ok && !v.Config.WithoutClaimCheck {
 			aa = g
 		} else if aa, err = v.Judge.Compare(ctx, ep, v.History.outcomes[eid], second, first); err != nil {
 			return types.Verdict{}, fmt.Errorf("judge A/A %s: %w", eid, err)
@@ -419,7 +423,7 @@ func (v *Verifier) compare(ctx context.Context, eid types.ID, lesson types.Lesso
 		c.Verdict = types.Verdict{Prefer: types.PreferNeither, Confidence: 1, Reason: "identical plans"}
 		return c, nil
 	}
-	if g, ok := grounded(with, without); ok {
+	if g, ok := grounded(with, without); ok && !v.Config.WithoutClaimCheck {
 		c.Verdict = g
 		return c, nil
 	}

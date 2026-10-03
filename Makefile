@@ -109,6 +109,8 @@ baseline-sim: ## regenerate the synthetic baseline in bench/results/
 		| tee bench/results/baseline-helixsim/credit.txt
 	go run ./cmd/metabolism poison-eval -seeds 2 -turns 1500 -out bench/results/baseline-helixsim \
 		| tee bench/results/baseline-helixsim/poison.txt
+	go run ./cmd/metabolism poison-eval -per-layer -seeds 2 -turns 1500 -out bench/results/baseline-helixsim \
+		| tee bench/results/baseline-helixsim/poison-layers.txt
 	rm -f bench/results/baseline-helixsim/journal.db*
 
 # ---------------------------------------------------------------- Helix

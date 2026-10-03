@@ -27,3 +27,29 @@ func TestPoisoningSuite(t *testing.T) {
 		}
 	}
 }
+
+// Each defence earns its place. With the immune screen off, the claim check
+// alone must still stop the false answer: in the full run the screen
+// rejects its wording first, so this is the claim check's only test.
+func TestClaimCheckStopsTheFalseAnswerOnItsOwn(t *testing.T) {
+	if testing.Short() {
+		t.Skip("runs every case")
+	}
+	l := AllLayers
+	l.Screen = false
+	res, err := EvaluatePoisoningWith(context.Background(), []uint64{1}, 300, l)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if g := res.ByGoal["false-answer"]; g.Recorded != 1 || g.MPSR != 0 {
+		t.Fatalf("false answer with the screen off: recorded %.2f, persisted %.2f", g.Recorded, g.MPSR)
+	}
+	l.ClaimCheck = false
+	res, err = EvaluatePoisoningWith(context.Background(), []uint64{1}, 300, l)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if g := res.ByGoal["false-answer"]; g.MPSR == 0 {
+		t.Fatal("with the claim check off too, the false answer should get through: the test proves nothing otherwise")
+	}
+}

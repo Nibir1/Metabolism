@@ -8,6 +8,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 	"text/tabwriter"
 	"time"
 
@@ -192,12 +193,16 @@ func cmdPoisonEval(ctx context.Context, args []string, out io.Writer) error {
 	seeds := fs.Int("seeds", 2, "simulated histories (48 cases each)")
 	turns := fs.Int("turns", 1500, "live turns per case")
 	outDir := fs.String("out", "", "directory to write poison.json (optional)")
+	perLayer := fs.Bool("per-layer", false, "run once with every defence, then once with each switched off, and show what each stops")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
 	var ss []uint64
 	for i := 1; i <= *seeds; i++ {
 		ss = append(ss, uint64(i))
+	}
+	if *perLayer {
+		return poisonPerLayer(ctx, ss, *turns, *outDir, out)
 	}
 	r, err := bench.EvaluatePoisoning(ctx, ss, *turns)
 	if err != nil {
@@ -225,6 +230,53 @@ func cmdPoisonEval(ctx context.Context, args []string, out io.Writer) error {
 		if err := writeFile(filepath.Join(*outDir, "poison.json"), func(w io.Writer) error { return writeJSON(w, r) }); err != nil {
 			return err
 		}
+	}
+	return nil
+}
+
+// poisonPerLayer runs the suite with every defence, then with each switched
+// off, and reports which goals get through when a layer is missing.
+func poisonPerLayer(ctx context.Context, seeds []uint64, turns int, outDir string, out io.Writer) error {
+	type run struct {
+		Name   string             `json:"name"`
+		Layers bench.Layers       `json:"layers"`
+		Result bench.PoisonResult `json:"result"`
+	}
+	var runs []run
+	for _, a := range bench.Ablations() {
+		r, err := bench.EvaluatePoisoningWith(ctx, seeds, turns, a.Layers)
+		if err != nil {
+			return fmt.Errorf("%s: %w", a.Name, err)
+		}
+		runs = append(runs, run{Name: a.Name, Layers: a.Layers, Result: r})
+	}
+	say(out, "poisoning suite, per layer · %d cases per run · worst-case reflector\n\n", runs[0].Result.Overall.Cases)
+	tw := tabwriter.NewWriter(out, 0, 0, 2, ' ', 0)
+	say(tw, "  RUN\tPERSISTENCE\tATTACK SUCCESS\tBENIGN KEPT\tGOALS THAT GOT THROUGH (persisted)\n")
+	for _, r := range runs {
+		var through []string
+		for _, p := range helixsim.Poisons() {
+			if g := r.Result.ByGoal[p.Goal]; g.MPSR > 0 {
+				through = append(through, fmt.Sprintf("%s %s", p.Goal, pct(g.MPSR)))
+			}
+		}
+		kept := 0
+		for _, row := range r.Result.Rows {
+			if row.BenignKept {
+				kept++
+			}
+		}
+		say(tw, "  %s\t%s\t%s\t%d/%d\t%s\n", r.Name, pct(r.Result.Overall.MPSR), pct(r.Result.Overall.E2EASR),
+			kept, len(r.Result.Rows), orDash(strings.Join(through, ", ")))
+	}
+	_ = tw.Flush()
+	say(out, "\nA layer's contribution is what gets through when it alone is off. Bars: persistence <= %.0f%%, attack success <= %.0f%%.\n",
+		100*bench.BarPersistence, 100*bench.BarE2EASR)
+	if outDir != "" {
+		if err := os.MkdirAll(outDir, 0o755); err != nil {
+			return err
+		}
+		return writeFile(filepath.Join(outDir, "poison-layers.json"), func(w io.Writer) error { return writeJSON(w, runs) })
 	}
 	return nil
 }
