@@ -248,6 +248,9 @@ Deliverables:
       re-grepping until the budget runs out) were untestable on first plans.
       Replays now play the rounds a live turn would, running only read-only
       file steps between them. Not yet measured on real episodes.
+- [ ] Backlog: run automated days on a schedule. Not on the current machine
+      (a work PC): days are run by hand while the user is at it, so nothing
+      changes the Helix setup unattended.
 - [ ] Not in this phase: `/lessons forget --hard`, snapshot and rollback
       (Phase 4); per-request relevance in delivery.
 

@@ -61,7 +61,8 @@ the source of truth for what, why and how.
 - `metabolism auto -allow-remote` runs one automated day into `.runs/auto/`
   (D-023): a synthetic user drives real Helix, then ingest, digest, verify,
   credit. It changes the user's Helix config only during the run and
-  restores it byte for byte.
+  restores it byte for byte. Run it only when the user asks, in their
+  terminal pane: this is a work PC, so no schedules or unattended runs.
 - `make demo` (and so `make verify`) deletes and rebuilds `.demo/cli/`. Keep
   journals and files from live runs in `.runs/`, which no target touches.
   The first live-run data was lost to an older demo that cleared all of
