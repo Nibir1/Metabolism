@@ -44,7 +44,10 @@ race: ## all tests with the race detector
 	go test -race -count=1 ./...
 
 lint: ## gofmt, go vet, golangci-lint
-	@test -z "$$(gofmt -l .)" || { echo "gofmt needed:"; gofmt -l .; exit 1; }
+	@# Dot-folders (.runs, .demo) are skipped, as go vet and go test skip them:
+	@# .runs/auto/workspace holds clones of other repositories.
+	@files=$$(find . -name '*.go' -not -path './.*'); \
+	test -z "$$(gofmt -l $$files)" || { echo "gofmt needed:"; gofmt -l $$files; exit 1; }
 	go vet ./...
 	golangci-lint run ./...
 

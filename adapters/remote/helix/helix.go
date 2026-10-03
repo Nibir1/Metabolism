@@ -174,16 +174,28 @@ func (h *Host) roundTrip(ctx context.Context, req Request) (Response, error) {
 	// is still blocked on the old one.
 	lines, stderr := h.lines, h.stderr
 	go func() {
-		if !lines.Scan() {
-			err := lines.Err()
-			if err == nil {
-				err = io.EOF
+		// A line that is not a JSON object is output that strayed onto the
+		// protocol stream (a warning printed through a writer bound to stdout
+		// before helix replay redirected it): kept with stderr, not taken as
+		// a response. A line that is an object must be a valid response.
+		var text string
+		for {
+			if !lines.Scan() {
+				err := lines.Err()
+				if err == nil {
+					err = io.EOF
+				}
+				done <- result{err: fmt.Errorf("helix replay ended: %w (stderr: %s)", err, tail(stderr.String()))}
+				return
 			}
-			done <- result{err: fmt.Errorf("helix replay ended: %w (stderr: %s)", err, tail(stderr.String()))}
-			return
+			text = strings.TrimSpace(lines.Text())
+			if strings.HasPrefix(text, "{") {
+				break
+			}
+			_, _ = stderr.Write([]byte("[stray on stdout] " + text + "\n"))
 		}
 		var resp Response
-		dec := json.NewDecoder(strings.NewReader(lines.Text()))
+		dec := json.NewDecoder(strings.NewReader(text))
 		dec.DisallowUnknownFields()
 		if err := dec.Decode(&resp); err != nil {
 			done <- result{err: fmt.Errorf("helix replay sent a line that is not a v%d response: %w", req.V, err)}

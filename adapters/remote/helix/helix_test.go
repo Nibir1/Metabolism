@@ -75,8 +75,10 @@ func fakeHelix(mode string) {
 		case "hang":
 			time.Sleep(time.Hour)
 		case "garbage":
-			fmt.Println("this is not json")
+			fmt.Println("{this is not json")
 			continue
+		case "stray":
+			fmt.Println("Dropping file read step with no path")
 		case "wrong-id":
 			_ = json.NewEncoder(os.Stdout).Encode(Response{V: 1, ID: "someone-else", OK: true})
 			continue
@@ -151,6 +153,9 @@ func TestHelixErrorsAndBrokenStreams(t *testing.T) {
 	ctx := context.Background()
 	if _, err := fakeHost(t, "ok").Replay(ctx, ep("fail"), nil); err == nil || !strings.Contains(err.Error(), "planner unavailable") {
 		t.Errorf("planner error: %v", err)
+	}
+	if res, err := fakeHost(t, "stray").Replay(ctx, ep("x"), nil); err != nil || len(res.Steps) == 0 {
+		t.Errorf("a stray warning line before the response: %v", err)
 	}
 	if _, err := fakeHost(t, "garbage").Replay(ctx, ep("x"), nil); err == nil || !strings.Contains(err.Error(), "not a v1 response") {
 		t.Errorf("garbage: %v", err)

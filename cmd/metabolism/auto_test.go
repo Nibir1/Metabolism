@@ -159,3 +159,33 @@ func TestAutoNeedsRemoteOptIn(t *testing.T) {
 		t.Fatalf("auto without opt-in: %v", err)
 	}
 }
+
+// A day interrupted during verify, from before day.json existed, is
+// reconstructed from its folder: ingest and digest done, verify and credit
+// still to run.
+func TestLoadDayMetaReconstructsAnInterruptedDay(t *testing.T) {
+	dayDir := filepath.Join(t.TempDir(), "2026-10-03T115702")
+	_ = os.MkdirAll(dayDir, 0o700)
+	_ = os.WriteFile(filepath.Join(dayDir, "drive.ndjson"), []byte("{}\n{}\n{}\n"), 0o600)
+	_ = os.WriteFile(filepath.Join(dayDir, "log.txt"), []byte("auto run … · baseline (lessons off) · 14 episodes\n"+
+		"━━ metabolism ingest\nok\n━━ metabolism digest\nok\n━━ metabolism verify\ncontext canceled\n"), 0o600)
+	m, err := loadDayMeta(dayDir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if m.Sent != 3 || m.Phase != "baseline (lessons off)" || strings.Join(m.Done, ",") != "ingest,digest" ||
+		m.Started.Format("15:04:05") != "11:57:02" {
+		t.Fatalf("meta %+v", m)
+	}
+	// A day with day.json is read as written.
+	want := dayMeta{Started: m.Started, Phase: "lessons (delivered by coin flip)", Sent: 90, Done: []string{"ingest"}}
+	if err := want.save(dayDir); err != nil {
+		t.Fatal(err)
+	}
+	if got, _ := loadDayMeta(dayDir); got.Sent != 90 || got.Phase != want.Phase || len(got.Done) != 1 {
+		t.Fatalf("day.json read as %+v", got)
+	}
+	if _, err := loadDayMeta(t.TempDir()); err == nil {
+		t.Fatal("a folder that is not a day was accepted")
+	}
+}

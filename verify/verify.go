@@ -17,6 +17,7 @@ package verify
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"hash/fnv"
 	"math"
@@ -159,6 +160,9 @@ type Report struct {
 	To          types.LessonState `json:"to"`
 	Evidence    types.Evidence    `json:"evidence"`
 	Comparisons []Comparison      `json:"comparisons"`
+	// Skipped lists episodes left out because a replay or judge call failed
+	// for them, with why.
+	Skipped []string `json:"skipped,omitempty"`
 }
 
 // Test runs the nutrient test on one candidate or quarantined lesson,
@@ -188,13 +192,24 @@ func (v *Verifier) Test(ctx context.Context, m *metabolome.Metabolome, id types.
 		regression bool
 	}{{relevant, false}, {regression, true}} {
 		for _, eid := range set.eps {
+			// One episode's failed replay or judge call costs that episode,
+			// not the test: a planner that varies run to run occasionally
+			// returns a plan Helix rejects (found on the first automated
+			// day, where one such replay ended a whole run). A host that
+			// cannot replay the lesson at all, or a cancelled run, still
+			// ends it.
 			c, err := v.compare(ctx, eid, lesson)
-			if err != nil {
-				return Report{}, err
+			var aa types.Verdict
+			if err == nil {
+				aa, err = v.noise(ctx, eid)
 			}
-			aa, err := v.noise(ctx, eid)
 			if err != nil {
-				return Report{}, err
+				if errors.Is(err, ports.ErrCannotReplay) || ctx.Err() != nil {
+					return Report{}, err
+				}
+				rep.Skipped = append(rep.Skipped, err.Error())
+				ev.Skipped++
+				continue
 			}
 			c.Regression, c.Noise = set.regression, aa
 			ev.NoiseCompared++
@@ -224,8 +239,14 @@ func (v *Verifier) Test(ctx context.Context, m *metabolome.Metabolome, id types.
 		}
 	}
 
+	if len(ev.Episodes) == 0 && ev.Skipped > 0 {
+		return Report{}, fmt.Errorf("every replay for lesson %s failed (%d); first: %s", id, ev.Skipped, rep.Skipped[0])
+	}
 	Calibrate(&ev)
 	ev.Result, ev.Summary = decide(ev, lesson.State == types.StateQuarantined, cfg)
+	if ev.Skipped > 0 {
+		ev.Summary += fmt.Sprintf("; %d episode(s) skipped: a replay or judge call failed", ev.Skipped)
+	}
 	recorded, err := m.RecordEvidence(ctx, ev)
 	if err != nil {
 		return Report{}, err

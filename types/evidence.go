@@ -46,6 +46,8 @@ type Evidence struct {
 
 	// Episodes lists every episode replayed, relevant and regression alike.
 	Episodes []ID `json:"episodes,omitempty"`
+	// Skipped counts episodes left out because a replay or judge call failed.
+	Skipped int `json:"skipped,omitempty"`
 
 	// Credit counts (D-020), from live turns the lesson applied to: those
 	// where it was delivered, those where the host's coin flip withheld it,
@@ -85,7 +87,7 @@ func (e Evidence) Validate() error {
 		errs = append(errs, errors.New("summary is empty"))
 	}
 	if e.Compared < 0 || e.Wins < 0 || e.Losses < 0 || e.Ties < 0 || e.Regressions < 0 ||
-		e.RegressionWins < 0 || e.NoiseCompared < 0 || e.NoiseDecisive < 0 {
+		e.RegressionWins < 0 || e.NoiseCompared < 0 || e.NoiseDecisive < 0 || e.Skipped < 0 {
 		errs = append(errs, errors.New("negative count"))
 	}
 	if e.Exposed < 0 || e.ExposedSuccesses < 0 || e.Withheld < 0 || e.WithheldSuccesses < 0 {

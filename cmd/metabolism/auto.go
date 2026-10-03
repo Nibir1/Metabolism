@@ -13,6 +13,7 @@ import (
 	"os/exec"
 	"os/signal"
 	"path/filepath"
+	"slices"
 	"strings"
 	"syscall"
 	"time"
@@ -49,6 +50,7 @@ func cmdAuto(ctx context.Context, args []string, out io.Writer) error {
 	timeout := fs.Duration("timeout", 3*time.Minute, "longest wait for one request's reply")
 	helixHome := fs.String("helix-home", "", "Helix's state directory (default ~/.helix)")
 	planOnly := fs.Bool("plan-only", false, "write today's requests and stop: no Helix, no engine steps")
+	resume := fs.String("resume", "", "finish an interrupted run's engine steps (verify, credit, report) for this day folder, without driving Helix")
 	allowRemote := fs.Bool("allow-remote", false, "allow the run's remote calls (see the notices)")
 	if err := fs.Parse(args); err != nil {
 		return err
@@ -73,6 +75,16 @@ func cmdAuto(ctx context.Context, args []string, out io.Writer) error {
 		return fmt.Errorf("recovering the Helix setup from an interrupted run: %w", err)
 	} else if recovered {
 		say(out, "recovered: restored the Helix config and delivery file an interrupted run had changed\n")
+	}
+
+	journal := filepath.Join(absDir, "journal.db")
+	eng := engine{journal: journal, reflector: *reflector, judge: *judgeName, helixBin: *helixBin, home: home,
+		verifyMax: *verifyMax, verifyAfter: *verifyAfter, dir: absDir}
+	if *resume != "" {
+		if err := rem.require("finishing a run's engine steps", "DeepSeek and Jev (digest, verify)"); err != nil {
+			return err
+		}
+		return eng.resume(ctx, *resume, out)
 	}
 
 	model, err := pickModel(*reflector, "", rem)
@@ -116,7 +128,6 @@ func cmdAuto(ctx context.Context, args []string, out io.Writer) error {
 		projs = append(projs, proj)
 	}
 
-	journal := filepath.Join(absDir, "journal.db")
 	recorded, err := countHelixEpisodes(ctx, journal)
 	if err != nil {
 		return err
@@ -184,31 +195,121 @@ func cmdAuto(ctx context.Context, args []string, out io.Writer) error {
 		return err
 	}
 
+	meta := dayMeta{Started: day, Phase: phase, Sent: drove}
+	if err := meta.save(dayDir); err != nil {
+		return err
+	}
+	return eng.finish(ctx, dayDir, &meta, out)
+}
+
+// dayMeta is what a day folder records about its run, so an interrupted
+// run's engine steps can be finished later (-resume).
+type dayMeta struct {
+	Started time.Time `json:"started"`
+	Phase   string    `json:"phase"`
+	Sent    int       `json:"sent"`
+	Done    []string  `json:"done,omitempty"` // engine steps that completed
+}
+
+func (m dayMeta) save(dayDir string) error {
+	return writeJSONFile(filepath.Join(dayDir, "day.json"), m)
+}
+
+// engine runs a day's engine steps.
+type engine struct {
+	journal, reflector, judge, helixBin, home, dir string
+	verifyMax, verifyAfter                         int
+}
+
+// finish runs the engine steps a day has not completed, records each, and
+// writes the day's report line.
+func (e engine) finish(ctx context.Context, dayDir string, meta *dayMeta, out io.Writer) error {
 	steps := [][]string{
-		{"ingest", "-journal", journal, "-from", filepath.Join(recording, "episodes.ndjson")},
-		{"digest", "-journal", journal, "-reflector", *reflector, "-allow-remote", "-since", day.Format("2006-01-02")},
-		{"verify", "-journal", journal, "-host", "helix", "-helix-bin", *helixBin, "-replay-dir", home,
-			"-judge", *judgeName, "-allow-remote", "-max", fmt.Sprint(*verifyMax), "-save", filepath.Join(dayDir, "comparisons.ndjson")},
-		{"credit", "-journal", journal, "-apply"},
+		{"ingest", "-journal", e.journal, "-from", filepath.Join(dayDir, "recording", "episodes.ndjson")},
+		{"digest", "-journal", e.journal, "-reflector", e.reflector, "-allow-remote", "-since", meta.Started.Format("2006-01-02")},
+		{"verify", "-journal", e.journal, "-host", "helix", "-helix-bin", e.helixBin, "-replay-dir", e.home,
+			"-judge", e.judge, "-allow-remote", "-max", fmt.Sprint(e.verifyMax), "-save", filepath.Join(dayDir, "comparisons.ndjson")},
+		{"credit", "-journal", e.journal, "-apply"},
 	}
 	for _, s := range steps {
+		if slices.Contains(meta.Done, s[0]) {
+			say(out, "\n━━ metabolism %s: done earlier\n", s[0])
+			continue
+		}
 		if s[0] == "verify" {
-			n, err := countHelixEpisodes(ctx, journal)
+			n, err := countHelixEpisodes(ctx, e.journal)
 			if err != nil {
 				return err
 			}
-			if n < *verifyAfter {
-				say(out, "\n━━ metabolism verify: skipped, %d episodes recorded (needs %d, -verify-after)\n", n, *verifyAfter)
+			if n < e.verifyAfter {
+				say(out, "\n━━ metabolism verify: skipped, %d episodes recorded (needs %d, -verify-after)\n", n, e.verifyAfter)
 				continue
 			}
 		}
 		say(out, "\n━━ metabolism %s\n", s[0])
 		if err := run(ctx, s, out); err != nil {
-			say(out, "%s failed: %v (the day's recording is kept; later steps skipped)\n", s[0], err)
-			break
+			say(out, "%s failed: %v (the day's recording is kept; finish later with -resume %s)\n", s[0], err, dayDir)
+			return err
+		}
+		meta.Done = append(meta.Done, s[0])
+		if err := meta.save(dayDir); err != nil {
+			return err
 		}
 	}
-	return appendReport(ctx, absDir, journal, day, phase, drove)
+	return appendReport(ctx, e.dir, e.journal, meta.Started, meta.Phase, meta.Sent)
+}
+
+// loadDayMeta reads a day folder's day.json, or reconstructs it for a day
+// from before day.json existed.
+func loadDayMeta(dayDir string) (dayMeta, error) {
+	var meta dayMeta
+	if data, err := os.ReadFile(filepath.Join(dayDir, "day.json")); err == nil {
+		if err := json.Unmarshal(data, &meta); err != nil {
+			return meta, fmt.Errorf("day.json: %w", err)
+		}
+		return meta, nil
+	}
+	started, err := time.ParseInLocation("2006-01-02T150405", filepath.Base(dayDir), time.Local)
+	if err != nil {
+		return meta, fmt.Errorf("%s is not a day folder (no day.json, and its name is not a run time)", dayDir)
+	}
+	meta.Started = started
+	meta.Sent = len(readLines(filepath.Join(dayDir, "drive.ndjson")))
+	logText, _ := os.ReadFile(filepath.Join(dayDir, "log.txt"))
+	meta.Phase = "baseline (lessons off)"
+	if strings.Contains(string(logText), "· lessons (delivered") {
+		meta.Phase = "lessons (delivered by coin flip)"
+	}
+	order := []string{"ingest", "digest", "verify", "credit"}
+	for i, st := range order[:len(order)-1] {
+		if strings.Contains(string(logText), "━━ metabolism "+order[i+1]) {
+			meta.Done = append(meta.Done, st)
+		}
+	}
+	return meta, nil
+}
+
+// resume finishes an interrupted day. A day from before day.json existed is
+// reconstructed from its folder: the start from its name, the requests sent
+// from drive.ndjson, and the steps done from its log (a step is done when the
+// log moved on to the next).
+func (e engine) resume(ctx context.Context, dayDir string, out io.Writer) error {
+	dayDir, err := filepath.Abs(dayDir)
+	if err != nil {
+		return err
+	}
+	meta, err := loadDayMeta(dayDir)
+	if err != nil {
+		return err
+	}
+	log, err := os.OpenFile(filepath.Join(dayDir, "log.txt"), os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0o600)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = log.Close() }()
+	out = io.MultiWriter(out, log)
+	say(out, "\nresuming %s (%s, %d sent; done: %s)\n", filepath.Base(dayDir), meta.Phase, meta.Sent, strings.Join(meta.Done, ", "))
+	return e.finish(ctx, dayDir, &meta, out)
 }
 
 // helixSetup changes and restores the user's Helix config and delivery file.

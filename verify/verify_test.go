@@ -2,6 +2,7 @@ package verify
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"math"
 	"path/filepath"
@@ -368,5 +369,45 @@ func TestTailAndNoiseRate(t *testing.T) {
 	// Three clean wins are strong evidence on a quiet host and weak on a noisy one.
 	if tail(3, 8, noiseRate(quiet)/2) > 0.1 || tail(3, 8, noiseRate(noisy)/2) < 0.1 {
 		t.Fatal("the noise floor does not change the strength of the same evidence")
+	}
+}
+
+// failingHost fails every replay of the episodes in bad, or of every episode.
+type failingHost struct {
+	helixsim.Host
+	bad map[types.ID]bool
+	all bool
+}
+
+func (f failingHost) Replay(ctx context.Context, ep types.Episode, ls []types.Lesson) (types.ReplayResult, error) {
+	if f.all || f.bad[ep.ID] {
+		return types.ReplayResult{}, errors.New("no valid steps after validation")
+	}
+	return f.Host.Replay(ctx, ep, ls)
+}
+
+// One episode's failed replay costs that episode, not the test; the evidence
+// says how many were skipped. When every replay fails, the test fails loudly.
+func TestFailedReplaysSkipTheEpisodeNotTheTest(t *testing.T) {
+	w := newWorld(t)
+	id := w.lessonFrom(t, "empty-glob-loop", spec(t, "(empty-glob)", true), types.ProvUserTyped)
+	e, _ := w.m.Get(id)
+	host := failingHost{bad: map[types.ID]bool{e.Lesson.Sources[0]: true}}
+	v := &Verifier{Host: host, Judge: judge.Heuristic{}, History: w.h}
+	rep, err := v.Test(context.Background(), w.m, id)
+	if err != nil {
+		t.Fatalf("one failed replay ended the test: %v", err)
+	}
+	if rep.Evidence.Skipped != 1 || len(rep.Skipped) != 1 || !strings.Contains(rep.Evidence.Summary, "1 episode(s) skipped") {
+		t.Fatalf("skipped %d %v, summary %q", rep.Evidence.Skipped, rep.Skipped, rep.Evidence.Summary)
+	}
+	if rep.To != types.StateTrial {
+		t.Fatalf("the other episodes still decide: %s, %s", rep.To, rep.Evidence.Summary)
+	}
+
+	other := w.lessonFrom(t, "empty-glob-loop", spec(t, "YAML", false), types.ProvUserTyped)
+	all := &Verifier{Host: failingHost{all: true}, Judge: judge.Heuristic{}, History: w.h}
+	if _, err := all.Test(context.Background(), w.m, other); err == nil || !strings.Contains(err.Error(), "every replay") {
+		t.Fatalf("every replay failing: %v", err)
 	}
 }

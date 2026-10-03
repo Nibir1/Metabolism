@@ -330,12 +330,21 @@ func cmdVerify(ctx context.Context, args []string, out io.Writer) error {
 	tw := tabwriter.NewWriter(out, 0, 0, 2, ' ', 0)
 	say(tw, "  result\tmove\tW/L/T\tworse/better\tnoise\tlesson\n")
 	skipped := 0
+	var failed []string
 	for _, id := range ids {
 		rep, err := v.Test(ctx, m, id)
 		if errors.Is(err, ports.ErrCannotReplay) {
 			e, _ := m.Get(id)
 			say(tw, "  can't judge\t%s (unchanged)\t-\t-\t%s\n", e.Lesson.State, truncate(e.Lesson.Text, 60))
 			skipped++
+			continue
+		}
+		if err != nil && ctx.Err() == nil {
+			// One lesson's failed test (every replay failing) is reported,
+			// and the others are still tested.
+			e, _ := m.Get(id)
+			say(tw, "  error\t%s (unchanged)\t-\t-\t-\t%s\n", e.Lesson.State, truncate(e.Lesson.Text, 60))
+			failed = append(failed, fmt.Sprintf("%s: %v", id, err))
 			continue
 		}
 		if err != nil {
@@ -357,6 +366,9 @@ func cmdVerify(ctx context.Context, args []string, out io.Writer) error {
 	say(out, "details: metabolism lessons -id <ID>\n")
 	if skipped > 0 {
 		say(out, "%d lesson(s) not tested: host %q cannot replay them meaningfully (the simulator only models its own catalogue). Nothing was recorded for them.\n", skipped, *hostName)
+	}
+	for _, f := range failed {
+		say(out, "not tested, nothing recorded: %s\n", f)
 	}
 	return nil
 }
