@@ -142,9 +142,17 @@ func cmdAuto(ctx context.Context, args []string, out io.Writer) error {
 	history := filepath.Join(absDir, "requests-history.txt")
 	earlier := readLines(history)
 	gen := helixuser.Generator{Model: model}
-	reqs, err := gen.Generate(ctx, projs, *requests, uint64(day.UnixNano()), earlier)
+	reqs, gst, err := gen.Generate(ctx, projs, *requests, uint64(day.UnixNano()), earlier)
 	if err != nil {
 		return err
+	}
+	say(out, "the model wrote %d request(s) in %d call(s); %d duplicate(s)", gst.Written, gst.Calls, gst.Duplicates)
+	if len(gst.Dropped) > 0 {
+		say(out, "; dropped by the screen: %s", formatCounts(gst.Dropped))
+	}
+	say(out, "\n")
+	if len(reqs) < *requests {
+		say(out, "warning: %d of %d requests for today; the day is short (last answer: %s)\n", len(reqs), *requests, gst.Last)
 	}
 	if err := writeJSONFile(filepath.Join(dayDir, "requests.json"), reqs); err != nil {
 		return err
@@ -626,4 +634,27 @@ func writeJSONFile(path string, v any) error {
 		return err
 	}
 	return os.WriteFile(path, append(data, '\n'), 0o600)
+}
+
+// formatCounts renders reason counts, largest first.
+func formatCounts(m map[string]int) string {
+	type kv struct {
+		k string
+		v int
+	}
+	var kvs []kv
+	for k, v := range m {
+		kvs = append(kvs, kv{k, v})
+	}
+	slices.SortFunc(kvs, func(a, b kv) int {
+		if a.v != b.v {
+			return b.v - a.v
+		}
+		return strings.Compare(a.k, b.k)
+	})
+	parts := make([]string, len(kvs))
+	for i, x := range kvs {
+		parts[i] = fmt.Sprintf("%d %s", x.v, x.k)
+	}
+	return strings.Join(parts, ", ")
 }

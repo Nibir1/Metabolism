@@ -354,8 +354,11 @@ func decisive(v types.Verdict, cfg Config) bool {
 func decide(ev types.Evidence, quarantined bool, cfg Config) (types.TestResult, string) {
 	r := noiseRate(ev)
 	pHurt := tail(ev.Losses, ev.Compared, r/2)
-	counts := fmt.Sprintf("relevant: %d wins, %d losses, %d ties (p=%.3f); past successes: %d worse, %d better (p=%.3f); noise: %d of %d A/A pairs decisive (r=%.2f)",
-		ev.Wins, ev.Losses, ev.Ties, ev.PHelp, ev.Regressions, ev.RegressionWins, ev.PHarm, ev.NoiseDecisive, ev.NoiseCompared, r)
+	// Both tails are shown: a lesson eliminated for its losses was once
+	// reported with only its wins' p (p=0.186), which reads as a lesson
+	// eliminated far above the bar.
+	counts := fmt.Sprintf("relevant: %d wins, %d losses, %d ties (p_help=%.3f, p_worse=%.3f); past successes: %d worse, %d better (p_harm=%.3f); noise: %d of %d A/A pairs decisive (r=%.2f)",
+		ev.Wins, ev.Losses, ev.Ties, ev.PHelp, pHurt, ev.Regressions, ev.RegressionWins, ev.PHarm, ev.NoiseDecisive, ev.NoiseCompared, r)
 	switch {
 	case ev.Regressions >= cfg.MinHarm && ev.PHarm <= cfg.HarmAlpha:
 		return types.ResultFail, "harms past successes it is not about, beyond noise: " + counts

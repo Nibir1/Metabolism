@@ -66,7 +66,7 @@ func TestGenerateMixesFreshRequestsWithRepeats(t *testing.T) {
 		{"kind":"history","text":"what changed in the last commit of Dev/helix?"}
 	]}`}
 	earlier := []string{"build Dev/helix", "where is the Makefile in Dev/metabolism?", "x", "y", "z", "a", "b", "c", "d", "e"}
-	got, err := Generator{Model: m}.Generate(context.Background(), projects, 6, 7, earlier)
+	got, st, err := Generator{Model: m}.Generate(context.Background(), projects, 6, 7, earlier)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -83,14 +83,20 @@ func TestGenerateMixesFreshRequestsWithRepeats(t *testing.T) {
 	}
 	// 10% of 6 is 0, so a day of 6 has no repeats; the duplicate and the
 	// destructive request are dropped, leaving 4 fresh.
+	// 6 requested, 4 usable per answer: the second call adds nothing new
+	// (the fake model answers the same), so the day stays short after
+	// maxCalls calls, and the stats say why.
 	if fresh != 4 || repeats != 0 {
 		t.Fatalf("fresh %d repeats %d: %+v", fresh, repeats, got)
+	}
+	if st.Calls != maxCalls || st.Dropped["destructive"] != maxCalls || st.Duplicates == 0 {
+		t.Fatalf("stats %+v", st)
 	}
 	if !strings.Contains(m.got.User, "Dev/helix") || !m.got.JSON || !m.got.DisableThinking {
 		t.Fatalf("model request %+v", m.got)
 	}
 
-	got, _ = Generator{Model: m, RepeatShare: 0.5}.Generate(context.Background(), projects, 6, 7, earlier)
+	got, _, _ = Generator{Model: m, RepeatShare: 0.5}.Generate(context.Background(), projects, 6, 7, earlier)
 	repeats = 0
 	for _, q := range got {
 		if q.Repeat {
@@ -104,7 +110,7 @@ func TestGenerateMixesFreshRequestsWithRepeats(t *testing.T) {
 
 func TestGenerateFailsLoudlyOnUnusableOutput(t *testing.T) {
 	m := &fakeModel{answer: `{"requests":[{"kind":"find","text":"rm -rf everything"}]}`}
-	if _, err := (Generator{Model: m}).Generate(context.Background(), projects, 5, 1, nil); err == nil {
+	if _, _, err := (Generator{Model: m}).Generate(context.Background(), projects, 5, 1, nil); err == nil {
 		t.Fatal("an answer with no usable request was accepted")
 	}
 }

@@ -130,11 +130,28 @@ type Generator struct {
 
 const system = `You write realistic requests that a software developer types into Helix, an AI shell, during a working day. Helix plans and runs tools: files (read, list, glob, grep, edit, write), shell, git, web. Write requests the way people type them to an assistant: short sentences, concrete, sometimes vague, sometimes mistaken (asking for a file that does not exist). Never start a request with a command name such as find, grep, git, go, ls, look, make or cat: Helix runs a line that starts with a command as that command. Name the project by its path exactly as given. Never ask to delete, remove, reset, force-push, publish, install, upgrade, change permissions or use sudo. Answer with one JSON object and nothing else.`
 
+// Stats says how a day's requests were written: model calls, requests the
+// model wrote, and why the dropped ones were dropped.
+type Stats struct {
+	Calls      int            `json:"calls"`
+	Written    int            `json:"written"`
+	Duplicates int            `json:"duplicates"`
+	Dropped    map[string]int `json:"dropped,omitempty"`
+	// Last describes the last model answer (stop reason, size).
+	Last string `json:"last,omitempty"`
+}
+
+// maxCalls bounds how often Generate asks the model for one day.
+const maxCalls = 3
+
 // Generate writes n requests for one day over projects, reusing a share of
-// earlier requests. The seed varies the day's emphasis.
-func (g Generator) Generate(ctx context.Context, projects []Project, n int, seed uint64, earlier []string) ([]Request, error) {
+// earlier requests. The seed varies the day's emphasis. When the screen
+// leaves the day short, it asks again, up to maxCalls times: one call once
+// left a day with 18 of 90 fresh requests and said nothing about why.
+func (g Generator) Generate(ctx context.Context, projects []Project, n int, seed uint64, earlier []string) ([]Request, Stats, error) {
+	st := Stats{Dropped: map[string]int{}}
 	if n <= 0 || len(projects) == 0 {
-		return nil, fmt.Errorf("helixuser: nothing to generate")
+		return nil, st, fmt.Errorf("helixuser: nothing to generate")
 	}
 	r := rand.New(rand.NewPCG(seed, seed^0x6d6574616)) //nolint:gosec // not security: varies the day
 	share := g.RepeatShare
@@ -151,10 +168,52 @@ func (g Generator) Generate(ctx context.Context, projects []Project, n int, seed
 			out = append(out, Request{Kind: "repeat", Text: earlier[i], Repeat: true})
 		}
 	}
+	seen := map[string]bool{}
+	for _, q := range out {
+		seen[norm(q.Text)] = true
+	}
+	var lastErr error
+	for st.Calls < maxCalls && len(out) < n {
+		gen, err := g.ask(ctx, projects, n-len(out), r, &st)
+		if err != nil {
+			lastErr = err
+			continue
+		}
+		for _, q := range gen {
+			if len(out) == n {
+				break
+			}
+			if seen[norm(q.Text)] {
+				st.Duplicates++
+				continue
+			}
+			seen[norm(q.Text)] = true
+			out = append(out, q)
+		}
+	}
+	if fresh := len(out) - countRepeat(out); fresh == 0 {
+		if lastErr != nil {
+			return nil, st, lastErr
+		}
+		return nil, st, fmt.Errorf("helixuser: the model wrote no usable requests (dropped: %v): %s", st.Dropped, st.Last)
+	}
+	r.Shuffle(len(out), func(i, j int) { out[i], out[j] = out[j], out[i] })
+	return out, st, nil
+}
 
-	fresh := n - len(out)
-	// Ask for a quarter more than needed: the screen drops some, and a day
-	// should still get its count.
+func countRepeat(qs []Request) int {
+	n := 0
+	for _, q := range qs {
+		if q.Repeat {
+			n++
+		}
+	}
+	return n
+}
+
+// ask makes one model call for fresh requests, asking for a quarter more
+// than needed, since the screen drops some.
+func (g Generator) ask(ctx context.Context, projects []Project, fresh int, r *rand.Rand, st *Stats) ([]Request, error) {
 	ask := fresh + (fresh+3)/4
 	var kinds []string
 	for _, k := range Kinds {
@@ -176,37 +235,27 @@ Spread them across the projects. Today the developer is mostly working on %s.
 		strings.Join(trees, "\n\n"), ask, strings.Join(kinds, "\n"), projects[r.IntN(len(projects))].Path)
 
 	req := ports.ModelRequest{System: system, User: user, JSON: true, Temperature: 0.9, MaxTokens: 8000, DisableThinking: true}
+	st.Calls++
 	resp, err := g.Model.Complete(ctx, req)
 	if err != nil {
 		return nil, fmt.Errorf("helixuser: %w", err)
 	}
+	st.Last = resp.Describe()
 	gen, dropped, err := Parse(resp.Text, projects)
+	for why, k := range dropped {
+		st.Dropped[why] += k
+		st.Written += k
+	}
+	st.Written += len(gen)
 	if err != nil {
 		return nil, fmt.Errorf("helixuser: %w: %s", err, resp.Describe())
 	}
-	if len(gen) == 0 {
-		return nil, fmt.Errorf("helixuser: the model wrote no usable requests (%d dropped): %s", dropped, resp.Describe())
-	}
-	seen := map[string]bool{}
-	for _, q := range out {
-		seen[norm(q.Text)] = true
-	}
-	for _, q := range gen {
-		if len(out) == n {
-			break
-		}
-		if !seen[norm(q.Text)] {
-			seen[norm(q.Text)] = true
-			out = append(out, q)
-		}
-	}
-	r.Shuffle(len(out), func(i, j int) { out[i], out[j] = out[j], out[i] })
-	return out, nil
+	return gen, nil
 }
 
 // Parse reads the model's answer, dropping what fails the screen. It returns
-// the usable requests, how many were dropped, and, when nothing could be
-// read at all, why.
+// the usable requests, how many were dropped for each reason, and, when
+// nothing could be read at all, why.
 //
 // One bad element costs that element, not the day: the first automated run
 // after Phase 4 lost a whole batch of 3409 tokens to a document that did not
@@ -214,25 +263,25 @@ Spread them across the projects. Today the developer is mostly working on %s.
 // by element, trailing text after the document is ignored, and a document
 // that does not parse at all (a stray quote, a cut-off answer) is searched
 // for the request objects it does hold.
-func Parse(text string, projects []Project) ([]Request, int, error) {
+func Parse(text string, projects []Project) ([]Request, map[string]int, error) {
+	dropped := map[string]int{}
 	elems, err := requestElements(text)
 	if err != nil {
-		return nil, 0, err
+		return nil, dropped, err
 	}
 	var out []Request
-	dropped := 0
 	for _, raw := range elems {
 		var q struct {
 			Kind string `json:"kind"`
 			Text string `json:"text"`
 		}
 		if json.Unmarshal(raw, &q) != nil {
-			dropped++
+			dropped["unreadable"]++
 			continue
 		}
 		r := Request{Kind: q.Kind, Text: strings.Join(strings.Fields(q.Text), " ")}
-		if !Screen(r, projects) {
-			dropped++
+		if why := ScreenReason(r, projects); why != "" {
+			dropped[why]++
 			continue
 		}
 		out = append(out, r)
@@ -286,23 +335,33 @@ var commandWords = map[string]bool{
 // Screen reports whether a request may be sent: short, non-empty, not
 // destructive, not starting with a command name, and, unless it is a general
 // question, naming one of the projects by its path.
-func Screen(q Request, projects []Project) bool {
+func Screen(q Request, projects []Project) bool { return ScreenReason(q, projects) == "" }
+
+// ScreenReason is why Screen refuses a request, or "" when it may be sent.
+func ScreenReason(q Request, projects []Project) string {
 	t := strings.TrimSpace(q.Text)
-	if t == "" || len(t) > 300 || strings.HasPrefix(t, "/") || destructive.MatchString(t) {
-		return false
+	switch {
+	case t == "":
+		return "empty"
+	case len(t) > 300:
+		return "too long"
+	case strings.HasPrefix(t, "/"):
+		return "a slash command"
+	case destructive.MatchString(t):
+		return "destructive"
 	}
 	if first := strings.ToLower(strings.Fields(t)[0]); commandWords[strings.Trim(first, ".,:;!?")] {
-		return false
+		return "starts with a command"
 	}
 	if q.Kind == "general" {
-		return true
+		return ""
 	}
 	for _, p := range projects {
 		if strings.Contains(t, p.Path) {
-			return true
+			return ""
 		}
 	}
-	return false
+	return "names no project path"
 }
 
 func norm(s string) string { return strings.ToLower(strings.Join(strings.Fields(s), " ")) }
