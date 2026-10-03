@@ -38,6 +38,38 @@ type Tally struct {
 	// Immature counts turns too recent to judge: a late outcome (an undo, a
 	// repeated request) may still arrive for them.
 	Immature int `json:"immature"`
+	// Unrelated counts turns, delivered or withheld, whose request does not
+	// bear on the lesson (Relevance): they are left out of both arms.
+	Unrelated int `json:"unrelated,omitempty"`
+	// All is the tally over every turn, related or not, when the counts
+	// above are filtered by relevance. Harm is judged on both (D-026).
+	All *Tally `json:"all,omitempty"`
+
+	// The same counts over the lesson's most recent DriftWindow mature
+	// turns (delivered and withheld together): what drift is judged on.
+	RecentExposed           int `json:"recent_exposed,omitempty"`
+	RecentExposedSuccesses  int `json:"recent_exposed_successes,omitempty"`
+	RecentWithheld          int `json:"recent_withheld,omitempty"`
+	RecentWithheldSuccesses int `json:"recent_withheld_successes,omitempty"`
+}
+
+// DriftWindow is how many of a lesson's most recent turns drift is judged
+// on (D-026). An accepted lesson has a long good record; if the world
+// changes and it starts doing harm, the harm is diluted by that record and
+// the whole-history test would take very long to see it. The window is what
+// the world looks like now.
+//
+// 200, not less: an accepted lesson keeps only a 10% holdout, so a window
+// has about a tenth of its turns withheld. With 10 withheld turns even a
+// drastic change (10% success delivered against 60% withheld) reaches a
+// Bayes factor of about 113, short of the elimination bar of 300; with 20 it
+// reaches about 28,000.
+const DriftWindow = 200
+
+// Recent is the tally of the lesson's most recent DriftWindow turns.
+func (t Tally) Recent() Tally {
+	return Tally{LessonID: t.LessonID, Exposed: t.RecentExposed, ExposedSuccesses: t.RecentExposedSuccesses,
+		Withheld: t.RecentWithheld, WithheldSuccesses: t.RecentWithheldSuccesses}
 }
 
 // PBetter is the posterior probability that the lesson's success rate is
@@ -83,6 +115,25 @@ func ratio(a, b int) float64 {
 	return float64(a) / float64(b)
 }
 
+// Credit counts the live turns in j for m's lessons under rule: in each
+// lesson's era, and only the turns that bear on it unless rule.AllTurns. rel
+// may be nil; keep one across repeated calls to read only what j gained.
+func Credit(ctx context.Context, j ports.Journal, m *metabolome.Metabolome, now time.Time, rule Rule, rel *Relevance) (map[types.ID]*Tally, error) {
+	rule = rule.Defaults()
+	eras := Eras(m)
+	var fn Relevant
+	if !rule.AllTurns {
+		if rel == nil {
+			rel = NewRelevance()
+		}
+		var err error
+		if fn, err = rel.Update(ctx, j, m, eras); err != nil {
+			return nil, err
+		}
+	}
+	return Count(ctx, j, now, rule.Maturity, eras, fn)
+}
+
 // Eras returns, for every trial and accepted lesson, when it entered its
 // current state. A lesson is credited only on turns since then: its delivery
 // probability changes with its state (deliver.PTrial, deliver.PAccepted), and
@@ -102,9 +153,9 @@ func Eras(m *metabolome.Metabolome) map[types.ID]time.Time {
 
 // Count tallies every lesson that was delivered or withheld on an episode in
 // j that started at or after the lesson's era (Eras; a lesson with no era
-// counts every episode). Episodes that ended after now-maturity are counted
-// as immature only.
-func Count(ctx context.Context, j ports.Journal, now time.Time, maturity time.Duration, eras map[types.ID]time.Time) (map[types.ID]*Tally, error) {
+// counts every episode), and that rel says bears on it (nil: every episode).
+// Episodes that ended after now-maturity are counted as immature only.
+func Count(ctx context.Context, j ports.Journal, now time.Time, maturity time.Duration, eras map[types.ID]time.Time, rel Relevant) (map[types.ID]*Tally, error) {
 	var eps []types.Episode
 	outs := map[types.ID][]types.Outcome{}
 	q := types.JournalQuery{Kinds: []types.RecordKind{types.RecordEpisode, types.RecordOutcome}}
@@ -119,11 +170,24 @@ func Count(ctx context.Context, j ports.Journal, now time.Time, maturity time.Du
 			outs[r.Outcome.EpisodeID] = append(outs[r.Outcome.EpisodeID], *r.Outcome)
 		}
 	}
-	return Tallies(eps, outs, now, maturity, eras), nil
+	return Tallies(eps, outs, now, maturity, eras, rel), nil
 }
 
-// Tallies is Count over episodes already in memory.
-func Tallies(eps []types.Episode, outs map[types.ID][]types.Outcome, now time.Time, maturity time.Duration, eras map[types.ID]time.Time) map[types.ID]*Tally {
+// Tallies is Count over episodes already in memory. With rel, each tally
+// counts the turns that bear on its lesson, and its All the every-turn tally.
+func Tallies(eps []types.Episode, outs map[types.ID][]types.Outcome, now time.Time, maturity time.Duration, eras map[types.ID]time.Time, rel Relevant) map[types.ID]*Tally {
+	all := tallies(eps, outs, now, maturity, eras, nil)
+	if rel == nil {
+		return all
+	}
+	related := tallies(eps, outs, now, maturity, eras, rel)
+	for id, t := range related {
+		t.All = all[id]
+	}
+	return related
+}
+
+func tallies(eps []types.Episode, outs map[types.ID][]types.Outcome, now time.Time, maturity time.Duration, eras map[types.ID]time.Time, rel Relevant) map[types.ID]*Tally {
 	tallies := map[types.ID]*Tally{}
 	get := func(id types.ID) *Tally {
 		t, ok := tallies[id]
@@ -134,7 +198,15 @@ func Tallies(eps []types.Episode, outs map[types.ID][]types.Outcome, now time.Ti
 		return t
 	}
 	cutoff := now.Add(-maturity)
-	for _, ep := range eps {
+	// Newest first, so each lesson's first DriftWindow mature turns are its
+	// most recent ones.
+	order := make([]int, len(eps))
+	for i := range order {
+		order[i] = i
+	}
+	slices.SortStableFunc(order, func(a, b int) int { return eps[b].StartedAt.Compare(eps[a].StartedAt) })
+	for _, i := range order {
+		ep := eps[i]
 		if len(ep.Exposure) == 0 && len(ep.Withheld) == 0 {
 			continue
 		}
@@ -149,9 +221,17 @@ func Tallies(eps []types.Episode, outs map[types.ID][]types.Outcome, now time.Ti
 				continue
 			}
 			t := get(id)
+			if rel != nil && !rel(id, ep) {
+				t.Unrelated++
+				continue
+			}
 			if !mature {
 				t.Immature++
 				continue
+			}
+			if t.RecentExposed+t.RecentWithheld < DriftWindow {
+				t.RecentExposed++
+				t.RecentExposedSuccesses += win
 			}
 			t.Exposed++
 			t.ExposedSuccesses += win
@@ -162,9 +242,17 @@ func Tallies(eps []types.Episode, outs map[types.ID][]types.Outcome, now time.Ti
 				continue
 			}
 			t := get(id)
+			if rel != nil && !rel(id, ep) {
+				t.Unrelated++
+				continue
+			}
 			if !mature {
 				t.Immature++
 				continue
+			}
+			if t.RecentExposed+t.RecentWithheld < DriftWindow {
+				t.RecentWithheld++
+				t.RecentWithheldSuccesses += win
 			}
 			t.Withheld++
 			t.WithheldSuccesses += win
@@ -191,6 +279,10 @@ type Rule struct {
 	// Maturity is how old a turn must be before it counts (default 1h), so
 	// late outcomes have arrived.
 	Maturity time.Duration
+	// AllTurns credits a lesson on every turn it was delivered or withheld
+	// on, as D-020 first did, instead of only the turns that bear on it
+	// (Relevance, D-026). For comparison.
+	AllTurns bool
 }
 
 // Defaults returns r with every zero field set to its default.
@@ -242,6 +334,7 @@ func Settle(ctx context.Context, m *metabolome.Metabolome, tallies map[types.ID]
 		if d.To == types.StateEliminated {
 			result = types.ResultFail
 		}
+		t = d.Tally // the counts the decision rests on: a view or a window
 		ev, err := m.RecordEvidence(ctx, types.Evidence{
 			LessonID: l.ID, Kind: types.EvidenceCredit, Result: result, Summary: d.Reason,
 			Exposed: t.Exposed, ExposedSuccesses: t.ExposedSuccesses,
@@ -268,27 +361,76 @@ func Settle(ctx context.Context, m *metabolome.Metabolome, tallies map[types.ID]
 }
 
 func decide(l types.Lesson, t Tally, r Rule) Decision {
+	// Harm anywhere counts: a lesson is eliminated on the turns that bear
+	// on it or over every turn. Help must show where the lesson applies.
+	views := []view{{t, ""}}
+	if t.All != nil {
+		views = []view{{t, " on the turns that bear on it"}, {*t.All, " over every turn"}}
+	}
+	for _, v := range views {
+		if d, ok := decideHarm(l, v, r); ok {
+			return d
+		}
+	}
 	d := Decision{Lesson: l, Tally: t}
 	if t.Exposed < r.MinExposed || t.Withheld < r.MinWithheld {
-		d.Reason = fmt.Sprintf("not enough turns yet: %d delivered (need %d), %d withheld (need %d)",
-			t.Exposed, r.MinExposed, t.Withheld, r.MinWithheld)
+		d.Reason = fmt.Sprintf("not enough turns yet%s: %d delivered (need %d), %d withheld (need %d)",
+			views[0].where, t.Exposed, r.MinExposed, t.Withheld, r.MinWithheld)
 		return d
 	}
-	p, bf := t.PBetter(), t.BayesFactor()
-	e, w := t.Rate()
-	rates := fmt.Sprintf("succeeded %.0f%% of %d turns delivered vs %.0f%% of %d withheld, P(better) %.3f, Bayes factor %.3g",
-		100*e, t.Exposed, 100*w, t.Withheld, p, bf)
-	switch {
-	case p < 0.5 && bf >= r.Eliminate:
-		d.To = types.StateEliminated
-		d.Reason = "credit: worse when delivered: " + rates
-	case l.State == types.StateTrial && p > 0.5 && bf >= r.Accept:
+	if l.State == types.StateTrial && t.PBetter() > 0.5 && t.BayesFactor() >= r.Accept {
 		d.To = types.StateAccepted
-		d.Reason = "credit: better when delivered: " + rates
-	default:
-		d.Reason = "undecided: " + rates
+		d.Reason = "credit: better when delivered" + views[0].where + ": " + rates(t)
+		return d
 	}
+	if l.State == types.StateAccepted {
+		for _, v := range views {
+			if drifted, ok := decideDrift(l, view{v.t.Recent(), v.where}, r); ok {
+				return drifted
+			}
+		}
+	}
+	d.Reason = "undecided" + views[0].where + ": " + rates(t)
 	return d
+}
+
+// view is a tally and the turns it covers, for reasons.
+type view struct {
+	t     Tally
+	where string
+}
+
+func rates(t Tally) string {
+	e, w := t.Rate()
+	return fmt.Sprintf("succeeded %.0f%% of %d turns delivered vs %.0f%% of %d withheld, P(better) %.3f, Bayes factor %.3g",
+		100*e, t.Exposed, 100*w, t.Withheld, t.PBetter(), t.BayesFactor())
+}
+
+func decideHarm(l types.Lesson, v view, r Rule) (Decision, bool) {
+	t := v.t
+	if t.Exposed < r.MinExposed || t.Withheld < r.MinWithheld || t.PBetter() >= 0.5 || t.BayesFactor() < r.Eliminate {
+		return Decision{}, false
+	}
+	return Decision{Lesson: l, Tally: t, To: types.StateEliminated,
+		Reason: "credit: worse when delivered" + v.where + ": " + rates(t)}, true
+}
+
+// decideDrift retires an accepted lesson whose recent turns show it doing
+// harm, by the same bar as any elimination, even when its whole record is
+// still positive (D-026). Its evidence is the window's counts.
+func decideDrift(l types.Lesson, v view, r Rule) (Decision, bool) {
+	recent := v.t
+	if recent.Exposed < r.MinExposed || recent.Withheld < r.MinWithheld/2 {
+		return Decision{}, false
+	}
+	p, bf := recent.PBetter(), recent.BayesFactor()
+	if p >= 0.5 || bf < r.Eliminate {
+		return Decision{}, false
+	}
+	e, w := recent.Rate()
+	return Decision{Lesson: l, Tally: recent, To: types.StateEliminated, Reason: fmt.Sprintf(
+		"credit: stopped helping (drift): over its last %d turns%s it succeeded %.0f%% of %d delivered vs %.0f%% of %d withheld, P(better) %.3f, Bayes factor %.3g",
+		recent.Exposed+recent.Withheld, v.where, 100*e, recent.Exposed, 100*w, recent.Withheld, p, bf)}, true
 }
 
 func round4(x float64) float64 { return math.Round(x*1e4) / 1e4 }

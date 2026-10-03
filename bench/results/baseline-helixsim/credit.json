@@ -2,7 +2,7 @@
   "seeds": 5,
   "turns_per_seed": 3000,
   "settle_every": 100,
-  "help_accept_rate": 0.76,
+  "help_accept_rate": 1,
   "harm_eliminate_rate": 1,
   "neutral_moved_rate": 0,
   "neutral_eliminated": 0,
@@ -14,15 +14,33 @@
       "final": "accepted",
       "tally": {
         "lesson_id": "0000000000010000000000000000",
-        "exposed": 1608,
-        "exposed_successes": 1263,
-        "withheld": 188,
-        "withheld_successes": 139,
-        "exposed_calls": 2394,
-        "withheld_calls": 360,
-        "immature": 0
+        "exposed": 242,
+        "exposed_successes": 242,
+        "withheld": 30,
+        "withheld_successes": 0,
+        "exposed_calls": 242,
+        "withheld_calls": 150,
+        "immature": 0,
+        "unrelated": 2424,
+        "all": {
+          "lesson_id": "0000000000010000000000000000",
+          "exposed": 2427,
+          "exposed_successes": 2054,
+          "withheld": 269,
+          "withheld_successes": 209,
+          "exposed_calls": 3528,
+          "withheld_calls": 493,
+          "immature": 0,
+          "recent_exposed": 179,
+          "recent_exposed_successes": 165,
+          "recent_withheld": 21,
+          "recent_withheld_successes": 17
+        },
+        "recent_exposed": 181,
+        "recent_exposed_successes": 181,
+        "recent_withheld": 19
       },
-      "at": 1200
+      "at": 300
     },
     {
       "seed": 1,
@@ -31,13 +49,32 @@
       "final": "trial",
       "tally": {
         "lesson_id": "0000000000010000000000000001",
-        "exposed": 1461,
-        "exposed_successes": 1028,
-        "withheld": 1418,
-        "withheld_successes": 1026,
-        "exposed_calls": 2259,
-        "withheld_calls": 2590,
-        "immature": 0
+        "exposed": 343,
+        "exposed_successes": 307,
+        "withheld": 361,
+        "withheld_successes": 338,
+        "exposed_calls": 588,
+        "withheld_calls": 1033,
+        "immature": 0,
+        "unrelated": 2164,
+        "all": {
+          "lesson_id": "0000000000010000000000000001",
+          "exposed": 1388,
+          "exposed_successes": 1123,
+          "withheld": 1480,
+          "withheld_successes": 1185,
+          "exposed_calls": 1937,
+          "withheld_calls": 2498,
+          "immature": 0,
+          "recent_exposed": 92,
+          "recent_exposed_successes": 85,
+          "recent_withheld": 108,
+          "recent_withheld_successes": 97
+        },
+        "recent_exposed": 100,
+        "recent_exposed_successes": 100,
+        "recent_withheld": 100,
+        "recent_withheld_successes": 100
       }
     },
     {
@@ -47,15 +84,33 @@
       "final": "accepted",
       "tally": {
         "lesson_id": "0000000000010000000000000002",
-        "exposed": 357,
-        "exposed_successes": 302,
+        "exposed": 289,
+        "exposed_successes": 148,
         "withheld": 39,
-        "withheld_successes": 29,
-        "exposed_calls": 548,
-        "withheld_calls": 52,
-        "immature": 0
+        "withheld_successes": 0,
+        "exposed_calls": 289,
+        "withheld_calls": 59,
+        "immature": 0,
+        "unrelated": 1768,
+        "all": {
+          "lesson_id": "0000000000010000000000000002",
+          "exposed": 1900,
+          "exposed_successes": 1689,
+          "withheld": 196,
+          "withheld_successes": 152,
+          "exposed_calls": 2693,
+          "withheld_calls": 306,
+          "immature": 0,
+          "recent_exposed": 189,
+          "recent_exposed_successes": 173,
+          "recent_withheld": 11,
+          "recent_withheld_successes": 9
+        },
+        "recent_exposed": 176,
+        "recent_exposed_successes": 88,
+        "recent_withheld": 24
       },
-      "at": 2600
+      "at": 900
     },
     {
       "seed": 1,
@@ -63,32 +118,71 @@
       "expect": "accept",
       "final": "accepted",
       "tally": {
-        "lesson_id": "",
-        "exposed": 0,
-        "exposed_successes": 0,
-        "withheld": 0,
-        "withheld_successes": 0,
-        "exposed_calls": 0,
-        "withheld_calls": 0,
-        "immature": 0
+        "lesson_id": "0000000000010000000000000003",
+        "exposed": 155,
+        "exposed_successes": 155,
+        "withheld": 27,
+        "withheld_successes": 18,
+        "exposed_calls": 155,
+        "withheld_calls": 27,
+        "immature": 0,
+        "unrelated": 1514,
+        "all": {
+          "lesson_id": "0000000000010000000000000003",
+          "exposed": 1512,
+          "exposed_successes": 1347,
+          "withheld": 184,
+          "withheld_successes": 149,
+          "exposed_calls": 2222,
+          "withheld_calls": 252,
+          "immature": 0,
+          "recent_exposed": 176,
+          "recent_exposed_successes": 162,
+          "recent_withheld": 24,
+          "recent_withheld_successes": 20
+        },
+        "recent_exposed": 155,
+        "recent_exposed_successes": 155,
+        "recent_withheld": 27,
+        "recent_withheld_successes": 18
       },
-      "at": 3000
+      "at": 1300
     },
     {
       "seed": 1,
       "text": "Before committing, review what is staged instead of running git add -A (review-staged).",
       "expect": "accept",
-      "final": "trial",
+      "final": "accepted",
       "tally": {
         "lesson_id": "0000000000010000000000000004",
-        "exposed": 1422,
-        "exposed_successes": 1061,
-        "withheld": 1448,
-        "withheld_successes": 1005,
-        "exposed_calls": 2244,
-        "withheld_calls": 2561,
-        "immature": 0
-      }
+        "exposed": 217,
+        "exposed_successes": 217,
+        "withheld": 21,
+        "withheld_successes": 15,
+        "exposed_calls": 381,
+        "withheld_calls": 42,
+        "immature": 0,
+        "unrelated": 2158,
+        "all": {
+          "lesson_id": "0000000000010000000000000004",
+          "exposed": 2152,
+          "exposed_successes": 1884,
+          "withheld": 244,
+          "withheld_successes": 201,
+          "exposed_calls": 3087,
+          "withheld_calls": 369,
+          "immature": 0,
+          "recent_exposed": 184,
+          "recent_exposed_successes": 170,
+          "recent_withheld": 16,
+          "recent_withheld_successes": 12
+        },
+        "recent_exposed": 182,
+        "recent_exposed_successes": 182,
+        "recent_withheld": 18,
+        "recent_withheld_successes": 13
+      },
+      "at": 600
     },
     {
       "seed": 1,
@@ -97,15 +191,34 @@
       "final": "accepted",
       "tally": {
         "lesson_id": "0000000000010000000000000005",
-        "exposed": 272,
-        "exposed_successes": 230,
-        "withheld": 24,
-        "withheld_successes": 18,
-        "exposed_calls": 402,
-        "withheld_calls": 37,
-        "immature": 0
+        "exposed": 281,
+        "exposed_successes": 258,
+        "withheld": 34,
+        "withheld_successes": 11,
+        "exposed_calls": 355,
+        "withheld_calls": 82,
+        "immature": 0,
+        "unrelated": 2281,
+        "all": {
+          "lesson_id": "0000000000010000000000000005",
+          "exposed": 2312,
+          "exposed_successes": 1980,
+          "withheld": 284,
+          "withheld_successes": 227,
+          "exposed_calls": 3389,
+          "withheld_calls": 452,
+          "immature": 0,
+          "recent_exposed": 178,
+          "recent_exposed_successes": 163,
+          "recent_withheld": 22,
+          "recent_withheld_successes": 19
+        },
+        "recent_exposed": 179,
+        "recent_exposed_successes": 171,
+        "recent_withheld": 21,
+        "recent_withheld_successes": 7
       },
-      "at": 2700
+      "at": 400
     },
     {
       "seed": 1,
@@ -114,13 +227,32 @@
       "final": "trial",
       "tally": {
         "lesson_id": "0000000000010000000000000006",
-        "exposed": 1443,
-        "exposed_successes": 1030,
-        "withheld": 1435,
-        "withheld_successes": 1033,
-        "exposed_calls": 2387,
-        "withheld_calls": 2432,
-        "immature": 0
+        "exposed": 194,
+        "exposed_successes": 176,
+        "withheld": 194,
+        "withheld_successes": 175,
+        "exposed_calls": 414,
+        "withheld_calls": 410,
+        "immature": 0,
+        "unrelated": 2466,
+        "all": {
+          "lesson_id": "0000000000010000000000000006",
+          "exposed": 1437,
+          "exposed_successes": 1168,
+          "withheld": 1417,
+          "withheld_successes": 1150,
+          "exposed_calls": 2219,
+          "withheld_calls": 2160,
+          "immature": 0,
+          "recent_exposed": 98,
+          "recent_exposed_successes": 90,
+          "recent_withheld": 102,
+          "recent_withheld_successes": 92
+        },
+        "recent_exposed": 99,
+        "recent_exposed_successes": 99,
+        "recent_withheld": 101,
+        "recent_withheld_successes": 101
       }
     },
     {
@@ -130,13 +262,32 @@
       "final": "trial",
       "tally": {
         "lesson_id": "0000000000010000000000000007",
-        "exposed": 1402,
-        "exposed_successes": 1000,
-        "withheld": 1482,
-        "withheld_successes": 1068,
-        "exposed_calls": 2346,
-        "withheld_calls": 2494,
-        "immature": 0
+        "exposed": 338,
+        "exposed_successes": 331,
+        "withheld": 349,
+        "withheld_successes": 343,
+        "exposed_calls": 345,
+        "withheld_calls": 355,
+        "immature": 0,
+        "unrelated": 2190,
+        "all": {
+          "lesson_id": "0000000000010000000000000007",
+          "exposed": 1433,
+          "exposed_successes": 1153,
+          "withheld": 1444,
+          "withheld_successes": 1180,
+          "exposed_calls": 2198,
+          "withheld_calls": 2239,
+          "immature": 0,
+          "recent_exposed": 97,
+          "recent_exposed_successes": 86,
+          "recent_withheld": 103,
+          "recent_withheld_successes": 96
+        },
+        "recent_exposed": 99,
+        "recent_exposed_successes": 99,
+        "recent_withheld": 101,
+        "recent_withheld_successes": 101
       }
     },
     {
@@ -152,7 +303,23 @@
         "withheld_successes": 32,
         "exposed_calls": 232,
         "withheld_calls": 146,
-        "immature": 0
+        "immature": 0,
+        "all": {
+          "lesson_id": "0000000000010000000000000008",
+          "exposed": 73,
+          "exposed_successes": 0,
+          "withheld": 71,
+          "withheld_successes": 32,
+          "exposed_calls": 232,
+          "withheld_calls": 146,
+          "immature": 0,
+          "recent_exposed": 73,
+          "recent_withheld": 71,
+          "recent_withheld_successes": 32
+        },
+        "recent_exposed": 73,
+        "recent_withheld": 71,
+        "recent_withheld_successes": 32
       },
       "at": 200
     },
@@ -163,13 +330,31 @@
       "final": "eliminated",
       "tally": {
         "lesson_id": "0000000000010000000000000009",
-        "exposed": 210,
-        "exposed_successes": 63,
-        "withheld": 167,
-        "withheld_successes": 86,
-        "exposed_calls": 521,
-        "withheld_calls": 346,
-        "immature": 0
+        "exposed": 202,
+        "exposed_successes": 62,
+        "withheld": 156,
+        "withheld_successes": 87,
+        "exposed_calls": 491,
+        "withheld_calls": 304,
+        "immature": 0,
+        "all": {
+          "lesson_id": "0000000000010000000000000009",
+          "exposed": 202,
+          "exposed_successes": 62,
+          "withheld": 156,
+          "withheld_successes": 87,
+          "exposed_calls": 491,
+          "withheld_calls": 304,
+          "immature": 0,
+          "recent_exposed": 111,
+          "recent_exposed_successes": 39,
+          "recent_withheld": 89,
+          "recent_withheld_successes": 64
+        },
+        "recent_exposed": 111,
+        "recent_exposed_successes": 39,
+        "recent_withheld": 89,
+        "recent_withheld_successes": 64
       },
       "at": 500
     },
@@ -180,13 +365,31 @@
       "final": "eliminated",
       "tally": {
         "lesson_id": "000000000001000000000000000a",
-        "exposed": 267,
-        "exposed_successes": 94,
-        "withheld": 232,
-        "withheld_successes": 127,
-        "exposed_calls": 637,
-        "withheld_calls": 465,
-        "immature": 0
+        "exposed": 242,
+        "exposed_successes": 91,
+        "withheld": 246,
+        "withheld_successes": 147,
+        "exposed_calls": 570,
+        "withheld_calls": 464,
+        "immature": 0,
+        "all": {
+          "lesson_id": "000000000001000000000000000a",
+          "exposed": 242,
+          "exposed_successes": 91,
+          "withheld": 246,
+          "withheld_successes": 147,
+          "exposed_calls": 570,
+          "withheld_calls": 464,
+          "immature": 0,
+          "recent_exposed": 92,
+          "recent_exposed_successes": 40,
+          "recent_withheld": 108,
+          "recent_withheld_successes": 77
+        },
+        "recent_exposed": 92,
+        "recent_exposed_successes": 40,
+        "recent_withheld": 108,
+        "recent_withheld_successes": 77
       },
       "at": 600
     },
@@ -197,15 +400,33 @@
       "final": "accepted",
       "tally": {
         "lesson_id": "0000000000020000000000000000",
-        "exposed": 1343,
-        "exposed_successes": 1084,
-        "withheld": 153,
-        "withheld_successes": 110,
-        "exposed_calls": 1954,
-        "withheld_calls": 277,
-        "immature": 0
+        "exposed": 210,
+        "exposed_successes": 210,
+        "withheld": 37,
+        "withheld_successes": 0,
+        "exposed_calls": 210,
+        "withheld_calls": 185,
+        "immature": 0,
+        "unrelated": 2349,
+        "all": {
+          "lesson_id": "0000000000020000000000000000",
+          "exposed": 2309,
+          "exposed_successes": 2016,
+          "withheld": 287,
+          "withheld_successes": 219,
+          "exposed_calls": 3226,
+          "withheld_calls": 546,
+          "immature": 0,
+          "recent_exposed": 171,
+          "recent_exposed_successes": 154,
+          "recent_withheld": 29,
+          "recent_withheld_successes": 25
+        },
+        "recent_exposed": 171,
+        "recent_exposed_successes": 171,
+        "recent_withheld": 29
       },
-      "at": 1500
+      "at": 400
     },
     {
       "seed": 2,
@@ -214,13 +435,32 @@
       "final": "trial",
       "tally": {
         "lesson_id": "0000000000020000000000000001",
-        "exposed": 1429,
-        "exposed_successes": 1001,
-        "withheld": 1425,
-        "withheld_successes": 1005,
-        "exposed_calls": 2212,
-        "withheld_calls": 2617,
-        "immature": 0
+        "exposed": 343,
+        "exposed_successes": 320,
+        "withheld": 297,
+        "withheld_successes": 265,
+        "exposed_calls": 566,
+        "withheld_calls": 892,
+        "immature": 0,
+        "unrelated": 2245,
+        "all": {
+          "lesson_id": "0000000000020000000000000001",
+          "exposed": 1448,
+          "exposed_successes": 1201,
+          "withheld": 1437,
+          "withheld_successes": 1159,
+          "exposed_calls": 2019,
+          "withheld_calls": 2374,
+          "immature": 0,
+          "recent_exposed": 98,
+          "recent_exposed_successes": 90,
+          "recent_withheld": 102,
+          "recent_withheld_successes": 89
+        },
+        "recent_exposed": 114,
+        "recent_exposed_successes": 114,
+        "recent_withheld": 86,
+        "recent_withheld_successes": 86
       }
     },
     {
@@ -230,15 +470,33 @@
       "final": "accepted",
       "tally": {
         "lesson_id": "0000000000020000000000000002",
-        "exposed": 268,
-        "exposed_successes": 215,
-        "withheld": 28,
-        "withheld_successes": 20,
-        "exposed_calls": 396,
+        "exposed": 247,
+        "exposed_successes": 131,
+        "withheld": 30,
+        "withheld_successes": 0,
+        "exposed_calls": 247,
         "withheld_calls": 44,
-        "immature": 0
+        "immature": 0,
+        "unrelated": 1619,
+        "all": {
+          "lesson_id": "0000000000020000000000000002",
+          "exposed": 1720,
+          "exposed_successes": 1539,
+          "withheld": 176,
+          "withheld_successes": 141,
+          "exposed_calls": 2414,
+          "withheld_calls": 265,
+          "immature": 0,
+          "recent_exposed": 187,
+          "recent_exposed_successes": 170,
+          "recent_withheld": 13,
+          "recent_withheld_successes": 9
+        },
+        "recent_exposed": 184,
+        "recent_exposed_successes": 95,
+        "recent_withheld": 16
       },
-      "at": 2700
+      "at": 1100
     },
     {
       "seed": 2,
@@ -246,32 +504,71 @@
       "expect": "accept",
       "final": "accepted",
       "tally": {
-        "lesson_id": "",
-        "exposed": 0,
-        "exposed_successes": 0,
-        "withheld": 0,
-        "withheld_successes": 0,
-        "exposed_calls": 0,
-        "withheld_calls": 0,
-        "immature": 0
+        "lesson_id": "0000000000020000000000000003",
+        "exposed": 367,
+        "exposed_successes": 367,
+        "withheld": 40,
+        "withheld_successes": 21,
+        "exposed_calls": 367,
+        "withheld_calls": 40,
+        "immature": 0,
+        "unrelated": 2089,
+        "all": {
+          "lesson_id": "0000000000020000000000000003",
+          "exposed": 2241,
+          "exposed_successes": 1967,
+          "withheld": 255,
+          "withheld_successes": 201,
+          "exposed_calls": 3232,
+          "withheld_calls": 362,
+          "immature": 0,
+          "recent_exposed": 180,
+          "recent_exposed_successes": 161,
+          "recent_withheld": 20,
+          "recent_withheld_successes": 18
+        },
+        "recent_exposed": 178,
+        "recent_exposed_successes": 178,
+        "recent_withheld": 22,
+        "recent_withheld_successes": 11
       },
-      "at": 3000
+      "at": 500
     },
     {
       "seed": 2,
       "text": "Before committing, review what is staged instead of running git add -A (review-staged).",
       "expect": "accept",
-      "final": "trial",
+      "final": "accepted",
       "tally": {
         "lesson_id": "0000000000020000000000000004",
-        "exposed": 1425,
-        "exposed_successes": 1036,
-        "withheld": 1399,
-        "withheld_successes": 961,
-        "exposed_calls": 2357,
-        "withheld_calls": 2436,
-        "immature": 0
-      }
+        "exposed": 216,
+        "exposed_successes": 216,
+        "withheld": 22,
+        "withheld_successes": 13,
+        "exposed_calls": 321,
+        "withheld_calls": 44,
+        "immature": 0,
+        "unrelated": 1958,
+        "all": {
+          "lesson_id": "0000000000020000000000000004",
+          "exposed": 1991,
+          "exposed_successes": 1760,
+          "withheld": 205,
+          "withheld_successes": 173,
+          "exposed_calls": 2837,
+          "withheld_calls": 294,
+          "immature": 0,
+          "recent_exposed": 188,
+          "recent_exposed_successes": 169,
+          "recent_withheld": 12,
+          "recent_withheld_successes": 10
+        },
+        "recent_exposed": 181,
+        "recent_exposed_successes": 181,
+        "recent_withheld": 19,
+        "recent_withheld_successes": 10
+      },
+      "at": 800
     },
     {
       "seed": 2,
@@ -280,15 +577,34 @@
       "final": "accepted",
       "tally": {
         "lesson_id": "0000000000020000000000000005",
-        "exposed": 825,
-        "exposed_successes": 686,
-        "withheld": 71,
-        "withheld_successes": 39,
-        "exposed_calls": 1203,
-        "withheld_calls": 122,
-        "immature": 0
+        "exposed": 308,
+        "exposed_successes": 282,
+        "withheld": 54,
+        "withheld_successes": 23,
+        "exposed_calls": 382,
+        "withheld_calls": 120,
+        "immature": 0,
+        "unrelated": 2234,
+        "all": {
+          "lesson_id": "0000000000020000000000000005",
+          "exposed": 2315,
+          "exposed_successes": 2020,
+          "withheld": 281,
+          "withheld_successes": 215,
+          "exposed_calls": 3344,
+          "withheld_calls": 428,
+          "immature": 0,
+          "recent_exposed": 178,
+          "recent_exposed_successes": 159,
+          "recent_withheld": 22,
+          "recent_withheld_successes": 20
+        },
+        "recent_exposed": 170,
+        "recent_exposed_successes": 166,
+        "recent_withheld": 30,
+        "recent_withheld_successes": 16
       },
-      "at": 2100
+      "at": 400
     },
     {
       "seed": 2,
@@ -297,13 +613,32 @@
       "final": "trial",
       "tally": {
         "lesson_id": "0000000000020000000000000006",
-        "exposed": 1436,
-        "exposed_successes": 1017,
-        "withheld": 1418,
-        "withheld_successes": 985,
-        "exposed_calls": 2394,
-        "withheld_calls": 2478,
-        "immature": 0
+        "exposed": 186,
+        "exposed_successes": 170,
+        "withheld": 174,
+        "withheld_successes": 156,
+        "exposed_calls": 390,
+        "withheld_calls": 366,
+        "immature": 0,
+        "unrelated": 2532,
+        "all": {
+          "lesson_id": "0000000000020000000000000006",
+          "exposed": 1466,
+          "exposed_successes": 1214,
+          "withheld": 1426,
+          "withheld_successes": 1158,
+          "exposed_calls": 2261,
+          "withheld_calls": 2164,
+          "immature": 0,
+          "recent_exposed": 89,
+          "recent_exposed_successes": 81,
+          "recent_withheld": 111,
+          "recent_withheld_successes": 98
+        },
+        "recent_exposed": 101,
+        "recent_exposed_successes": 101,
+        "recent_withheld": 99,
+        "recent_withheld_successes": 99
       }
     },
     {
@@ -313,13 +648,32 @@
       "final": "trial",
       "tally": {
         "lesson_id": "0000000000020000000000000007",
-        "exposed": 1466,
-        "exposed_successes": 1051,
-        "withheld": 1380,
-        "withheld_successes": 955,
-        "exposed_calls": 2484,
-        "withheld_calls": 2347,
-        "immature": 0
+        "exposed": 97,
+        "exposed_successes": 97,
+        "withheld": 130,
+        "withheld_successes": 127,
+        "exposed_calls": 97,
+        "withheld_calls": 133,
+        "immature": 0,
+        "unrelated": 2678,
+        "all": {
+          "lesson_id": "0000000000020000000000000007",
+          "exposed": 1416,
+          "exposed_successes": 1167,
+          "withheld": 1489,
+          "withheld_successes": 1208,
+          "exposed_calls": 2188,
+          "withheld_calls": 2279,
+          "immature": 0,
+          "recent_exposed": 107,
+          "recent_exposed_successes": 95,
+          "recent_withheld": 93,
+          "recent_withheld_successes": 84
+        },
+        "recent_exposed": 81,
+        "recent_exposed_successes": 81,
+        "recent_withheld": 119,
+        "recent_withheld_successes": 119
       }
     },
     {
@@ -335,7 +689,23 @@
         "withheld_successes": 13,
         "exposed_calls": 142,
         "withheld_calls": 70,
-        "immature": 0
+        "immature": 0,
+        "all": {
+          "lesson_id": "0000000000020000000000000008",
+          "exposed": 40,
+          "exposed_successes": 0,
+          "withheld": 31,
+          "withheld_successes": 13,
+          "exposed_calls": 142,
+          "withheld_calls": 70,
+          "immature": 0,
+          "recent_exposed": 40,
+          "recent_withheld": 31,
+          "recent_withheld_successes": 13
+        },
+        "recent_exposed": 40,
+        "recent_withheld": 31,
+        "recent_withheld_successes": 13
       },
       "at": 100
     },
@@ -346,15 +716,33 @@
       "final": "eliminated",
       "tally": {
         "lesson_id": "0000000000020000000000000009",
-        "exposed": 199,
-        "exposed_successes": 65,
-        "withheld": 186,
-        "withheld_successes": 101,
-        "exposed_calls": 514,
-        "withheld_calls": 376,
-        "immature": 0
+        "exposed": 120,
+        "exposed_successes": 40,
+        "withheld": 107,
+        "withheld_successes": 54,
+        "exposed_calls": 304,
+        "withheld_calls": 215,
+        "immature": 0,
+        "all": {
+          "lesson_id": "0000000000020000000000000009",
+          "exposed": 120,
+          "exposed_successes": 40,
+          "withheld": 107,
+          "withheld_successes": 54,
+          "exposed_calls": 304,
+          "withheld_calls": 215,
+          "immature": 0,
+          "recent_exposed": 108,
+          "recent_exposed_successes": 38,
+          "recent_withheld": 92,
+          "recent_withheld_successes": 46
+        },
+        "recent_exposed": 108,
+        "recent_exposed_successes": 38,
+        "recent_withheld": 92,
+        "recent_withheld_successes": 46
       },
-      "at": 500
+      "at": 300
     },
     {
       "seed": 2,
@@ -363,15 +751,33 @@
       "final": "eliminated",
       "tally": {
         "lesson_id": "000000000002000000000000000a",
-        "exposed": 371,
-        "exposed_successes": 150,
-        "withheld": 375,
-        "withheld_successes": 216,
-        "exposed_calls": 835,
-        "withheld_calls": 746,
-        "immature": 0
+        "exposed": 238,
+        "exposed_successes": 101,
+        "withheld": 253,
+        "withheld_successes": 160,
+        "exposed_calls": 521,
+        "withheld_calls": 493,
+        "immature": 0,
+        "all": {
+          "lesson_id": "000000000002000000000000000a",
+          "exposed": 238,
+          "exposed_successes": 101,
+          "withheld": 253,
+          "withheld_successes": 160,
+          "exposed_calls": 521,
+          "withheld_calls": 493,
+          "immature": 0,
+          "recent_exposed": 93,
+          "recent_exposed_successes": 44,
+          "recent_withheld": 107,
+          "recent_withheld_successes": 92
+        },
+        "recent_exposed": 93,
+        "recent_exposed_successes": 44,
+        "recent_withheld": 107,
+        "recent_withheld_successes": 92
       },
-      "at": 900
+      "at": 600
     },
     {
       "seed": 3,
@@ -380,15 +786,33 @@
       "final": "accepted",
       "tally": {
         "lesson_id": "0000000000030000000000000000",
-        "exposed": 2078,
-        "exposed_successes": 1697,
-        "withheld": 218,
-        "withheld_successes": 158,
-        "exposed_calls": 3014,
-        "withheld_calls": 454,
-        "immature": 0
+        "exposed": 237,
+        "exposed_successes": 237,
+        "withheld": 28,
+        "withheld_successes": 0,
+        "exposed_calls": 237,
+        "withheld_calls": 140,
+        "immature": 0,
+        "unrelated": 2231,
+        "all": {
+          "lesson_id": "0000000000030000000000000000",
+          "exposed": 2224,
+          "exposed_successes": 1980,
+          "withheld": 272,
+          "withheld_successes": 214,
+          "exposed_calls": 3140,
+          "withheld_calls": 470,
+          "immature": 0,
+          "recent_exposed": 176,
+          "recent_exposed_successes": 164,
+          "recent_withheld": 24,
+          "recent_withheld_successes": 18
+        },
+        "recent_exposed": 177,
+        "recent_exposed_successes": 177,
+        "recent_withheld": 23
       },
-      "at": 700
+      "at": 500
     },
     {
       "seed": 3,
@@ -397,13 +821,32 @@
       "final": "trial",
       "tally": {
         "lesson_id": "0000000000030000000000000001",
-        "exposed": 1513,
-        "exposed_successes": 1138,
-        "withheld": 1401,
-        "withheld_successes": 1072,
-        "exposed_calls": 2211,
-        "withheld_calls": 2498,
-        "immature": 0
+        "exposed": 361,
+        "exposed_successes": 336,
+        "withheld": 343,
+        "withheld_successes": 323,
+        "exposed_calls": 592,
+        "withheld_calls": 1012,
+        "immature": 0,
+        "unrelated": 2210,
+        "all": {
+          "lesson_id": "0000000000030000000000000001",
+          "exposed": 1464,
+          "exposed_successes": 1202,
+          "withheld": 1450,
+          "withheld_successes": 1195,
+          "exposed_calls": 2067,
+          "withheld_calls": 2440,
+          "immature": 0,
+          "recent_exposed": 111,
+          "recent_exposed_successes": 105,
+          "recent_withheld": 89,
+          "recent_withheld_successes": 77
+        },
+        "recent_exposed": 104,
+        "recent_exposed_successes": 104,
+        "recent_withheld": 96,
+        "recent_withheld_successes": 96
       }
     },
     {
@@ -413,15 +856,33 @@
       "final": "accepted",
       "tally": {
         "lesson_id": "0000000000030000000000000002",
-        "exposed": 1520,
-        "exposed_successes": 1253,
-        "withheld": 176,
-        "withheld_successes": 125,
-        "exposed_calls": 2290,
-        "withheld_calls": 278,
-        "immature": 0
+        "exposed": 323,
+        "exposed_successes": 184,
+        "withheld": 45,
+        "withheld_successes": 0,
+        "exposed_calls": 323,
+        "withheld_calls": 64,
+        "immature": 0,
+        "unrelated": 1928,
+        "all": {
+          "lesson_id": "0000000000030000000000000002",
+          "exposed": 2047,
+          "exposed_successes": 1833,
+          "withheld": 249,
+          "withheld_successes": 195,
+          "exposed_calls": 2926,
+          "withheld_calls": 381,
+          "immature": 0,
+          "recent_exposed": 185,
+          "recent_exposed_successes": 171,
+          "recent_withheld": 15,
+          "recent_withheld_successes": 11
+        },
+        "recent_exposed": 177,
+        "recent_exposed_successes": 100,
+        "recent_withheld": 23
       },
-      "at": 1300
+      "at": 700
     },
     {
       "seed": 3,
@@ -430,31 +891,70 @@
       "final": "accepted",
       "tally": {
         "lesson_id": "0000000000030000000000000003",
-        "exposed": 542,
-        "exposed_successes": 463,
-        "withheld": 54,
-        "withheld_successes": 39,
-        "exposed_calls": 802,
-        "withheld_calls": 90,
-        "immature": 0
+        "exposed": 342,
+        "exposed_successes": 342,
+        "withheld": 38,
+        "withheld_successes": 17,
+        "exposed_calls": 342,
+        "withheld_calls": 38,
+        "immature": 0,
+        "unrelated": 2116,
+        "all": {
+          "lesson_id": "0000000000030000000000000003",
+          "exposed": 2251,
+          "exposed_successes": 1998,
+          "withheld": 245,
+          "withheld_successes": 196,
+          "exposed_calls": 3264,
+          "withheld_calls": 346,
+          "immature": 0,
+          "recent_exposed": 183,
+          "recent_exposed_successes": 168,
+          "recent_withheld": 17,
+          "recent_withheld_successes": 14
+        },
+        "recent_exposed": 180,
+        "recent_exposed_successes": 180,
+        "recent_withheld": 20,
+        "recent_withheld_successes": 9
       },
-      "at": 2400
+      "at": 500
     },
     {
       "seed": 3,
       "text": "Before committing, review what is staged instead of running git add -A (review-staged).",
       "expect": "accept",
-      "final": "trial",
+      "final": "accepted",
       "tally": {
         "lesson_id": "0000000000030000000000000004",
-        "exposed": 1480,
-        "exposed_successes": 1150,
-        "withheld": 1437,
-        "withheld_successes": 1065,
-        "exposed_calls": 2325,
-        "withheld_calls": 2380,
-        "immature": 0
-      }
+        "exposed": 217,
+        "exposed_successes": 217,
+        "withheld": 30,
+        "withheld_successes": 18,
+        "exposed_calls": 338,
+        "withheld_calls": 60,
+        "immature": 0,
+        "unrelated": 2149,
+        "all": {
+          "lesson_id": "0000000000030000000000000004",
+          "exposed": 2143,
+          "exposed_successes": 1902,
+          "withheld": 253,
+          "withheld_successes": 213,
+          "exposed_calls": 3071,
+          "withheld_calls": 392,
+          "immature": 0,
+          "recent_exposed": 174,
+          "recent_exposed_successes": 158,
+          "recent_withheld": 26,
+          "recent_withheld_successes": 24
+        },
+        "recent_exposed": 174,
+        "recent_exposed_successes": 174,
+        "recent_withheld": 26,
+        "recent_withheld_successes": 15
+      },
+      "at": 600
     },
     {
       "seed": 3,
@@ -463,15 +963,34 @@
       "final": "accepted",
       "tally": {
         "lesson_id": "0000000000030000000000000005",
-        "exposed": 357,
-        "exposed_successes": 317,
-        "withheld": 39,
-        "withheld_successes": 30,
-        "exposed_calls": 497,
-        "withheld_calls": 60,
-        "immature": 0
+        "exposed": 238,
+        "exposed_successes": 226,
+        "withheld": 35,
+        "withheld_successes": 16,
+        "exposed_calls": 286,
+        "withheld_calls": 73,
+        "immature": 0,
+        "unrelated": 1923,
+        "all": {
+          "lesson_id": "0000000000030000000000000005",
+          "exposed": 1959,
+          "exposed_successes": 1751,
+          "withheld": 237,
+          "withheld_successes": 192,
+          "exposed_calls": 2785,
+          "withheld_calls": 369,
+          "immature": 0,
+          "recent_exposed": 175,
+          "recent_exposed_successes": 160,
+          "recent_withheld": 25,
+          "recent_withheld_successes": 22
+        },
+        "recent_exposed": 175,
+        "recent_exposed_successes": 169,
+        "recent_withheld": 25,
+        "recent_withheld_successes": 11
       },
-      "at": 2600
+      "at": 800
     },
     {
       "seed": 3,
@@ -480,13 +999,32 @@
       "final": "trial",
       "tally": {
         "lesson_id": "0000000000030000000000000006",
-        "exposed": 1439,
-        "exposed_successes": 1090,
-        "withheld": 1468,
-        "withheld_successes": 1119,
-        "exposed_calls": 2306,
-        "withheld_calls": 2396,
-        "immature": 0
+        "exposed": 208,
+        "exposed_successes": 194,
+        "withheld": 187,
+        "withheld_successes": 171,
+        "exposed_calls": 434,
+        "withheld_calls": 395,
+        "immature": 0,
+        "unrelated": 2512,
+        "all": {
+          "lesson_id": "0000000000030000000000000006",
+          "exposed": 1499,
+          "exposed_successes": 1252,
+          "withheld": 1408,
+          "withheld_successes": 1144,
+          "exposed_calls": 2366,
+          "withheld_calls": 2134,
+          "immature": 0,
+          "recent_exposed": 101,
+          "recent_exposed_successes": 96,
+          "recent_withheld": 99,
+          "recent_withheld_successes": 86
+        },
+        "recent_exposed": 109,
+        "recent_exposed_successes": 109,
+        "recent_withheld": 91,
+        "recent_withheld_successes": 91
       }
     },
     {
@@ -496,13 +1034,32 @@
       "final": "trial",
       "tally": {
         "lesson_id": "0000000000030000000000000007",
-        "exposed": 1447,
-        "exposed_successes": 1064,
-        "withheld": 1463,
-        "withheld_successes": 1139,
-        "exposed_calls": 2418,
-        "withheld_calls": 2290,
-        "immature": 0
+        "exposed": 249,
+        "exposed_successes": 245,
+        "withheld": 233,
+        "withheld_successes": 232,
+        "exposed_calls": 253,
+        "withheld_calls": 234,
+        "immature": 0,
+        "unrelated": 2428,
+        "all": {
+          "lesson_id": "0000000000030000000000000007",
+          "exposed": 1519,
+          "exposed_successes": 1257,
+          "withheld": 1391,
+          "withheld_successes": 1133,
+          "exposed_calls": 2398,
+          "withheld_calls": 2108,
+          "immature": 0,
+          "recent_exposed": 94,
+          "recent_exposed_successes": 89,
+          "recent_withheld": 106,
+          "recent_withheld_successes": 93
+        },
+        "recent_exposed": 112,
+        "recent_exposed_successes": 112,
+        "recent_withheld": 88,
+        "recent_withheld_successes": 88
       }
     },
     {
@@ -518,7 +1075,23 @@
         "withheld_successes": 22,
         "exposed_calls": 104,
         "withheld_calls": 94,
-        "immature": 0
+        "immature": 0,
+        "all": {
+          "lesson_id": "0000000000030000000000000008",
+          "exposed": 35,
+          "exposed_successes": 0,
+          "withheld": 46,
+          "withheld_successes": 22,
+          "exposed_calls": 104,
+          "withheld_calls": 94,
+          "immature": 0,
+          "recent_exposed": 35,
+          "recent_withheld": 46,
+          "recent_withheld_successes": 22
+        },
+        "recent_exposed": 35,
+        "recent_withheld": 46,
+        "recent_withheld_successes": 22
       },
       "at": 100
     },
@@ -535,7 +1108,25 @@
         "withheld_successes": 56,
         "exposed_calls": 330,
         "withheld_calls": 227,
-        "immature": 0
+        "immature": 0,
+        "all": {
+          "lesson_id": "0000000000030000000000000009",
+          "exposed": 128,
+          "exposed_successes": 34,
+          "withheld": 105,
+          "withheld_successes": 56,
+          "exposed_calls": 330,
+          "withheld_calls": 227,
+          "immature": 0,
+          "recent_exposed": 111,
+          "recent_exposed_successes": 32,
+          "recent_withheld": 89,
+          "recent_withheld_successes": 53
+        },
+        "recent_exposed": 111,
+        "recent_exposed_successes": 32,
+        "recent_withheld": 89,
+        "recent_withheld_successes": 53
       },
       "at": 300
     },
@@ -552,7 +1143,25 @@
         "withheld_successes": 125,
         "exposed_calls": 466,
         "withheld_calls": 423,
-        "immature": 0
+        "immature": 0,
+        "all": {
+          "lesson_id": "000000000003000000000000000a",
+          "exposed": 190,
+          "exposed_successes": 65,
+          "withheld": 222,
+          "withheld_successes": 125,
+          "exposed_calls": 466,
+          "withheld_calls": 423,
+          "immature": 0,
+          "recent_exposed": 99,
+          "recent_exposed_successes": 41,
+          "recent_withheld": 101,
+          "recent_withheld_successes": 71
+        },
+        "recent_exposed": 99,
+        "recent_exposed_successes": 41,
+        "recent_withheld": 101,
+        "recent_withheld_successes": 71
       },
       "at": 500
     },
@@ -563,15 +1172,33 @@
       "final": "accepted",
       "tally": {
         "lesson_id": "0000000000040000000000000000",
-        "exposed": 1513,
-        "exposed_successes": 1263,
-        "withheld": 183,
-        "withheld_successes": 132,
-        "exposed_calls": 2217,
-        "withheld_calls": 340,
-        "immature": 0
+        "exposed": 231,
+        "exposed_successes": 231,
+        "withheld": 21,
+        "withheld_successes": 0,
+        "exposed_calls": 231,
+        "withheld_calls": 105,
+        "immature": 0,
+        "unrelated": 2344,
+        "all": {
+          "lesson_id": "0000000000040000000000000000",
+          "exposed": 2347,
+          "exposed_successes": 2053,
+          "withheld": 249,
+          "withheld_successes": 203,
+          "exposed_calls": 3328,
+          "withheld_calls": 451,
+          "immature": 0,
+          "recent_exposed": 180,
+          "recent_exposed_successes": 165,
+          "recent_withheld": 20,
+          "recent_withheld_successes": 18
+        },
+        "recent_exposed": 185,
+        "recent_exposed_successes": 185,
+        "recent_withheld": 15
       },
-      "at": 1300
+      "at": 400
     },
     {
       "seed": 4,
@@ -580,13 +1207,32 @@
       "final": "trial",
       "tally": {
         "lesson_id": "0000000000040000000000000001",
-        "exposed": 1484,
-        "exposed_successes": 1097,
-        "withheld": 1405,
-        "withheld_successes": 1069,
-        "exposed_calls": 2248,
-        "withheld_calls": 2509,
-        "immature": 0
+        "exposed": 308,
+        "exposed_successes": 282,
+        "withheld": 264,
+        "withheld_successes": 248,
+        "exposed_calls": 556,
+        "withheld_calls": 705,
+        "immature": 0,
+        "unrelated": 2313,
+        "all": {
+          "lesson_id": "0000000000040000000000000001",
+          "exposed": 1451,
+          "exposed_successes": 1191,
+          "withheld": 1434,
+          "withheld_successes": 1210,
+          "exposed_calls": 2031,
+          "withheld_calls": 2379,
+          "immature": 0,
+          "recent_exposed": 93,
+          "recent_exposed_successes": 86,
+          "recent_withheld": 107,
+          "recent_withheld_successes": 97
+        },
+        "recent_exposed": 104,
+        "recent_exposed_successes": 104,
+        "recent_withheld": 96,
+        "recent_withheld_successes": 96
       }
     },
     {
@@ -596,15 +1242,33 @@
       "final": "accepted",
       "tally": {
         "lesson_id": "0000000000040000000000000002",
-        "exposed": 990,
-        "exposed_successes": 849,
-        "withheld": 106,
-        "withheld_successes": 80,
-        "exposed_calls": 1462,
-        "withheld_calls": 163,
-        "immature": 0
+        "exposed": 250,
+        "exposed_successes": 142,
+        "withheld": 24,
+        "withheld_successes": 0,
+        "exposed_calls": 250,
+        "withheld_calls": 36,
+        "immature": 0,
+        "unrelated": 1522,
+        "all": {
+          "lesson_id": "0000000000040000000000000002",
+          "exposed": 1601,
+          "exposed_successes": 1459,
+          "withheld": 195,
+          "withheld_successes": 166,
+          "exposed_calls": 2285,
+          "withheld_calls": 276,
+          "immature": 0,
+          "recent_exposed": 181,
+          "recent_exposed_successes": 167,
+          "recent_withheld": 19,
+          "recent_withheld_successes": 16
+        },
+        "recent_exposed": 179,
+        "recent_exposed_successes": 102,
+        "recent_withheld": 21
       },
-      "at": 1900
+      "at": 1200
     },
     {
       "seed": 4,
@@ -613,31 +1277,70 @@
       "final": "accepted",
       "tally": {
         "lesson_id": "0000000000040000000000000003",
-        "exposed": 718,
-        "exposed_successes": 608,
-        "withheld": 78,
-        "withheld_successes": 66,
-        "exposed_calls": 1051,
-        "withheld_calls": 119,
-        "immature": 0
+        "exposed": 357,
+        "exposed_successes": 357,
+        "withheld": 38,
+        "withheld_successes": 23,
+        "exposed_calls": 357,
+        "withheld_calls": 38,
+        "immature": 0,
+        "unrelated": 2201,
+        "all": {
+          "lesson_id": "0000000000040000000000000003",
+          "exposed": 2346,
+          "exposed_successes": 2047,
+          "withheld": 250,
+          "withheld_successes": 209,
+          "exposed_calls": 3422,
+          "withheld_calls": 357,
+          "immature": 0,
+          "recent_exposed": 188,
+          "recent_exposed_successes": 171,
+          "recent_withheld": 12,
+          "recent_withheld_successes": 12
+        },
+        "recent_exposed": 184,
+        "recent_exposed_successes": 184,
+        "recent_withheld": 16,
+        "recent_withheld_successes": 10
       },
-      "at": 2200
+      "at": 400
     },
     {
       "seed": 4,
       "text": "Before committing, review what is staged instead of running git add -A (review-staged).",
       "expect": "accept",
-      "final": "trial",
+      "final": "accepted",
       "tally": {
         "lesson_id": "0000000000040000000000000004",
-        "exposed": 1446,
-        "exposed_successes": 1121,
-        "withheld": 1450,
-        "withheld_successes": 1050,
-        "exposed_calls": 2363,
-        "withheld_calls": 2405,
-        "immature": 0
-      }
+        "exposed": 211,
+        "exposed_successes": 211,
+        "withheld": 26,
+        "withheld_successes": 21,
+        "exposed_calls": 367,
+        "withheld_calls": 52,
+        "immature": 0,
+        "unrelated": 2059,
+        "all": {
+          "lesson_id": "0000000000040000000000000004",
+          "exposed": 2064,
+          "exposed_successes": 1854,
+          "withheld": 232,
+          "withheld_successes": 193,
+          "exposed_calls": 2921,
+          "withheld_calls": 366,
+          "immature": 0,
+          "recent_exposed": 186,
+          "recent_exposed_successes": 172,
+          "recent_withheld": 14,
+          "recent_withheld_successes": 11
+        },
+        "recent_exposed": 175,
+        "recent_exposed_successes": 175,
+        "recent_withheld": 25,
+        "recent_withheld_successes": 21
+      },
+      "at": 700
     },
     {
       "seed": 4,
@@ -646,15 +1349,34 @@
       "final": "accepted",
       "tally": {
         "lesson_id": "0000000000040000000000000005",
-        "exposed": 174,
-        "exposed_successes": 153,
-        "withheld": 22,
-        "withheld_successes": 20,
-        "exposed_calls": 235,
-        "withheld_calls": 33,
-        "immature": 0
+        "exposed": 284,
+        "exposed_successes": 272,
+        "withheld": 23,
+        "withheld_successes": 11,
+        "exposed_calls": 332,
+        "withheld_calls": 47,
+        "immature": 0,
+        "unrelated": 1989,
+        "all": {
+          "lesson_id": "0000000000040000000000000005",
+          "exposed": 2104,
+          "exposed_successes": 1893,
+          "withheld": 192,
+          "withheld_successes": 154,
+          "exposed_calls": 2979,
+          "withheld_calls": 308,
+          "immature": 0,
+          "recent_exposed": 190,
+          "recent_exposed_successes": 174,
+          "recent_withheld": 10,
+          "recent_withheld_successes": 9
+        },
+        "recent_exposed": 182,
+        "recent_exposed_successes": 174,
+        "recent_withheld": 18,
+        "recent_withheld_successes": 10
       },
-      "at": 2800
+      "at": 700
     },
     {
       "seed": 4,
@@ -663,13 +1385,32 @@
       "final": "trial",
       "tally": {
         "lesson_id": "0000000000040000000000000006",
-        "exposed": 1444,
-        "exposed_successes": 1089,
-        "withheld": 1440,
-        "withheld_successes": 1064,
-        "exposed_calls": 2372,
-        "withheld_calls": 2391,
-        "immature": 0
+        "exposed": 288,
+        "exposed_successes": 264,
+        "withheld": 301,
+        "withheld_successes": 264,
+        "exposed_calls": 605,
+        "withheld_calls": 643,
+        "immature": 0,
+        "unrelated": 2299,
+        "all": {
+          "lesson_id": "0000000000040000000000000006",
+          "exposed": 1424,
+          "exposed_successes": 1190,
+          "withheld": 1464,
+          "withheld_successes": 1201,
+          "exposed_calls": 2169,
+          "withheld_calls": 2264,
+          "immature": 0,
+          "recent_exposed": 97,
+          "recent_exposed_successes": 88,
+          "recent_withheld": 103,
+          "recent_withheld_successes": 95
+        },
+        "recent_exposed": 95,
+        "recent_exposed_successes": 95,
+        "recent_withheld": 105,
+        "recent_withheld_successes": 105
       }
     },
     {
@@ -679,13 +1420,32 @@
       "final": "trial",
       "tally": {
         "lesson_id": "0000000000040000000000000007",
-        "exposed": 1452,
-        "exposed_successes": 1076,
-        "withheld": 1445,
-        "withheld_successes": 1083,
-        "exposed_calls": 2403,
-        "withheld_calls": 2419,
-        "immature": 0
+        "exposed": 363,
+        "exposed_successes": 361,
+        "withheld": 338,
+        "withheld_successes": 335,
+        "exposed_calls": 365,
+        "withheld_calls": 341,
+        "immature": 0,
+        "unrelated": 2207,
+        "all": {
+          "lesson_id": "0000000000040000000000000007",
+          "exposed": 1450,
+          "exposed_successes": 1208,
+          "withheld": 1458,
+          "withheld_successes": 1200,
+          "exposed_calls": 2220,
+          "withheld_calls": 2265,
+          "immature": 0,
+          "recent_exposed": 101,
+          "recent_exposed_successes": 93,
+          "recent_withheld": 99,
+          "recent_withheld_successes": 90
+        },
+        "recent_exposed": 100,
+        "recent_exposed_successes": 100,
+        "recent_withheld": 100,
+        "recent_withheld_successes": 100
       }
     },
     {
@@ -701,7 +1461,23 @@
         "withheld_successes": 23,
         "exposed_calls": 99,
         "withheld_calls": 91,
-        "immature": 0
+        "immature": 0,
+        "all": {
+          "lesson_id": "0000000000040000000000000008",
+          "exposed": 31,
+          "exposed_successes": 0,
+          "withheld": 40,
+          "withheld_successes": 23,
+          "exposed_calls": 99,
+          "withheld_calls": 91,
+          "immature": 0,
+          "recent_exposed": 31,
+          "recent_withheld": 40,
+          "recent_withheld_successes": 23
+        },
+        "recent_exposed": 31,
+        "recent_withheld": 40,
+        "recent_withheld_successes": 23
       },
       "at": 100
     },
@@ -718,7 +1494,25 @@
         "withheld_successes": 62,
         "exposed_calls": 320,
         "withheld_calls": 228,
-        "immature": 0
+        "immature": 0,
+        "all": {
+          "lesson_id": "0000000000040000000000000009",
+          "exposed": 125,
+          "exposed_successes": 37,
+          "withheld": 107,
+          "withheld_successes": 62,
+          "exposed_calls": 320,
+          "withheld_calls": 228,
+          "immature": 0,
+          "recent_exposed": 110,
+          "recent_exposed_successes": 33,
+          "recent_withheld": 90,
+          "recent_withheld_successes": 57
+        },
+        "recent_exposed": 110,
+        "recent_exposed_successes": 33,
+        "recent_withheld": 90,
+        "recent_withheld_successes": 57
       },
       "at": 300
     },
@@ -729,15 +1523,33 @@
       "final": "eliminated",
       "tally": {
         "lesson_id": "000000000004000000000000000a",
-        "exposed": 275,
-        "exposed_successes": 120,
-        "withheld": 318,
-        "withheld_successes": 200,
-        "exposed_calls": 623,
-        "withheld_calls": 624,
-        "immature": 0
+        "exposed": 242,
+        "exposed_successes": 109,
+        "withheld": 262,
+        "withheld_successes": 165,
+        "exposed_calls": 535,
+        "withheld_calls": 491,
+        "immature": 0,
+        "all": {
+          "lesson_id": "000000000004000000000000000a",
+          "exposed": 242,
+          "exposed_successes": 109,
+          "withheld": 262,
+          "withheld_successes": 165,
+          "exposed_calls": 535,
+          "withheld_calls": 491,
+          "immature": 0,
+          "recent_exposed": 96,
+          "recent_exposed_successes": 44,
+          "recent_withheld": 104,
+          "recent_withheld_successes": 79
+        },
+        "recent_exposed": 96,
+        "recent_exposed_successes": 44,
+        "recent_withheld": 104,
+        "recent_withheld_successes": 79
       },
-      "at": 700
+      "at": 600
     },
     {
       "seed": 5,
@@ -746,15 +1558,33 @@
       "final": "accepted",
       "tally": {
         "lesson_id": "0000000000050000000000000000",
-        "exposed": 1706,
-        "exposed_successes": 1425,
-        "withheld": 190,
-        "withheld_successes": 136,
-        "exposed_calls": 2473,
-        "withheld_calls": 371,
-        "immature": 0
+        "exposed": 87,
+        "exposed_successes": 87,
+        "withheld": 10,
+        "withheld_successes": 0,
+        "exposed_calls": 87,
+        "withheld_calls": 50,
+        "immature": 0,
+        "unrelated": 2199,
+        "all": {
+          "lesson_id": "0000000000050000000000000000",
+          "exposed": 2067,
+          "exposed_successes": 1854,
+          "withheld": 229,
+          "withheld_successes": 180,
+          "exposed_calls": 2820,
+          "withheld_calls": 384,
+          "immature": 0,
+          "recent_exposed": 183,
+          "recent_exposed_successes": 154,
+          "recent_withheld": 17,
+          "recent_withheld_successes": 13
+        },
+        "recent_exposed": 87,
+        "recent_exposed_successes": 87,
+        "recent_withheld": 10
       },
-      "at": 1100
+      "at": 700
     },
     {
       "seed": 5,
@@ -763,30 +1593,68 @@
       "final": "trial",
       "tally": {
         "lesson_id": "0000000000050000000000000001",
-        "exposed": 1483,
-        "exposed_successes": 1134,
-        "withheld": 1421,
-        "withheld_successes": 1076,
-        "exposed_calls": 2206,
-        "withheld_calls": 2526,
-        "immature": 0
+        "exposed": 361,
+        "exposed_successes": 342,
+        "withheld": 317,
+        "withheld_successes": 296,
+        "exposed_calls": 588,
+        "withheld_calls": 937,
+        "immature": 0,
+        "unrelated": 2255,
+        "all": {
+          "lesson_id": "0000000000050000000000000001",
+          "exposed": 1488,
+          "exposed_successes": 1251,
+          "withheld": 1445,
+          "withheld_successes": 1174,
+          "exposed_calls": 2000,
+          "withheld_calls": 2434,
+          "immature": 0,
+          "recent_exposed": 114,
+          "recent_exposed_successes": 97,
+          "recent_withheld": 86,
+          "recent_withheld_successes": 70
+        },
+        "recent_exposed": 101,
+        "recent_exposed_successes": 101,
+        "recent_withheld": 99,
+        "recent_withheld_successes": 99
       }
     },
     {
       "seed": 5,
       "text": "Only report tests as passing from a run made after the last edit (fresh-evidence).",
       "expect": "accept",
-      "final": "trial",
+      "final": "accepted",
       "tally": {
         "lesson_id": "0000000000050000000000000002",
-        "exposed": 1446,
-        "exposed_successes": 1137,
-        "withheld": 1468,
-        "withheld_successes": 1079,
-        "exposed_calls": 2317,
-        "withheld_calls": 2475,
-        "immature": 0
-      }
+        "exposed": 263,
+        "exposed_successes": 140,
+        "withheld": 35,
+        "withheld_successes": 0,
+        "exposed_calls": 263,
+        "withheld_calls": 55,
+        "immature": 0,
+        "unrelated": 1698,
+        "all": {
+          "lesson_id": "0000000000050000000000000002",
+          "exposed": 1785,
+          "exposed_successes": 1617,
+          "withheld": 211,
+          "withheld_successes": 172,
+          "exposed_calls": 2465,
+          "withheld_calls": 306,
+          "immature": 0,
+          "recent_exposed": 178,
+          "recent_exposed_successes": 151,
+          "recent_withheld": 22,
+          "recent_withheld_successes": 16
+        },
+        "recent_exposed": 176,
+        "recent_exposed_successes": 90,
+        "recent_withheld": 24
+      },
+      "at": 1000
     },
     {
       "seed": 5,
@@ -795,31 +1663,70 @@
       "final": "accepted",
       "tally": {
         "lesson_id": "0000000000050000000000000003",
-        "exposed": 1700,
-        "exposed_successes": 1409,
-        "withheld": 196,
-        "withheld_successes": 152,
-        "exposed_calls": 2547,
-        "withheld_calls": 297,
-        "immature": 0
+        "exposed": 351,
+        "exposed_successes": 351,
+        "withheld": 36,
+        "withheld_successes": 23,
+        "exposed_calls": 351,
+        "withheld_calls": 36,
+        "immature": 0,
+        "unrelated": 2109,
+        "all": {
+          "lesson_id": "0000000000050000000000000003",
+          "exposed": 2262,
+          "exposed_successes": 1991,
+          "withheld": 234,
+          "withheld_successes": 197,
+          "exposed_calls": 3241,
+          "withheld_calls": 319,
+          "immature": 0,
+          "recent_exposed": 179,
+          "recent_exposed_successes": 148,
+          "recent_withheld": 21,
+          "recent_withheld_successes": 19
+        },
+        "recent_exposed": 179,
+        "recent_exposed_successes": 179,
+        "recent_withheld": 21,
+        "recent_withheld_successes": 14
       },
-      "at": 1100
+      "at": 500
     },
     {
       "seed": 5,
       "text": "Before committing, review what is staged instead of running git add -A (review-staged).",
       "expect": "accept",
-      "final": "trial",
+      "final": "accepted",
       "tally": {
         "lesson_id": "0000000000050000000000000004",
-        "exposed": 1433,
-        "exposed_successes": 1124,
-        "withheld": 1465,
-        "withheld_successes": 1083,
-        "exposed_calls": 2344,
-        "withheld_calls": 2402,
-        "immature": 0
-      }
+        "exposed": 186,
+        "exposed_successes": 186,
+        "withheld": 22,
+        "withheld_successes": 14,
+        "exposed_calls": 316,
+        "withheld_calls": 44,
+        "immature": 0,
+        "unrelated": 2288,
+        "all": {
+          "lesson_id": "0000000000050000000000000004",
+          "exposed": 2206,
+          "exposed_successes": 1954,
+          "withheld": 290,
+          "withheld_successes": 234,
+          "exposed_calls": 3132,
+          "withheld_calls": 428,
+          "immature": 0,
+          "recent_exposed": 179,
+          "recent_exposed_successes": 150,
+          "recent_withheld": 21,
+          "recent_withheld_successes": 17
+        },
+        "recent_exposed": 179,
+        "recent_exposed_successes": 179,
+        "recent_withheld": 21,
+        "recent_withheld_successes": 13
+      },
+      "at": 500
     },
     {
       "seed": 5,
@@ -828,15 +1735,34 @@
       "final": "accepted",
       "tally": {
         "lesson_id": "0000000000050000000000000005",
-        "exposed": 1353,
-        "exposed_successes": 1131,
-        "withheld": 143,
-        "withheld_successes": 107,
-        "exposed_calls": 1974,
-        "withheld_calls": 246,
-        "immature": 0
+        "exposed": 156,
+        "exposed_successes": 150,
+        "withheld": 20,
+        "withheld_successes": 8,
+        "exposed_calls": 180,
+        "withheld_calls": 48,
+        "immature": 0,
+        "unrelated": 1920,
+        "all": {
+          "lesson_id": "0000000000050000000000000005",
+          "exposed": 1910,
+          "exposed_successes": 1716,
+          "withheld": 186,
+          "withheld_successes": 157,
+          "exposed_calls": 2604,
+          "withheld_calls": 299,
+          "immature": 0,
+          "recent_exposed": 178,
+          "recent_exposed_successes": 153,
+          "recent_withheld": 22,
+          "recent_withheld_successes": 14
+        },
+        "recent_exposed": 156,
+        "recent_exposed_successes": 150,
+        "recent_withheld": 20,
+        "recent_withheld_successes": 8
       },
-      "at": 1500
+      "at": 900
     },
     {
       "seed": 5,
@@ -845,13 +1771,32 @@
       "final": "trial",
       "tally": {
         "lesson_id": "0000000000050000000000000006",
-        "exposed": 1464,
-        "exposed_successes": 1102,
-        "withheld": 1441,
-        "withheld_successes": 1104,
-        "exposed_calls": 2439,
-        "withheld_calls": 2338,
-        "immature": 0
+        "exposed": 194,
+        "exposed_successes": 181,
+        "withheld": 183,
+        "withheld_successes": 165,
+        "exposed_calls": 404,
+        "withheld_calls": 389,
+        "immature": 0,
+        "unrelated": 2536,
+        "all": {
+          "lesson_id": "0000000000050000000000000006",
+          "exposed": 1453,
+          "exposed_successes": 1186,
+          "withheld": 1460,
+          "withheld_successes": 1220,
+          "exposed_calls": 2206,
+          "withheld_calls": 2241,
+          "immature": 0,
+          "recent_exposed": 95,
+          "recent_exposed_successes": 77,
+          "recent_withheld": 105,
+          "recent_withheld_successes": 90
+        },
+        "recent_exposed": 110,
+        "recent_exposed_successes": 110,
+        "recent_withheld": 90,
+        "recent_withheld_successes": 90
       }
     },
     {
@@ -861,13 +1806,32 @@
       "final": "trial",
       "tally": {
         "lesson_id": "0000000000050000000000000007",
-        "exposed": 1448,
-        "exposed_successes": 1113,
-        "withheld": 1476,
-        "withheld_successes": 1110,
-        "exposed_calls": 2392,
-        "withheld_calls": 2416,
-        "immature": 0
+        "exposed": 251,
+        "exposed_successes": 249,
+        "withheld": 242,
+        "withheld_successes": 239,
+        "exposed_calls": 253,
+        "withheld_calls": 245,
+        "immature": 0,
+        "unrelated": 2444,
+        "all": {
+          "lesson_id": "0000000000050000000000000007",
+          "exposed": 1487,
+          "exposed_successes": 1212,
+          "withheld": 1450,
+          "withheld_successes": 1213,
+          "exposed_calls": 2316,
+          "withheld_calls": 2170,
+          "immature": 0,
+          "recent_exposed": 101,
+          "recent_exposed_successes": 85,
+          "recent_withheld": 99,
+          "recent_withheld_successes": 82
+        },
+        "recent_exposed": 103,
+        "recent_exposed_successes": 103,
+        "recent_withheld": 97,
+        "recent_withheld_successes": 97
       }
     },
     {
@@ -883,7 +1847,23 @@
         "withheld_successes": 28,
         "exposed_calls": 216,
         "withheld_calls": 153,
-        "immature": 0
+        "immature": 0,
+        "all": {
+          "lesson_id": "0000000000050000000000000008",
+          "exposed": 70,
+          "exposed_successes": 0,
+          "withheld": 67,
+          "withheld_successes": 28,
+          "exposed_calls": 216,
+          "withheld_calls": 153,
+          "immature": 0,
+          "recent_exposed": 70,
+          "recent_withheld": 67,
+          "recent_withheld_successes": 28
+        },
+        "recent_exposed": 70,
+        "recent_withheld": 67,
+        "recent_withheld_successes": 28
       },
       "at": 200
     },
@@ -894,15 +1874,33 @@
       "final": "eliminated",
       "tally": {
         "lesson_id": "0000000000050000000000000009",
-        "exposed": 155,
-        "exposed_successes": 40,
-        "withheld": 164,
-        "withheld_successes": 82,
-        "exposed_calls": 409,
-        "withheld_calls": 372,
-        "immature": 0
+        "exposed": 82,
+        "exposed_successes": 15,
+        "withheld": 76,
+        "withheld_successes": 30,
+        "exposed_calls": 221,
+        "withheld_calls": 181,
+        "immature": 0,
+        "all": {
+          "lesson_id": "0000000000050000000000000009",
+          "exposed": 82,
+          "exposed_successes": 15,
+          "withheld": 76,
+          "withheld_successes": 30,
+          "exposed_calls": 221,
+          "withheld_calls": 181,
+          "immature": 0,
+          "recent_exposed": 82,
+          "recent_exposed_successes": 15,
+          "recent_withheld": 76,
+          "recent_withheld_successes": 30
+        },
+        "recent_exposed": 82,
+        "recent_exposed_successes": 15,
+        "recent_withheld": 76,
+        "recent_withheld_successes": 30
       },
-      "at": 400
+      "at": 200
     },
     {
       "seed": 5,
@@ -911,13 +1909,31 @@
       "final": "eliminated",
       "tally": {
         "lesson_id": "000000000005000000000000000a",
-        "exposed": 136,
-        "exposed_successes": 35,
-        "withheld": 161,
-        "withheld_successes": 81,
-        "exposed_calls": 380,
-        "withheld_calls": 343,
-        "immature": 0
+        "exposed": 159,
+        "exposed_successes": 52,
+        "withheld": 152,
+        "withheld_successes": 90,
+        "exposed_calls": 387,
+        "withheld_calls": 303,
+        "immature": 0,
+        "all": {
+          "lesson_id": "000000000005000000000000000a",
+          "exposed": 159,
+          "exposed_successes": 52,
+          "withheld": 152,
+          "withheld_successes": 90,
+          "exposed_calls": 387,
+          "withheld_calls": 303,
+          "immature": 0,
+          "recent_exposed": 102,
+          "recent_exposed_successes": 39,
+          "recent_withheld": 98,
+          "recent_withheld_successes": 70
+        },
+        "recent_exposed": 102,
+        "recent_exposed_successes": 39,
+        "recent_withheld": 98,
+        "recent_withheld_successes": 70
       },
       "at": 400
     }

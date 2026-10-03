@@ -36,6 +36,7 @@ func cmdCredit(ctx context.Context, args []string, out io.Writer) error {
 	path := fs.String("journal", defaultJournal(), "journal file")
 	apply := fs.Bool("apply", false, "record credit evidence and accept or eliminate the lessons the rule decides")
 	maturity := fs.Duration("maturity", time.Hour, "ignore turns younger than this (late outcomes may still arrive)")
+	allTurns := fs.Bool("all-turns", false, "credit every turn a lesson was delivered or withheld on, not only the turns that bear on it (D-026)")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
@@ -49,11 +50,12 @@ func cmdCredit(ctx context.Context, args []string, out io.Writer) error {
 		return err
 	}
 	now := time.Now()
-	tallies, err := ledger.Count(ctx, j, now, *maturity, ledger.Eras(m))
+	rule := ledger.Rule{Maturity: *maturity, AllTurns: *allTurns}
+	tallies, err := ledger.Credit(ctx, j, m, now, rule, nil)
 	if err != nil {
 		return err
 	}
-	ds, err := ledger.Settle(ctx, m, tallies, ledger.Rule{Maturity: *maturity}, !*apply)
+	ds, err := ledger.Settle(ctx, m, tallies, rule, !*apply)
 	if err != nil {
 		return err
 	}
@@ -81,6 +83,9 @@ func cmdCredit(ctx context.Context, args []string, out io.Writer) error {
 	_ = tw.Flush()
 	for _, d := range ds {
 		say(out, "\n  %s  %s\n    %s\n", d.Lesson.ID, truncate(d.Lesson.Text, 90), d.Reason)
+		if d.Tally.Unrelated > 0 {
+			say(out, "    %d turn(s) about something else not counted\n", d.Tally.Unrelated)
+		}
 		if d.Tally.Immature > 0 {
 			say(out, "    %d turn(s) younger than %s not counted yet\n", d.Tally.Immature, *maturity)
 		}
@@ -92,7 +97,8 @@ func cmdCredit(ctx context.Context, args []string, out io.Writer) error {
 		say(out, "\n%d lesson(s) would move; nothing was recorded (add -apply)\n", moved)
 	}
 	say(out, "\nrule (D-020): accept at Bayes factor ≥ 30 for better, eliminate at ≥ 300 for worse,\n"+
-		"after ≥ 20 delivered and ≥ 10 withheld turns. Success = the turn ended done with no negative outcome.\n")
+		"after ≥ 20 delivered and ≥ 10 withheld turns. Success = the turn ended done with no negative outcome.\n"+
+		"Only turns whose request resembles the lesson's sources count (D-026; -all-turns counts every turn).\n")
 	return nil
 }
 
@@ -115,7 +121,7 @@ func cmdExport(ctx context.Context, args []string, out io.Writer) error {
 		return err
 	}
 	now := time.Now()
-	tallies, err := ledger.Count(ctx, j, now, time.Hour, ledger.Eras(m))
+	tallies, err := ledger.Credit(ctx, j, m, now, ledger.Rule{}, nil)
 	if err != nil {
 		return err
 	}
@@ -145,6 +151,7 @@ func cmdCreditEval(ctx context.Context, args []string, out io.Writer) error {
 	turns := fs.Int("turns", 3000, "live turns per history")
 	every := fs.Int("settle-every", 100, "settle the ledger every N turns, as a user running credit -apply would")
 	outDir := fs.String("out", "", "directory to write credit.json (optional)")
+	allTurns := fs.Bool("all-turns", false, "credit every turn, not only the turns that bear on each lesson (the D-020 analysis, for comparison)")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
@@ -152,7 +159,7 @@ func cmdCreditEval(ctx context.Context, args []string, out io.Writer) error {
 	for i := 1; i <= *seeds; i++ {
 		ss = append(ss, uint64(i))
 	}
-	r, err := bench.EvaluateCredit(ctx, ss, *turns, *every, ledger.Rule{})
+	r, err := bench.EvaluateCredit(ctx, ss, *turns, *every, ledger.Rule{AllTurns: *allTurns})
 	if err != nil {
 		return err
 	}
@@ -230,6 +237,59 @@ func cmdPoisonEval(ctx context.Context, args []string, out io.Writer) error {
 		if err := writeFile(filepath.Join(*outDir, "poison.json"), func(w io.Writer) error { return writeJSON(w, r) }); err != nil {
 			return err
 		}
+	}
+	return nil
+}
+
+// cmdDriftEval checks that accepted lessons are retired when the world
+// changes under them (Phase 4b, D-026), on the simulator.
+func cmdDriftEval(ctx context.Context, args []string, out io.Writer) error {
+	fs := flag.NewFlagSet("drift-eval", flag.ContinueOnError)
+	fs.SetOutput(out)
+	seeds := fs.Int("seeds", 5, "simulated histories")
+	before := fs.Int("before", 3000, "live turns before the world changes (the lessons earn acceptance)")
+	after := fs.Int("after", 3000, "live turns after it")
+	outDir := fs.String("out", "", "directory to write drift.json (optional)")
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	var ss []uint64
+	for i := 1; i <= *seeds; i++ {
+		ss = append(ss, uint64(i))
+	}
+	r, err := bench.EvaluateDrift(ctx, ss, *before, *after)
+	if err != nil {
+		return err
+	}
+	say(out, "drift on simulated Helix · %d histories · %d turns, then the world changes, then %d more\n\n", r.Seeds, r.Before, r.After)
+	say(out, "  accepted lessons that stopped holding, retired   %d / %d\n", r.DriftedRetired, r.DriftedAccepted)
+	if len(r.Latencies) > 0 {
+		say(out, "  turns after the change until retired             median %d, max %d\n",
+			r.Latencies[len(r.Latencies)/2], r.Latencies[len(r.Latencies)-1])
+	}
+	say(out, "  accepted lessons that still hold, retired        %d / %d\n\n", r.FalseRetirements, r.ControlsAccepted)
+	tw := tabwriter.NewWriter(out, 0, 0, 2, ' ', 0)
+	say(tw, "  SEED\tDRIFTED\tAT CHANGE\tFINAL\tRETIRED AFTER\tLESSON\n")
+	for _, row := range r.Rows {
+		after := "-"
+		if row.After > 0 {
+			after = fmt.Sprint(row.After)
+		}
+		drifted := "no"
+		if row.Drifted {
+			drifted = "yes"
+		}
+		say(tw, "  %d\t%s\t%s\t%s\t%s\t%s\n", row.Seed, drifted, row.AtDrift, row.Final, after, truncate(row.Text, 60))
+	}
+	_ = tw.Flush()
+	say(out, "\nThe change: the old failure a drifted lesson worked around is gone, and following the lesson now\n"+
+		"makes the turn fail. Synthetic: the simulator's requests are few and distinct, which flatters the\n"+
+		"relevance filter (D-026).\n")
+	if *outDir != "" {
+		if err := os.MkdirAll(*outDir, 0o755); err != nil {
+			return err
+		}
+		return writeFile(filepath.Join(*outDir, "drift.json"), func(w io.Writer) error { return writeJSON(w, r) })
 	}
 	return nil
 }

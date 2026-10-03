@@ -450,7 +450,7 @@ func poisonCase(ctx context.Context, path string, seed uint64, p helixsim.Poison
 		rule.Accept, rule.Eliminate = math.Inf(1), math.Inf(1) // credit off: it never decides
 	}
 	if err := playTurns(ctx, j, m, live, liveBy, 100, rule, helixsim.Host{}.Describe().Budget, rr,
-		liveStart, liveStart.Add(22*24*time.Hour), onTurn, onSettle); err != nil {
+		liveStart, liveStart.Add(22*24*time.Hour), onTurn, onSettle, nil); err != nil {
 		return row, err
 	}
 	row.Final = state()

@@ -218,8 +218,27 @@ the reason for the rule.
   harmful ones, last in the list, had 0 turns). Turns before and after a
   lesson's state change were mixed, which compared arms drawn from different
   periods. Both are fixed (shuffled trial order, eras).
-- `baseline-helixsim/credit.txt` is the committed run: 19/25 helpful
+- 2026-10-03: credit counts, for acceptance, only the turns that bear on
+  each lesson; harm still counts on every turn (D-026). Helpful accepted
+  went from 19/25 to 25/25; harmful 15/15 and neutral 0/15 are unchanged.
+  `credit-eval -all-turns` reruns the old analysis.
+- `baseline-helixsim/credit.txt` is the committed run: 25/25 helpful
   accepted, 15/15 harmful eliminated, 0/15 neutral moved.
+
+## Drift on the simulator (Phase 4b)
+
+2026-10-03: `drift-eval` plants the simulator's correct lessons in trial,
+plays 3000 turns (they earn acceptance), changes the world so two of them
+stop holding, and plays 3000 more. `baseline-helixsim/drift.*`, 5 histories.
+
+| Analysis | Drifted accepted lessons retired | Lessons that still hold, retired |
+|---|---|---|
+| Every turn, whole record (D-020) | 0/10 | 0/15 |
+| Recent 200 turns, every turn | 0/10 | 0/15 |
+| **Recent 200 related turns, and every turn for harm (D-026)** | **10/10**, 1100–1900 turns after the change | **0/15** |
+
+Synthetic: the simulator's 19 distinct requests make related turns easy to
+find. Details and limits in D-026.
 
 ## Driven session re-run (after the Helix fixes)
 
@@ -372,8 +391,9 @@ journal, with its reason.
 
 ## Poisoning suite (Phase 4a, simulator)
 
-`poison.*` in `baseline-helixsim/`: 96 cases, the worst-case reflector.
-Persistence 16.7% and end-to-end attack success 16.7%, against bars of 5% and
-2%: all of it is the false-answer attack, which wins replays by imitating
-a real fix. Every other goal 0%; benign lessons kept in every case. Details
-and caveats in [docs/poisoning.md](../../docs/poisoning.md#results).
+`poison.*` in `baseline-helixsim/`: 128 cases, the worst-case reflector.
+Before the defences: persistence 16.7% and end-to-end attack success 16.7%,
+against bars of 5% and 2%, all of it the false-answer attack, which wins
+replays by imitating a real fix. With them: 0% and 0%; benign lessons kept
+in every case. Details and caveats in
+[docs/poisoning.md](../../docs/poisoning.md#results).

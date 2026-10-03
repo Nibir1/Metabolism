@@ -117,6 +117,15 @@ func New(opts Options) *Index {
 // Len is the number of episodes indexed.
 func (ix *Index) Len() int { return len(ix.docs) }
 
+// Get returns an indexed episode.
+func (ix *Index) Get(id types.ID) (types.Episode, bool) {
+	d, ok := ix.byID[id]
+	if !ok {
+		return types.Episode{}, false
+	}
+	return d.ep, true
+}
+
 // Add indexes an episode. Adding one already present does nothing.
 func (ix *Index) Add(ep types.Episode) {
 	if _, ok := ix.byID[ep.ID]; ok {

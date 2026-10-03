@@ -1,0 +1,253 @@
+{
+  "seeds": 5,
+  "turns_before": 3000,
+  "turns_after": 3000,
+  "drifted_accepted": 10,
+  "drifted_retired": 10,
+  "latencies": [
+    1100,
+    1200,
+    1300,
+    1300,
+    1400,
+    1400,
+    1500,
+    1500,
+    1600,
+    1900
+  ],
+  "controls_accepted": 15,
+  "false_retirements": 0,
+  "rows": [
+    {
+      "seed": 1,
+      "text": "When a glob or search comes back empty, treat that as the answer instead of loosening the pattern (empty-glob).",
+      "drifted": true,
+      "at_drift": "accepted",
+      "final": "eliminated",
+      "retired_after": 1400,
+      "reason": "credit: stopped helping (drift): over its last 200 turns on the turns that bear on it it succeeded 29% of 181 delivered vs 74% of 19 withheld, P(better) 0.000, Bayes factor 381"
+    },
+    {
+      "seed": 1,
+      "text": "This is a Go module: read go.mod, not package.json, to find build and dependency information (go-module).",
+      "drifted": false,
+      "at_drift": "trial",
+      "final": "trial"
+    },
+    {
+      "seed": 1,
+      "text": "Only report tests as passing from a run made after the last edit (fresh-evidence).",
+      "drifted": false,
+      "at_drift": "accepted",
+      "final": "accepted"
+    },
+    {
+      "seed": 1,
+      "text": "The user declines package upgrades without a named package; ask which package first (ask-package).",
+      "drifted": false,
+      "at_drift": "accepted",
+      "final": "accepted"
+    },
+    {
+      "seed": 1,
+      "text": "Before committing, review what is staged instead of running git add -A (review-staged).",
+      "drifted": false,
+      "at_drift": "accepted",
+      "final": "accepted"
+    },
+    {
+      "seed": 1,
+      "text": "Edit files with the file tool's exact-snippet edit, not in-place sed, which reports success when it changes nothing (file-edit).",
+      "drifted": true,
+      "at_drift": "accepted",
+      "final": "eliminated",
+      "retired_after": 1400,
+      "reason": "credit: stopped helping (drift): over its last 200 turns on the turns that bear on it it succeeded 10% of 181 delivered vs 53% of 19 withheld, P(better) 0.000, Bayes factor 1.77e+03"
+    },
+    {
+      "seed": 2,
+      "text": "When a glob or search comes back empty, treat that as the answer instead of loosening the pattern (empty-glob).",
+      "drifted": true,
+      "at_drift": "accepted",
+      "final": "eliminated",
+      "retired_after": 1300,
+      "reason": "credit: stopped helping (drift): over its last 200 turns on the turns that bear on it it succeeded 32% of 179 delivered vs 81% of 21 withheld, P(better) 0.000, Bayes factor 3.06e+03"
+    },
+    {
+      "seed": 2,
+      "text": "This is a Go module: read go.mod, not package.json, to find build and dependency information (go-module).",
+      "drifted": false,
+      "at_drift": "trial",
+      "final": "trial"
+    },
+    {
+      "seed": 2,
+      "text": "Only report tests as passing from a run made after the last edit (fresh-evidence).",
+      "drifted": false,
+      "at_drift": "accepted",
+      "final": "accepted"
+    },
+    {
+      "seed": 2,
+      "text": "The user declines package upgrades without a named package; ask which package first (ask-package).",
+      "drifted": false,
+      "at_drift": "accepted",
+      "final": "accepted"
+    },
+    {
+      "seed": 2,
+      "text": "Before committing, review what is staged instead of running git add -A (review-staged).",
+      "drifted": false,
+      "at_drift": "accepted",
+      "final": "accepted"
+    },
+    {
+      "seed": 2,
+      "text": "Edit files with the file tool's exact-snippet edit, not in-place sed, which reports success when it changes nothing (file-edit).",
+      "drifted": true,
+      "at_drift": "accepted",
+      "final": "eliminated",
+      "retired_after": 1100,
+      "reason": "credit: stopped helping (drift): over its last 200 turns on the turns that bear on it it succeeded 28% of 177 delivered vs 74% of 23 withheld, P(better) 0.000, Bayes factor 2.27e+03"
+    },
+    {
+      "seed": 3,
+      "text": "When a glob or search comes back empty, treat that as the answer instead of loosening the pattern (empty-glob).",
+      "drifted": true,
+      "at_drift": "accepted",
+      "final": "eliminated",
+      "retired_after": 1500,
+      "reason": "credit: stopped helping (drift): over its last 200 turns on the turns that bear on it it succeeded 22% of 186 delivered vs 71% of 14 withheld, P(better) 0.000, Bayes factor 406"
+    },
+    {
+      "seed": 3,
+      "text": "This is a Go module: read go.mod, not package.json, to find build and dependency information (go-module).",
+      "drifted": false,
+      "at_drift": "trial",
+      "final": "trial"
+    },
+    {
+      "seed": 3,
+      "text": "Only report tests as passing from a run made after the last edit (fresh-evidence).",
+      "drifted": false,
+      "at_drift": "accepted",
+      "final": "accepted"
+    },
+    {
+      "seed": 3,
+      "text": "The user declines package upgrades without a named package; ask which package first (ask-package).",
+      "drifted": false,
+      "at_drift": "accepted",
+      "final": "accepted"
+    },
+    {
+      "seed": 3,
+      "text": "Before committing, review what is staged instead of running git add -A (review-staged).",
+      "drifted": false,
+      "at_drift": "accepted",
+      "final": "accepted"
+    },
+    {
+      "seed": 3,
+      "text": "Edit files with the file tool's exact-snippet edit, not in-place sed, which reports success when it changes nothing (file-edit).",
+      "drifted": true,
+      "at_drift": "accepted",
+      "final": "eliminated",
+      "retired_after": 1900,
+      "reason": "credit: stopped helping (drift): over its last 200 turns on the turns that bear on it it succeeded 26% of 178 delivered vs 73% of 22 withheld, P(better) 0.000, Bayes factor 2.34e+03"
+    },
+    {
+      "seed": 4,
+      "text": "When a glob or search comes back empty, treat that as the answer instead of loosening the pattern (empty-glob).",
+      "drifted": true,
+      "at_drift": "accepted",
+      "final": "eliminated",
+      "retired_after": 1600,
+      "reason": "credit: stopped helping (drift): over its last 200 turns on the turns that bear on it it succeeded 21% of 182 delivered vs 67% of 18 withheld, P(better) 0.000, Bayes factor 494"
+    },
+    {
+      "seed": 4,
+      "text": "This is a Go module: read go.mod, not package.json, to find build and dependency information (go-module).",
+      "drifted": false,
+      "at_drift": "trial",
+      "final": "trial"
+    },
+    {
+      "seed": 4,
+      "text": "Only report tests as passing from a run made after the last edit (fresh-evidence).",
+      "drifted": false,
+      "at_drift": "accepted",
+      "final": "accepted"
+    },
+    {
+      "seed": 4,
+      "text": "The user declines package upgrades without a named package; ask which package first (ask-package).",
+      "drifted": false,
+      "at_drift": "accepted",
+      "final": "accepted"
+    },
+    {
+      "seed": 4,
+      "text": "Before committing, review what is staged instead of running git add -A (review-staged).",
+      "drifted": false,
+      "at_drift": "accepted",
+      "final": "accepted"
+    },
+    {
+      "seed": 4,
+      "text": "Edit files with the file tool's exact-snippet edit, not in-place sed, which reports success when it changes nothing (file-edit).",
+      "drifted": true,
+      "at_drift": "accepted",
+      "final": "eliminated",
+      "retired_after": 1200,
+      "reason": "credit: stopped helping (drift): over its last 200 turns on the turns that bear on it it succeeded 15% of 181 delivered vs 58% of 19 withheld, P(better) 0.000, Bayes factor 829"
+    },
+    {
+      "seed": 5,
+      "text": "When a glob or search comes back empty, treat that as the answer instead of loosening the pattern (empty-glob).",
+      "drifted": true,
+      "at_drift": "accepted",
+      "final": "eliminated",
+      "retired_after": 1500,
+      "reason": "credit: stopped helping (drift): over its last 200 turns on the turns that bear on it it succeeded 28% of 176 delivered vs 79% of 24 withheld, P(better) 0.000, Bayes factor 2.12e+04"
+    },
+    {
+      "seed": 5,
+      "text": "This is a Go module: read go.mod, not package.json, to find build and dependency information (go-module).",
+      "drifted": false,
+      "at_drift": "trial",
+      "final": "trial"
+    },
+    {
+      "seed": 5,
+      "text": "Only report tests as passing from a run made after the last edit (fresh-evidence).",
+      "drifted": false,
+      "at_drift": "accepted",
+      "final": "accepted"
+    },
+    {
+      "seed": 5,
+      "text": "The user declines package upgrades without a named package; ask which package first (ask-package).",
+      "drifted": false,
+      "at_drift": "accepted",
+      "final": "accepted"
+    },
+    {
+      "seed": 5,
+      "text": "Before committing, review what is staged instead of running git add -A (review-staged).",
+      "drifted": false,
+      "at_drift": "accepted",
+      "final": "accepted"
+    },
+    {
+      "seed": 5,
+      "text": "Edit files with the file tool's exact-snippet edit, not in-place sed, which reports success when it changes nothing (file-edit).",
+      "drifted": true,
+      "at_drift": "accepted",
+      "final": "eliminated",
+      "retired_after": 1300,
+      "reason": "credit: stopped helping (drift): over its last 200 turns on the turns that bear on it it succeeded 20% of 182 delivered vs 72% of 18 withheld, P(better) 0.000, Bayes factor 5.13e+03"
+    }
+  ]
+}

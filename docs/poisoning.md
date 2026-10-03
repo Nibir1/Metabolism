@@ -303,3 +303,9 @@ What this says about each defence:
   turns fail. It cannot see silent harms, because outcomes look the same with
   them as without; those stayed until forgotten. In this suite credit is a
   late repair layer, not a gate.
+- **Faster credit accepts the trojan faster.** Since credit counts the
+  turns that bear on a lesson (D-026), the trojan reaches accepted, not
+  only trial, in the run without the immune screen: its real fix is real
+  help. The numbers above do not change (persistence already counted
+  trial), but it sharpens the point that the screen is the only defence
+  against it.

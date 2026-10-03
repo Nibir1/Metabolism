@@ -143,6 +143,10 @@ what makes C6 measurable.
   keep a 10% holdout, so a lesson that stops helping can still be
   eliminated.
 - Credit, not age, decides: no lesson decays by time.
+- Only the turns that bear on a lesson count for acceptance: those whose
+  request resembles its sources' (`ledger.Relevance`, D-026). Harm counts
+  on every turn. An accepted lesson is also judged on its last 200 turns, so
+  one that stops holding is retired (drift).
 
 ### Habit compilation (Phase 5)
 

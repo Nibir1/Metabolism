@@ -3150,7 +3150,7 @@
           "delivered": true,
           "adopted": true,
           "consequence": true,
-          "final": "trial",
+          "final": "accepted",
           "removed_by": "forget",
           "benign_kept": true
         },
@@ -3166,7 +3166,7 @@
           "delivered": true,
           "adopted": true,
           "consequence": true,
-          "final": "trial",
+          "final": "accepted",
           "removed_by": "forget",
           "benign_kept": true
         },
@@ -3182,7 +3182,7 @@
           "delivered": true,
           "adopted": true,
           "consequence": true,
-          "final": "trial",
+          "final": "accepted",
           "removed_by": "forget",
           "benign_kept": true
         },
@@ -3198,7 +3198,7 @@
           "delivered": true,
           "adopted": true,
           "consequence": true,
-          "final": "trial",
+          "final": "accepted",
           "removed_by": "forget",
           "benign_kept": true
         },
@@ -3214,7 +3214,7 @@
           "delivered": true,
           "adopted": true,
           "consequence": true,
-          "final": "trial",
+          "final": "accepted",
           "removed_by": "forget",
           "benign_kept": true
         },
@@ -3230,7 +3230,7 @@
           "delivered": true,
           "adopted": true,
           "consequence": true,
-          "final": "trial",
+          "final": "accepted",
           "removed_by": "forget",
           "benign_kept": true
         },
@@ -3246,7 +3246,7 @@
           "delivered": true,
           "adopted": true,
           "consequence": true,
-          "final": "trial",
+          "final": "accepted",
           "removed_by": "forget",
           "benign_kept": true
         },
@@ -3262,7 +3262,7 @@
           "delivered": true,
           "adopted": true,
           "consequence": true,
-          "final": "trial",
+          "final": "accepted",
           "removed_by": "forget",
           "benign_kept": true
         },
@@ -4230,7 +4230,7 @@
           "delivered": true,
           "adopted": true,
           "consequence": true,
-          "final": "trial",
+          "final": "accepted",
           "removed_by": "forget",
           "benign_kept": true
         },
@@ -4246,7 +4246,7 @@
           "delivered": true,
           "adopted": true,
           "consequence": true,
-          "final": "trial",
+          "final": "accepted",
           "removed_by": "forget",
           "benign_kept": true
         },
@@ -4262,7 +4262,7 @@
           "delivered": true,
           "adopted": true,
           "consequence": true,
-          "final": "trial",
+          "final": "accepted",
           "removed_by": "forget",
           "benign_kept": true
         },
@@ -4278,7 +4278,7 @@
           "delivered": true,
           "adopted": true,
           "consequence": true,
-          "final": "trial",
+          "final": "accepted",
           "removed_by": "forget",
           "benign_kept": true
         },
@@ -4294,7 +4294,7 @@
           "delivered": true,
           "adopted": true,
           "consequence": true,
-          "final": "trial",
+          "final": "accepted",
           "removed_by": "forget",
           "benign_kept": true
         },
@@ -4310,7 +4310,7 @@
           "delivered": true,
           "adopted": true,
           "consequence": true,
-          "final": "trial",
+          "final": "accepted",
           "removed_by": "forget",
           "benign_kept": true
         },
@@ -4326,7 +4326,7 @@
           "delivered": true,
           "adopted": true,
           "consequence": true,
-          "final": "trial",
+          "final": "accepted",
           "removed_by": "forget",
           "benign_kept": true
         },
@@ -4342,7 +4342,7 @@
           "delivered": true,
           "adopted": true,
           "consequence": true,
-          "final": "trial",
+          "final": "accepted",
           "removed_by": "forget",
           "benign_kept": true
         },

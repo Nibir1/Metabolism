@@ -4,6 +4,7 @@ import (
 	"context"
 	"math"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -66,7 +67,7 @@ func TestTalliesStartAtTheLessonsEra(t *testing.T) {
 		episode(0, old, types.RunFailed, nil, []types.ID{a}),
 		episode(1, t0.Add(-2*time.Hour), types.RunDone, []types.ID{a}, nil),
 	}
-	got := Tallies(eps, nil, t0, time.Hour, map[types.ID]time.Time{a: t0.Add(-3 * time.Hour)})[a]
+	got := Tallies(eps, nil, t0, time.Hour, map[types.ID]time.Time{a: t0.Add(-3 * time.Hour)}, nil)[a]
 	if got.Exposed != 1 || got.Withheld != 0 {
 		t.Fatalf("tally %+v", got)
 	}
@@ -84,9 +85,10 @@ func TestTalliesCountBothArmsAndHoldBackRecentTurns(t *testing.T) {
 	}
 	undone := eps[0]
 	outs := map[types.ID][]types.Outcome{undone.ID: {{Kind: types.OutcomeUndone}}}
-	got := *Tallies(eps, outs, t0, time.Hour, nil)[a]
+	got := *Tallies(eps, outs, t0, time.Hour, nil, nil)[a]
 	want := Tally{LessonID: a, Exposed: 2, ExposedSuccesses: 0, Withheld: 1, WithheldSuccesses: 1,
-		ExposedCalls: 3, WithheldCalls: 1, Immature: 1}
+		ExposedCalls: 3, WithheldCalls: 1, Immature: 1,
+		RecentExposed: 2, RecentExposedSuccesses: 0, RecentWithheld: 1, RecentWithheldSuccesses: 1}
 	if got != want {
 		t.Fatalf("tally %+v\nwant  %+v", got, want)
 	}
@@ -153,7 +155,7 @@ func TestSettleAcceptsEliminatesAndWaits(t *testing.T) {
 	add(bad.ID, 20, 18, false)
 	add(young.ID, 5, 5, true)
 
-	tallies, err := Count(ctx, j, t0, time.Hour, Eras(m))
+	tallies, err := Count(ctx, j, t0, time.Hour, Eras(m), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -184,5 +186,47 @@ func TestSettleAcceptsEliminatesAndWaits(t *testing.T) {
 	}
 	if e, _ := m.Get(good.ID); len(e.Evidence) != before {
 		t.Fatal("a dry run recorded evidence")
+	}
+}
+
+// An accepted lesson with a long good record that starts doing harm is
+// retired on its recent turns, though its whole record is still positive
+// (D-026); the same lesson without the change stays.
+func TestDriftRetiresAnAcceptedLessonThatStoppedHelping(t *testing.T) {
+	lesson := types.Lesson{ID: types.NewID(t0), State: types.StateAccepted}
+	var eps []types.Episode
+	at := t0.Add(-200 * time.Hour)
+	add := func(n int, deliveredWins, withheldWins float64) {
+		for i := range n {
+			at = at.Add(10 * time.Minute)
+			end := types.RunFailed
+			ep := episode(i, at, end, nil, nil)
+			if i%10 == 0 { // the 10% holdout
+				ep.Withheld = []types.ID{lesson.ID}
+				if float64(i%100)/100 < withheldWins {
+					ep.End = types.RunDone
+				}
+			} else {
+				ep.Exposure = []types.ID{lesson.ID}
+				if float64(i%100)/100 < deliveredWins {
+					ep.End = types.RunDone
+				}
+			}
+			eps = append(eps, ep)
+		}
+	}
+	add(1000, 0.9, 0.5) // a long, good record: 90% vs 50%
+	healthy := Tallies(eps, nil, t0, time.Hour, nil, nil)[lesson.ID]
+	if d := decide(lesson, *healthy, Rule{}.Defaults()); d.To != "" {
+		t.Fatalf("a healthy accepted lesson moved: %s", d.Reason)
+	}
+	add(200, 0.1, 0.6) // the world changed: now 10% vs 60%
+	drifted := Tallies(eps, nil, t0, time.Hour, nil, nil)[lesson.ID]
+	if p := drifted.PBetter(); p < 0.5 {
+		t.Fatalf("setup: the whole record should still look positive, P(better) %.3f", p)
+	}
+	d := decide(lesson, *drifted, Rule{}.Defaults())
+	if d.To != types.StateEliminated || !strings.Contains(d.Reason, "drift") || d.Tally.Exposed+d.Tally.Withheld != DriftWindow {
+		t.Fatalf("drift: to %q, %s, window %d", d.To, d.Reason, d.Tally.Exposed+d.Tally.Withheld)
 	}
 }

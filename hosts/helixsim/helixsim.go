@@ -556,3 +556,65 @@ func Live(ep types.Episode, outs []types.Outcome, lessons []types.Lesson) (types
 	return ep, []types.Outcome{{ID: id, EpisodeID: ep.ID, At: ep.StartedAt.Add(5 * time.Second),
 		Kind: kind, Source: types.SourceHost}}, nil
 }
+
+// Drift is a change in the world (D-026): from At on, a lesson whose text
+// carries Tag no longer holds. Its scenario's old failure is gone (the
+// project changed, so a turn without the lesson now succeeds), and the
+// lesson's advice, aimed at the old world, now makes the turn fail: advice
+// for a build tool the project has left behind.
+type Drift struct {
+	Tag string
+	At  time.Time
+}
+
+// LiveIn is Live in a world that may have changed: a delivered lesson whose
+// drift has happened by the turn's start no longer repairs its scenario, and
+// makes the turn fail there instead.
+func LiveIn(drifts []Drift, ep types.Episode, outs []types.Outcome, lessons []types.Lesson) (types.Episode, []types.Outcome, error) {
+	sc, ok := lookup(ep.Attrs["scenario"])
+	if !ok {
+		return ep, outs, fmt.Errorf("helixsim: episode %s has unknown scenario %q", ep.ID, ep.Attrs["scenario"])
+	}
+	var still []types.Lesson
+	stale, changed := false, false
+	for _, d := range drifts {
+		if sc.fix != "" && strings.Contains(d.Tag, sc.fix) && !ep.StartedAt.Before(d.At) {
+			changed = true
+		}
+	}
+	for _, l := range lessons {
+		drifted := false
+		for _, d := range drifts {
+			if strings.Contains(l.Text, d.Tag) && !ep.StartedAt.Before(d.At) {
+				drifted = true
+			}
+		}
+		if !drifted {
+			still = append(still, l)
+			continue
+		}
+		if sc.fix != "" && strings.Contains(l.Text, sc.fix) {
+			stale = true
+		}
+	}
+	live, liveOuts, err := Live(ep, outs, still)
+	if err != nil || !changed {
+		return live, liveOuts, err
+	}
+	id := types.NewID(ep.StartedAt)
+	if len(liveOuts) > 0 {
+		id = liveOuts[0].ID
+	}
+	if !stale {
+		// The world changed: the scenario's old failure is gone.
+		fp := fixedPlanFor(sc.name, ep)
+		live.Steps, live.End = slices.Clone(fp.steps), types.RunDone
+		return live, []types.Outcome{{ID: id, EpisodeID: ep.ID, At: ep.StartedAt.Add(5 * time.Second),
+			Kind: types.OutcomeSuccess, Source: types.SourceHost}}, nil
+	}
+	live.Steps = append(slices.Clone(live.Steps), types.Step{Tool: "shell", Subject: "follow advice that no longer holds", OK: false, Err: "the project changed"})
+	live.Usage.ModelCalls++
+	live.End = types.RunFailed
+	return live, []types.Outcome{{ID: id, EpisodeID: ep.ID, At: ep.StartedAt.Add(5 * time.Second),
+		Kind: types.OutcomeFailure, Source: types.SourceHost}}, nil
+}

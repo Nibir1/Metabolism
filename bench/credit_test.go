@@ -11,8 +11,10 @@ import (
 // simulator: every lesson the simulator knows the truth about is planted in
 // trial, delivered by coin flip over 3000 turns, and settled every 100 turns,
 // the frequent looking that inflates false decisions under a p-value rule.
-// What helps should mostly be accepted, what harms always eliminated, and
-// what changes no outcome never moved, at least not with these seeds.
+// What helps should be accepted, what harms always eliminated, and what
+// changes no outcome never moved, at least not with these seeds. Crediting
+// only the turns that bear on a lesson (D-026) took acceptance from 19 to 25
+// of 25; over every turn the help is diluted.
 func TestCreditLedgerOnTheSimulator(t *testing.T) {
 	if testing.Short() {
 		t.Skip("plays thousands of simulated turns")
@@ -34,7 +36,7 @@ func TestCreditLedgerOnTheSimulator(t *testing.T) {
 	if res.NeutralWrongMoves != 0 {
 		t.Errorf("lessons that change no outcome moved %d/%d", res.NeutralWrongMoves, res.NeutralTotal)
 	}
-	if res.HelpAcceptRate < 0.6 {
+	if res.HelpAcceptRate < 0.9 {
 		t.Errorf("helpful lessons accepted %d/%d", res.HelpAccepted, res.HelpTotal)
 	}
 }

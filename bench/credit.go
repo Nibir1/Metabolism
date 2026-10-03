@@ -196,10 +196,10 @@ func creditSeed(ctx context.Context, path string, seed uint64, turns, settleEver
 			}
 		}
 	}
-	if err := playTurns(ctx, j, m, eps, byEp, settleEvery, rule, budget, r, start, start.Add(span+24*time.Hour), nil, onSettle); err != nil {
+	if err := playTurns(ctx, j, m, eps, byEp, settleEvery, rule, budget, r, start, start.Add(span+24*time.Hour), nil, onSettle, nil); err != nil {
 		return nil, err
 	}
-	tallies, err := ledger.Count(ctx, j, start.Add(span+24*time.Hour), rule.Maturity, ledger.Eras(m))
+	tallies, err := ledger.Credit(ctx, j, m, start.Add(span+24*time.Hour), rule, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -217,15 +217,16 @@ func creditSeed(ctx context.Context, path string, seed uint64, turns, settleEver
 // metabolome's lessons would: each turn's lessons are selected by
 // deliver.Select (scope, budget, a coin per lesson), its outcome is what the
 // simulator says it would have been with the delivered lessons
-// (helixsim.Live), and the ledger settles every settleEvery turns and once
+// (helixsim.LiveIn, in a world drifts may have changed), and the ledger settles every settleEvery turns and once
 // more at end. onTurn, if set, sees each turn and what was delivered into it;
 // onSettle, if set, sees each settle's decisions.
 func playTurns(ctx context.Context, j ports.Journal, m *metabolome.Metabolome, eps []types.Episode,
 	byEp map[types.ID][]types.Outcome, settleEvery int, rule ledger.Rule, budget types.Budget, r *rand.Rand,
 	start, end time.Time, onTurn func(ep types.Episode, delivered []types.Lesson),
-	onSettle func(turn int, ds []ledger.Decision)) error {
+	onSettle func(turn int, ds []ledger.Decision), drifts []helixsim.Drift) error {
+	rel := ledger.NewRelevance()
 	settle := func(now time.Time, turn int) error {
-		tallies, err := ledger.Count(ctx, j, now, rule.Maturity, ledger.Eras(m))
+		tallies, err := ledger.Credit(ctx, j, m, now, rule, rel)
 		if err != nil {
 			return err
 		}
@@ -250,7 +251,7 @@ func playTurns(ctx context.Context, j ports.Journal, m *metabolome.Metabolome, e
 		if onTurn != nil {
 			onTurn(ep, delivered)
 		}
-		live, liveOuts, err := helixsim.Live(ep, byEp[ep.ID], delivered)
+		live, liveOuts, err := helixsim.LiveIn(drifts, ep, byEp[ep.ID], delivered)
 		if err != nil {
 			return err
 		}

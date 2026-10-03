@@ -5,6 +5,73 @@ change it. Don't reverse a decision without adding a new entry that says why.
 
 ---
 
+### D-026 · 2026-10-03 · Drift: a recent window, and credit counts the turns that bear on a lesson
+**What happened:** the drift evaluation (`drift-eval`) plants the
+simulator's correct lessons, lets them earn acceptance over 3000 turns,
+then changes the world so two of them stop holding: the failure they worked
+around is gone, and following them now makes the turn fail. Over every turn
+a lesson was delivered or withheld on, **0 of 10** drifted accepted lessons
+were retired in the next 3000 turns. Two causes:
+- A long good record dilutes new harm. Fixed by judging accepted lessons
+  also on their most recent turns (`DriftWindow`, 200). Not 100: an accepted
+  lesson keeps a 10% holdout, so 100 turns hold about 10 withheld ones, and
+  even a drastic change cannot reach the elimination bar (Bayes factor about
+  113 at most, against 300).
+- Unrelated turns dilute everything. A lesson in global scope is flipped for
+  on every turn, but only about a tenth of them are about what it teaches.
+  The window filled with turns it has no effect on, and drift stayed below
+  the bar.
+
+**Decision:**
+- **Relevance-filtered credit** (`ledger.Relevance`). A turn counts for a
+  lesson when most of the turn's 5 nearest past requests are in the
+  lesson's neighbourhood: its sources plus what episodic memory finds for
+  its text and for each source's request (16 each, as the nutrient test
+  finds its replays). Both are taken from the episodes before the lesson's
+  era and from requests only, never steps, so relevance does not depend on
+  the coin and leaves the comparison fair. The coin is still flipped on
+  every turn; only the analysis changed. Nothing to compare (no
+  neighbourhood, a request with no words) counts the turn.
+- **Harm anywhere counts; help must show where the lesson applies.**
+  Elimination is judged on the related turns and on every turn, either view
+  enough. Acceptance is judged on the related turns only. Drift checks both
+  windows. The filter alone slowed elimination: a lesson that harms outside
+  its topic (in-place sed, re-running the whole suite) lost that evidence,
+  and one of 15 harmful lessons survived 3000 turns.
+- The evidence a credit decision records is the counts it rests on (the
+  view or the window), not always the whole tally.
+- `metabolism credit -all-turns` and `credit-eval -all-turns` keep the
+  D-020 analysis for comparison.
+
+**Evidence (simulator, 5 histories):**
+
+| Analysis | Helpful accepted | Harmful eliminated | Neutral moved | Drifted retired | Controls retired |
+|---|---|---|---|---|---|
+| Every turn (D-020) | 19/25 | 15/15 | 0/15 | 0/10 | 0/15 |
+| Related turns only | 24/25 | 14/15 | 0/15 | 10/10 | 0/15 |
+| **Related for help, both for harm** | **25/25** | **15/15** | **0/15** | **10/10** | **0/15** |
+
+Drifted lessons were retired 1100 to 1900 turns after the change (median
+1400), about 150 to 250 turns that bear on them.
+
+**Limits:**
+- The simulator has 19 distinct requests over 9 scenarios, so related and
+  unrelated turns are easy to tell apart. Real requests vary more. A related
+  turn the filter misses is only uncounted, so acceptance slows; harm is
+  still seen over every turn.
+- With the immune screen off, the trojan (a real fix bundled with a silent
+  harm) now reaches accepted rather than staying in trial: faster
+  acceptance applies to its real fix too. Persistence counted trial already,
+  so the suite's numbers do not change (docs/poisoning.md).
+- The roadmap's "N set in Phase 3 data" stays open: 1100 to 1900 turns is a
+  simulator figure.
+
+**Revisit when:** real credit decisions exist, to check how often real turns
+are judged related, and whether a lesson's real neighbourhood needs more
+than its sources' requests.
+
+---
+
 ### D-025 · 2026-10-03 · Phase 4 starts while Phase 3's data-gated criteria stay open
 **Decision:** Phase 4 (elimination and the immune system) starts now. The
 roadmap's rule is that a phase's exit criteria hold before the next one

@@ -298,7 +298,11 @@ Exit criteria:
 
 **Status (2026-10-03): started (D-025)**, while Phase 3's data-gated criteria
 stay open. 4a, the poisoning suite, first: design in
-[poisoning.md](poisoning.md).
+[poisoning.md](poisoning.md). Its bars hold on the suite (0% persistence, 0%
+attack success, 128 cases). 4b, drift: accepted lessons are judged on a
+recent window too, and credit counts the turns that bear on a lesson
+(D-026). On the simulator 10 of 10 drifted lessons were retired, none
+wrongly.
 
 Deliverables:
 
@@ -314,7 +318,9 @@ Deliverables:
 Exit criteria:
 
 - [ ] Poison persistence ≤ 5% and end-to-end attack success ≤ 2% on the suite.
-- [ ] Drifted lessons retired within N episodes (N set in Phase 3 data).
+- [ ] Drifted lessons retired within N episodes (N set in Phase 3 data). On
+  the simulator: 10/10 within 1100 to 1900 turns, 0/15 false retirements
+  (`drift-eval`, D-026). N on real data stays open.
 - [ ] No regression on the Phase 3 curves.
 
 ## Phase 5: Habit compilation, System 2 → System 1 (about 4 weeks). C6, C9
