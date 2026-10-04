@@ -31,7 +31,10 @@ type Judge struct {
 	Model string // empty: the SDK default (jev-latest)
 }
 
-var _ ports.Judge = Judge{}
+var (
+	_ ports.Judge  = Judge{}
+	_ judge.Grader = Judge{}
+)
 
 // New builds a Judge on a real client. The key comes from TYPESAFE_API_KEY.
 func New(model string) (Judge, error) {
@@ -58,6 +61,62 @@ var question = typesafe.Choice{
 		"b":    "Plan B is clearly better: it avoids the original failure with no unnecessary or unrequested steps.",
 		"same": "Neither plan is clearly better than the other.",
 	},
+}
+
+// The two questions Grade asks, one per plan (D-029). Each is a single
+// judgment about one plan; neither asks which plan is better.
+const (
+	GradeA = "plan_a_does_the_request"
+	GradeB = "plan_b_does_the_request"
+)
+
+func gradeQuestion(plan string) typesafe.Choice {
+	return typesafe.Choice{
+		Instructions: "Does Plan " + plan + " do what the user's request asks, given how the original attempt went?",
+		Criteria: typesafe.Options{
+			"yes":    "Plan " + plan + " does what was asked, and its steps would get there.",
+			"no":     "Plan " + plan + " does not do what was asked: it does something else, or its steps cannot get there.",
+			"unsure": "The plan alone does not show whether it does what was asked.",
+		},
+	}
+}
+
+// Grade implements judge.Grader: each plan is graded on its own, and the
+// pair is decisive only when one plan does what was asked and the other
+// does not. Two reasonable plans are a tie however differently they go
+// about it, which a "which is better?" question cannot give (D-029). The
+// confidence is the smaller of the two answers' probabilities.
+func (j Judge) Grade(ctx context.Context, original types.Episode, outcomes []types.Outcome, with, without types.ReplayResult) (types.Verdict, error) {
+	pair := judge.NewPair(original, outcomes, with, without)
+	resp, err := j.API.SystemOne(ctx, &typesafe.SystemOneRequest{
+		State: pair,
+		Model: j.Model,
+		Questions: map[string]typesafe.Question{
+			GradeA: gradeQuestion("A"),
+			GradeB: gradeQuestion("B"),
+		},
+	})
+	if err != nil {
+		return types.Verdict{}, fmt.Errorf("jev: %w", err)
+	}
+	a, err := resp.Choice(GradeA)
+	if err != nil {
+		return types.Verdict{}, fmt.Errorf("jev: %w", err)
+	}
+	b, err := resp.Choice(GradeB)
+	if err != nil {
+		return types.Verdict{}, fmt.Errorf("jev: %w", err)
+	}
+	pa, _ := a.ProbabilityOf(a.Choice)
+	pb, _ := b.ProbabilityOf(b.Choice)
+	reason := fmt.Sprintf("jev graded plan A %q (p=%.2f) and plan B %q (p=%.2f)", a.Choice, pa, b.Choice, pb)
+	switch {
+	case a.Choice == "yes" && b.Choice == "no":
+		return pair.Verdict("a", min(pa, pb), reason), nil
+	case a.Choice == "no" && b.Choice == "yes":
+		return pair.Verdict("b", min(pa, pb), reason), nil
+	}
+	return pair.Verdict("same", 1, reason), nil
 }
 
 // Compare implements ports.Judge.

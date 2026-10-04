@@ -117,9 +117,12 @@ For candidate lesson *L* (`verify/`, decision rule D-018):
    nondeterministic planner and a judge that reads noise as preference both
    show up here.
 4. A **judge** compares the two plans against the original episode and its
-   outcomes. Heuristic on the simulator; a model judge (Jev, DeepSeek,
-   Ollama) on real plans, shown a plain-words view with A and B in a hashed
-   order. Verdicts below 0.6 confidence count as ties.
+   outcomes. On real replays, facts first (D-024, D-029): which one
+   answered, then failed steps and model calls; a model only grades plans
+   that take different actions, one plan at a time. Heuristic on the
+   simulator; a model judge (Jev, DeepSeek, Ollama) on real plans, shown a
+   plain-words view with A and B in a hashed order. Verdicts below 0.6
+   confidence count as ties.
 5. **Decide** with binomial tails under the null "*L* does nothing" (a
    decisive win and a decisive loss each have probability r/2):
    - **pass → trial:** p_help ≤ 0.1 with ≥ 2 decisive wins (quarantined

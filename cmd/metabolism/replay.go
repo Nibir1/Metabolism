@@ -129,6 +129,13 @@ type comparisonRecord struct {
 	Judge           string           `json:"judge"`
 	JudgePrefer     types.Preference `json:"judge_prefer"`
 	JudgeConfidence float64          `json:"judge_confidence"`
+	// JudgeReason says which rule or model decided (D-029); Noise is the
+	// episode's baseline-against-baseline verdict, so the noise floor can be
+	// read rule by rule.
+	JudgeReason     string           `json:"judge_reason,omitempty"`
+	NoisePrefer     types.Preference `json:"noise_prefer,omitempty"`
+	NoiseConfidence float64          `json:"noise_confidence,omitempty"`
+	NoiseReason     string           `json:"noise_reason,omitempty"`
 }
 
 func saveComparisons(path string, l types.Lesson, rep verify.Report, h *verify.History, judgeName string) error {
@@ -147,7 +154,8 @@ func saveComparisons(path string, l types.Lesson, rep verify.Report, h *verify.H
 		if err := enc.Encode(comparisonRecord{
 			Lesson: l.ID, LessonText: l.Text, Episode: c.Episode, Regression: c.Regression, Request: pair.Request, Original: pair.Original,
 			PlanA: pair.PlanA, PlanB: pair.PlanB, WithIsA: pair.WithIsA,
-			Judge: judgeName, JudgePrefer: c.Verdict.Prefer, JudgeConfidence: c.Verdict.Confidence,
+			Judge: judgeName, JudgePrefer: c.Verdict.Prefer, JudgeConfidence: c.Verdict.Confidence, JudgeReason: c.Verdict.Reason,
+			NoisePrefer: c.Noise.Prefer, NoiseConfidence: c.Noise.Confidence, NoiseReason: c.Noise.Reason,
 		}); err != nil {
 			return err
 		}

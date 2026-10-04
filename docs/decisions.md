@@ -5,6 +5,59 @@ change it. Don't reverse a decision without adding a new entry that says why.
 
 ---
 
+### D-029 · 2026-10-04 · The nutrient test decides on facts; the model grades plans one at a time
+**What happened:** after D-024, no lesson passed in 12 tests on the
+automated days. Two eliminations sat at p ≈ 0.019, and up to 15 of 26
+baseline-against-baseline pairs were decisive. The saved comparisons (461
+judged by `outcome+jev`) showed where the noise came from: 159 of the 180
+decisive verdicts were Jev choosing between two plans that ended the same
+way.
+- **58 were style.** The plans were identical, or ended on the same action,
+  and differed only in the reply's wording. One decisive "neither" was over
+  `cd /x` against `cd "/x"`. D-024 already said answer quality on equal
+  outcomes is not judged.
+- **101 were forced choices.** The plans stopped at different actions, and
+  a "which is better?" question picked one 101 times out of 104. Two
+  replays of the same baseline also often stop at different actions, so
+  the same forced choice inflated the noise floor until no lesson could
+  clear it.
+
+**Decision** (`judge.Outcome`):
+- Different measurable ends: the one that answered wins, unchanged.
+- The same end and the same action (last steps equal once quoting and
+  spacing are set aside), or both ends measurable: **facts only**. Fewer
+  failed steps wins; then clearly fewer model calls (at least 2 fewer, and
+  at most three quarters as many); otherwise a tie. Wording is never judged.
+  The nutrient test gains a cost signal.
+- Different actions, or ends that cannot be compared: the model judge. A
+  judge that can grade plans one at a time (`judge.Grader`; Jev does) is
+  asked two questions in one call, "does Plan A do what the request asks?"
+  and the same of Plan B (yes / no / unsure, linted with `typesafe lint
+  --strict`). The pair is decisive only for yes against no, with the smaller
+  of the two probabilities as the confidence. Two reasonable plans are a
+  tie.
+- Saved comparisons (`verify -save`) now carry the verdict's reason and the
+  episode's A/A verdict, so the noise floor can be read rule by rule.
+
+**Evidence (offline, the 461 saved real comparisons; call counts were not
+saved, so cost is not in this):**
+
+| | D-024 | D-029 |
+|---|---|---|
+| Ties by facts | – | 318 |
+| Decisive by facts (failed steps) | – | 16 |
+| To the model | 180 decisive, 281 ties | 127, graded per plan |
+
+The simulator baselines are unchanged: they use the heuristic judge.
+
+**Not yet known:** how often grading is decisive, on lessons and on A/A
+pairs. The next automated day measures it. If grading is still noisy, the
+next step is to treat different actions as ties too and let credit decide.
+
+**Revisit when:** a day's saved comparisons show the new noise floor.
+
+---
+
 ### D-028 · 2026-10-03 · The versioned metabolome: versions, rollback to trial, forget-with-proof by guarded delete
 **Context:** Phase 4d. The journal was append-only by trigger, with
 forget-with-proof promised as "a planned, audited migration". Its design was

@@ -149,8 +149,9 @@ func closeHost(h ports.Host) {
 }
 
 func pickJudge(name, model string, r remote) (ports.Judge, error) {
-	// outcome+<judge>: compare multi-round replays on what happened first,
-	// and ask <judge> only when there is nothing measurable (D-024).
+	// outcome+<judge>: compare replays on what happened first, and ask
+	// <judge> only when two plans take different actions (D-024, D-029); a
+	// judge that can grade plans one at a time (Jev) is asked to grade.
 	if inner, ok := strings.CutPrefix(name, "outcome+"); ok {
 		m, err := pickJudge(inner, model, r)
 		if err != nil {

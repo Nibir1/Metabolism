@@ -84,3 +84,35 @@ func TestJevErrorsPropagate(t *testing.T) {
 		t.Fatal("names")
 	}
 }
+
+// Grading: decisive only when one plan does what was asked and the other
+// does not, mapped back through the pair's order (D-029).
+func TestJevGradeIsDecisiveOnlyOnYesAgainstNo(t *testing.T) {
+	for i := range 6 {
+		e := ep(i)
+		pair := judge.NewPair(e, nil, with, without)
+		withQ, withoutQ := GradeB, GradeA
+		if pair.WithIsA {
+			withQ, withoutQ = GradeA, GradeB
+		}
+		mock := typesafetest.NewMock().
+			On(withQ, typesafetest.Choice(map[string]float64{"yes": 0.8, "no": 0.1, "unsure": 0.1})).
+			On(withoutQ, typesafetest.Choice(map[string]float64{"yes": 0.1, "no": 0.7, "unsure": 0.2}))
+		v, err := Judge{API: mock}.Grade(context.Background(), e, nil, with, without)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if v.Prefer != types.PreferWith || v.Confidence < 0.69 || v.Confidence > 0.71 {
+			t.Fatalf("episode %d: %+v", i, v)
+		}
+		if calls := mock.Calls(); len(calls) != 1 || len(calls[0].Questions) != 2 {
+			t.Fatalf("calls %+v", calls)
+		}
+	}
+	both := typesafetest.NewMock().
+		On(GradeA, typesafetest.Choice(map[string]float64{"yes": 0.9, "no": 0.05, "unsure": 0.05})).
+		On(GradeB, typesafetest.Choice(map[string]float64{"yes": 0.6, "no": 0.3, "unsure": 0.1}))
+	if v, _ := (Judge{API: both}).Grade(context.Background(), ep(1), nil, with, without); v.Prefer != types.PreferNeither {
+		t.Fatalf("two plans that both do it: %+v", v)
+	}
+}

@@ -219,13 +219,77 @@ func TestOutcomeJudgeComparesFactsFirst(t *testing.T) {
 	if asked != 0 {
 		t.Fatalf("the model was asked %d times about measurable outcomes", asked)
 	}
-	for _, pair := range [][2]types.ReplayResult{{acting, acting}, {firstPlan, firstPlan}, {answered, acting}} {
-		if v, _ := o.Compare(ctx, types.Episode{}, nil, pair[0], pair[1]); v.Reason != "model" {
-			t.Errorf("a pair with nothing measurable on one side was not given to the model: %+v", v)
+	// The same end and the same action: facts only, never the model (D-029).
+	for _, pair := range [][2]types.ReplayResult{{acting, acting}, {firstPlan, firstPlan}} {
+		if v, _ := o.Compare(ctx, types.Episode{}, nil, pair[0], pair[1]); v.Prefer != types.PreferNeither || !strings.HasPrefix(v.Reason, "facts") {
+			t.Errorf("the same action: %+v", v)
 		}
 	}
-	if asked != 3 || o.Name() != "outcome+stub" {
+	if asked != 0 {
+		t.Fatalf("the model was asked %d times about plans that end on the same action", asked)
+	}
+	// Different actions, or ends that cannot be compared: the model.
+	runs := func(cmd string) types.ReplayResult {
+		return types.ReplayResult{Rounds: 1, End: types.ReplayEndUnexecuted, Steps: []types.Step{{Tool: "shell", Subject: cmd}}}
+	}
+	for _, pair := range [][2]types.ReplayResult{{runs("go test ./..."), runs("go test ./ledger")}, {answered, acting}} {
+		if v, _ := o.Compare(ctx, types.Episode{}, nil, pair[0], pair[1]); v.Reason != "model" {
+			t.Errorf("a pair with different actions was not given to the model: %+v", v)
+		}
+	}
+	if asked != 2 || o.Name() != "outcome+stub" {
 		t.Fatalf("asked %d, name %q", asked, o.Name())
+	}
+}
+
+// Facts decide plans that end the same way: quoting is not an action, a
+// failed step counts, and so do clearly fewer model calls (D-029).
+func TestOutcomeJudgeFacts(t *testing.T) {
+	asked := 0
+	o := Outcome{Model: stubJudge{asked: &asked}}
+	ctx := context.Background()
+	cd := func(subject string, calls int) types.ReplayResult {
+		return types.ReplayResult{Rounds: 1, End: types.ReplayEndUnexecuted, Usage: types.Usage{ModelCalls: calls},
+			Steps: []types.Step{{Tool: "shell", Subject: subject}}}
+	}
+	if v, _ := o.Compare(ctx, types.Episode{}, nil, cd(`cd /a/b && go test ./...`, 2), cd(`cd "/a/b"  &&  go test ./...`, 2)); v.Prefer != types.PreferNeither {
+		t.Errorf("quoting only: %+v", v)
+	}
+	if v, _ := o.Compare(ctx, types.Episode{}, nil, cd("x", 2), cd("x", 3)); v.Prefer != types.PreferNeither {
+		t.Errorf("one call apart is noise: %+v", v)
+	}
+	if v, _ := o.Compare(ctx, types.Episode{}, nil, cd("x", 2), cd("x", 6)); v.Prefer != types.PreferWith || !strings.Contains(v.Reason, "model call") {
+		t.Errorf("clearly fewer calls: %+v", v)
+	}
+	failing := cd("x", 2)
+	failing.Steps = append([]types.Step{{Tool: "file", Action: "read", Subject: "nope", Err: "no such file"}}, failing.Steps...)
+	if v, _ := o.Compare(ctx, types.Episode{}, nil, failing, cd("x", 2)); v.Prefer != types.PreferWithout || !strings.Contains(v.Reason, "failed step") {
+		t.Errorf("a failed step: %+v", v)
+	}
+	if asked != 0 {
+		t.Fatalf("the model was asked %d times", asked)
+	}
+}
+
+// gradingJudge grades plans one at a time.
+type gradingJudge struct {
+	stubJudge
+	graded *int
+}
+
+func (g gradingJudge) Grade(context.Context, types.Episode, []types.Outcome, types.ReplayResult, types.ReplayResult) (types.Verdict, error) {
+	*g.graded++
+	return types.Verdict{Prefer: types.PreferNeither, Confidence: 1, Reason: "graded"}, nil
+}
+
+// A model that can grade each plan on its own is asked that, not to choose.
+func TestOutcomeJudgePrefersGrading(t *testing.T) {
+	asked, graded := 0, 0
+	o := Outcome{Model: gradingJudge{stubJudge{asked: &asked}, &graded}}
+	a := types.ReplayResult{End: types.ReplayEndUnexecuted, Steps: []types.Step{{Tool: "shell", Subject: "go test ./..."}}}
+	b := types.ReplayResult{End: types.ReplayEndUnexecuted, Steps: []types.Step{{Tool: "shell", Subject: "go vet ./..."}}}
+	if v, _ := o.Compare(context.Background(), types.Episode{}, nil, a, b); v.Reason != "graded" || graded != 1 || asked != 0 {
+		t.Fatalf("verdict %+v, graded %d, asked %d", v, graded, asked)
 	}
 }
 
