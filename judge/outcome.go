@@ -27,8 +27,11 @@ import (
 //   - Both measurable, different ends: the one that answered wins.
 //   - The same end and the same action (both answered, both ran out, or both
 //     stopped at the same step), or both measurable: facts only. Fewer
-//     failed steps wins; then clearly fewer model calls; otherwise a tie.
-//     Answer wording is not judged.
+//     failed steps wins; otherwise a tie. Answer wording is not judged, and
+//     neither are model calls: the first day under D-029 found 5 of 6
+//     decisive baseline-against-baseline facts were call counts (6 against
+//     4, 4 against 8), a planner varying with itself. Cost is measured by
+//     credit, over many turns.
 //   - Otherwise (different actions where a replay stops, or ends that cannot
 //     be compared): the model grades each plan on its own, "does it do what
 //     was asked?", when it can (Grader), and the pair is decisive only when
@@ -83,8 +86,7 @@ func (o Outcome) Compare(ctx context.Context, original types.Episode, outcomes [
 }
 
 // facts compares two replays that ended the same way on what can be
-// counted: failed steps, then model calls. Calls must differ by at least two
-// and a quarter, so one extra round of a varying planner is not a verdict.
+// counted: failed steps.
 func facts(with, without types.ReplayResult) types.Verdict {
 	fw, fwo := failedSteps(with), failedSteps(without)
 	switch {
@@ -95,20 +97,8 @@ func facts(with, without types.ReplayResult) types.Verdict {
 		return types.Verdict{Prefer: types.PreferWithout, Confidence: 0.9,
 			Reason: fmt.Sprintf("facts: the same end, %d failed step(s) with the lesson against %d without", fw, fwo)}
 	}
-	cw, cwo := with.Usage.ModelCalls, without.Usage.ModelCalls
-	if cw > 0 && cwo > 0 {
-		lo, hi := min(cw, cwo), max(cw, cwo)
-		if hi-lo >= 2 && 4*lo <= 3*hi {
-			prefer := types.PreferWith
-			if cwo < cw {
-				prefer = types.PreferWithout
-			}
-			return types.Verdict{Prefer: prefer, Confidence: 0.8,
-				Reason: fmt.Sprintf("facts: the same end, %d model call(s) with the lesson against %d without", cw, cwo)}
-		}
-	}
 	return types.Verdict{Prefer: types.PreferNeither, Confidence: 1,
-		Reason: "facts: the same end, the same action, no clear difference in failed steps or calls; wording is not judged"}
+		Reason: "facts: the same end, the same action, the same failed steps; wording and model calls are not judged"}
 }
 
 func failedSteps(r types.ReplayResult) int {

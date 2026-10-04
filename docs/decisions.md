@@ -26,9 +26,8 @@ way.
 - Different measurable ends: the one that answered wins, unchanged.
 - The same end and the same action (last steps equal once quoting and
   spacing are set aside), or both ends measurable: **facts only**. Fewer
-  failed steps wins; then clearly fewer model calls (at least 2 fewer, and
-  at most three quarters as many); otherwise a tie. Wording is never judged.
-  The nutrient test gains a cost signal.
+  failed steps wins; otherwise a tie. Wording is never judged. (The first
+  version also counted clearly fewer model calls; see the first day below.)
 - Different actions, or ends that cannot be compared: the model judge. A
   judge that can grade plans one at a time (`judge.Grader`; Jev does) is
   asked two questions in one call, "does Plan A do what the request asks?"
@@ -50,11 +49,27 @@ saved, so cost is not in this):**
 
 The simulator baselines are unchanged: they use the heuristic judge.
 
-**Not yet known:** how often grading is decisive, on lessons and on A/A
-pairs. The next automated day measures it. If grading is still noisy, the
-next step is to treat different actions as ties too and let credit decide.
+**The first day under it** (2026-10-04 13:02, 2 lessons, 44 saved
+comparisons with their A/A verdicts):
+- Noise fell from 5–15 of 26 decisive A/A pairs to 5/25 and 8/26 as run.
+  Read by rule, 5 of the 6 decisive A/A verdicts from facts were model-call
+  counts (6 against 4, 4 against 8): one planner varying with itself. Call
+  counts were dropped from facts the same day. That leaves 7 of 44 A/A
+  episodes decisive (about 16%): 1 by failed steps, 5 by grading, 1 by the
+  claim check. Cost is left to credit, over many turns (D-030).
+- Grading was decisive on 11 of 17 lesson pairs (10 for the lesson) and on
+  5 of 12 A/A pairs.
+- **The first lesson passed since D-024**: "for build/test/vet/bench
+  requests in this workspace, run the shell command directly…", 9 wins,
+  0 losses, 7 ties, noise 5/25. Without the call rule its result is the
+  same.
+- It is close to a lesson already in trial ("for simple build/test/vet/lint
+  requests, go straight to the shell command"). The nutrient test in
+  context carries accepted lessons only (D-027), so a near-paraphrase of a
+  trial lesson enters trial; the ledger's pair rule is what sets one aside.
 
-**Revisit when:** a day's saved comparisons show the new noise floor.
+**Revisit when:** more days show whether 16% holds, and whether grading
+favours lessons on A/A pairs too (it should not).
 
 ---
 

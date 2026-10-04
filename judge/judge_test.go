@@ -243,7 +243,7 @@ func TestOutcomeJudgeComparesFactsFirst(t *testing.T) {
 }
 
 // Facts decide plans that end the same way: quoting is not an action, a
-// failed step counts, and so do clearly fewer model calls (D-029).
+// failed step counts, model calls do not (D-029).
 func TestOutcomeJudgeFacts(t *testing.T) {
 	asked := 0
 	o := Outcome{Model: stubJudge{asked: &asked}}
@@ -255,11 +255,8 @@ func TestOutcomeJudgeFacts(t *testing.T) {
 	if v, _ := o.Compare(ctx, types.Episode{}, nil, cd(`cd /a/b && go test ./...`, 2), cd(`cd "/a/b"  &&  go test ./...`, 2)); v.Prefer != types.PreferNeither {
 		t.Errorf("quoting only: %+v", v)
 	}
-	if v, _ := o.Compare(ctx, types.Episode{}, nil, cd("x", 2), cd("x", 3)); v.Prefer != types.PreferNeither {
-		t.Errorf("one call apart is noise: %+v", v)
-	}
-	if v, _ := o.Compare(ctx, types.Episode{}, nil, cd("x", 2), cd("x", 6)); v.Prefer != types.PreferWith || !strings.Contains(v.Reason, "model call") {
-		t.Errorf("clearly fewer calls: %+v", v)
+	if v, _ := o.Compare(ctx, types.Episode{}, nil, cd("x", 4), cd("x", 8)); v.Prefer != types.PreferNeither {
+		t.Errorf("call counts vary between two replays of one baseline; they are not a verdict: %+v", v)
 	}
 	failing := cd("x", 2)
 	failing.Steps = append([]types.Step{{Tool: "file", Action: "read", Subject: "nope", Err: "no such file"}}, failing.Steps...)
