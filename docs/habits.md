@@ -177,7 +177,10 @@ recorded before the fix count those refused calls as `tool`; 5a's
 measurement should leave them out.
 
 **5a measurement log.** `metabolism decisions -since <the fix>` counts
-only days recorded after the native-planner fix.
+only days recorded after the native-planner fix. From day 3 (recorded
+from 2026-10-07 14:15) each plan record also carries the characters its planning
+sent and received: "answer now" saves tokens rather than calls (it still
+makes one, smaller call), so its saving can only be measured per round.
 
 | Day | Turns | Real calls | First attempts | Retries | Follow-up rounds | Answer-only rounds |
 |---|---|---|---|---|---|---|

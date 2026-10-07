@@ -13,8 +13,8 @@ func TestMeasureDecisions(t *testing.T) {
 		{Usage: types.Usage{ModelCalls: 9}}, // before wire v3: left out
 		{Usage: types.Usage{ModelCalls: 4, ByKind: map[string]int{"planner": 4}},
 			Plans: []types.PlanRecord{
-				{Round: 1, Prompt: "full", Calls: 2, Result: "planned", FirstTool: "file"},
-				{Round: 2, Prompt: "full", Calls: 2, Result: "planned", FirstTool: "response", Answered: true},
+				{Round: 1, Prompt: "full", Calls: 2, Result: "planned", FirstTool: "file", InputChars: 3000},
+				{Round: 2, Prompt: "full", Calls: 2, Result: "planned", FirstTool: "response", Answered: true, InputChars: 1000},
 			}},
 		{Usage: types.Usage{ModelCalls: 3, ByKind: map[string]int{"planner": 1, "critic": 1, "chat": 1}},
 			Plans:    []types.PlanRecord{{Round: 1, Prompt: "full", Calls: 1, Result: "quarantined"}},
@@ -32,6 +32,9 @@ func TestMeasureDecisions(t *testing.T) {
 	}
 	if d.CriticRuns != 1 || d.CriticNo != 1 || d.Fallbacks["critic-quarantine"] != 1 || d.AnsweredRound != 1 {
 		t.Fatalf("critic and fallback %+v", d)
+	}
+	if d.SizedPlans != 2 || d.PlannerInputChars != 4000 || d.AnsweredInputChars != 1000 {
+		t.Fatalf("sizes %+v", d)
 	}
 	byName := map[string]Candidate{}
 	for _, c := range d.Candidates {

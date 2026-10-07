@@ -32,6 +32,13 @@ type Decisions struct {
 	FirstTools    map[string]int `json:"first_tools"`
 	AnsweredRound int            `json:"answered_rounds"` // follow-up rounds whose plan only answered
 
+	// Planner input characters (plans that record them), and the part the
+	// answer-only follow-up rounds took: what an answer-now habit could save
+	// by sending a small prompt instead of the full one.
+	PlannerInputChars  int `json:"planner_input_chars"`
+	AnsweredInputChars int `json:"answered_input_chars"`
+	SizedPlans         int `json:"sized_plans"`
+
 	Candidates []Candidate `json:"candidates"`
 }
 
@@ -75,6 +82,13 @@ func MeasureDecisions(eps []types.Episode) Decisions {
 		}
 		for _, p := range ep.Plans {
 			d.Plans++
+			if p.InputChars > 0 {
+				d.SizedPlans++
+				d.PlannerInputChars += p.InputChars
+				if p.Round > 1 && p.Answered {
+					d.AnsweredInputChars += p.InputChars
+				}
+			}
 			d.PlanResults[p.Result]++
 			extra := max(p.Calls-1, 0)
 			d.Retries += extra

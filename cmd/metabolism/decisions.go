@@ -79,7 +79,12 @@ func cmdDecisions(ctx context.Context, args []string, out io.Writer) error {
 	_ = tw.Flush()
 	say(out, "\n  %d planner rounds: %d ended without a usable plan, %d needed a smaller prompt, %d follow-up rounds only answered\n",
 		d.Plans, d.FailedPlannings, d.SmallerPrompts, d.AnsweredRound)
-	say(out, "  critic: %d review(s), %d said no · fallbacks: %v\n\n", d.CriticRuns, d.CriticNo, d.Fallbacks)
+	say(out, "  critic: %d review(s), %d said no · fallbacks: %v\n", d.CriticRuns, d.CriticNo, d.Fallbacks)
+	if d.SizedPlans > 0 {
+		say(out, "  planner input: %d characters over %d sized rounds; answer-only follow-up rounds took %.1f%% of it\n",
+			d.PlannerInputChars, d.SizedPlans, 100*float64(d.AnsweredInputChars)/float64(max(d.PlannerInputChars, 1)))
+	}
+	say(out, "\n")
 
 	tw = tabwriter.NewWriter(out, 0, 0, 2, ' ', 0)
 	say(tw, "  CANDIDATE DECISION\tCALLS\tSHARE\t≥ %.0f%%?\n", 100*bench.StopShare)

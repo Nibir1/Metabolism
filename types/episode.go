@@ -63,6 +63,10 @@ type PlanRecord struct {
 	FirstTool string `json:"first_tool,omitempty"`
 	Answered  bool   `json:"answered,omitempty"`
 	Steps     int    `json:"steps,omitempty"`
+	// What the planning sent and received, in characters, retries
+	// included: a habit that changes the prompt saves these, not calls.
+	InputChars  int `json:"input_chars,omitempty"`
+	OutputChars int `json:"output_chars,omitempty"`
 }
 
 // CriticRecord is the host's safety critic's review of a plan (wire v3).
