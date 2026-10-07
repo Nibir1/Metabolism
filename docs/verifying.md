@@ -318,6 +318,12 @@ recorded. The nutrient test is skipped until the journal holds
 effect. After that each run tests up to `-verify-max` lessons (default 5),
 never-tested ones first. A full day is `-requests 100`.
 
+Days run off-peak only. DeepSeek bills double from 01:00 to 04:00 and from
+06:00 to 10:00 UTC on weekdays (03:00–06:00 and 08:00–12:00 CEST), and a day
+spends most of its money there. `auto` (and `-resume`) refuses to start
+when peak applies now or within 2 hours, and names the next safe start;
+`-allow-peak` pays the peak price instead. `-plan-only` is exempt.
+
 The synthetic user never starts a request with a command name: Helix runs
 such a line as a shell command and it never reaches the planner (6 of 20
 requests on the first day).

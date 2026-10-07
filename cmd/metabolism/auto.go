@@ -52,8 +52,17 @@ func cmdAuto(ctx context.Context, args []string, out io.Writer) error {
 	planOnly := fs.Bool("plan-only", false, "write today's requests and stop: no Helix, no engine steps")
 	resume := fs.String("resume", "", "finish an interrupted run's engine steps (verify, credit, report) for this day folder, without driving Helix")
 	allowRemote := fs.Bool("allow-remote", false, "allow the run's remote calls (see the notices)")
+	allowPeak := fs.Bool("allow-peak", false, "run even during DeepSeek's peak hours, at double the price")
 	if err := fs.Parse(args); err != nil {
 		return err
+	}
+	// Off-peak only: DeepSeek bills double in its peak hours, and a day
+	// spends most of its money there. Plan-only writes requests with one or
+	// two calls, too few to matter.
+	if !*allowPeak && !*planOnly {
+		if err := offPeakCheck(peakClock()); err != nil {
+			return err
+		}
 	}
 	rem := remote{allowed: *allowRemote, out: out}
 	home, err := os.UserHomeDir()

@@ -70,6 +70,8 @@ truth for what, why and how.
   credit. It changes the user's Helix config only during the run and
   restores it byte for byte. Run it only when the user asks, in their
   terminal pane: this is a work PC, so no schedules or unattended runs.
+  It refuses to start in DeepSeek's peak hours (double price) unless
+  `-allow-peak`: run days after 12:00 CEST on weekdays, or at weekends.
 - `make demo` (and so `make verify`) deletes and rebuilds `.demo/cli/`. Keep
   journals and files from live runs in `.runs/`, which no target touches.
   The first live-run data was lost to an older demo that cleared all of
