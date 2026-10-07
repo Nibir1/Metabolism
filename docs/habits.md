@@ -164,6 +164,23 @@ This is closest to AgentGuard (2026). What is new is human approval,
 verification on the agent's own replays before proposal, and live credit
 after.
 
+**The miner is built (2026-10-07):** `mine/` and `metabolism patterns`. It
+groups failures that recur the same way (at least 3 times, in at least 2
+different requests) and sorts each by what could answer it:
+- **guard**: a person undid, or declined when asked, the same kind of step;
+- **lesson**: the same kind of step failed the same way. That is a mistake,
+  and advice is its answer, so it goes to the reflector, not to a guard;
+- **excluded**: refused with nobody asked (an unattended run refuses every
+  confirmation by policy).
+
+**On the automated journal (627 episodes, synthetic) it finds no guard
+candidate.** It finds `todo add` failing 10 times and guessed file paths
+(lesson territory; a trial lesson already covers `todo add`), and writes
+the daemon refused (excluded). A guard's evidence is a person pushing
+back, and synthetic days have no person: no undo, and every decline is
+policy. 5c's proposals and the approval command in Helix wait for real use.
+Building them now would mean building on no evidence.
+
 **Exit criterion for 5c:** at least one approved guard measurably lowers
 failed turns on its pattern (credit on success, BF ≥ 30), with no rise in
 declined confirmations.

@@ -54,6 +54,7 @@ truth for what, why and how.
   | `internal/privacyguard` | test: no network code outside `adapters/remote/` |
   | `hosts/helixsim` | simulated Helix |
   | `hosts/helixuser` | synthetic Helix user: writes a day's requests for `metabolism auto` (D-023) |
+  | `mine/` | Phase 5c: recurring failures, sorted into guard candidates (a person pushed back), lesson territory and unattended refusals (D-031) |
   | `versions/` | the versioned metabolome: named versions, as-of, diff, rollback, forget plans (D-028) |
   | `bench/` | metrics, curves, recall evaluation, nutrient-test and credit evaluation, judge agreement (κ) |
   | `cmd/metabolism` | CLI |

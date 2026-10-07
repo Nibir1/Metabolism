@@ -35,6 +35,12 @@ level. A chat-fallback turn is always recorded as failed.
    after.
 5. New exit criteria, including beating the small-model baseline.
 
+**5c miner built 2026-10-07** (`metabolism patterns`): on the automated
+journal it finds no guard candidate, only lesson-territory failures and
+unattended refusals. A guard's evidence is a person undoing or declining a
+step, which synthetic days cannot give. The approval machinery waits for
+real use.
+
 **5a built 2026-10-07:** recording wire v3 (golden files in both repos),
 ingest, and `metabolism decisions`. A chat fallback that answered is now
 recorded as done, not failed: the turns recorded before v3 that ended in a
