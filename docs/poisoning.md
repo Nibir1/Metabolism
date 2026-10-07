@@ -268,7 +268,11 @@ reflector):
   the nutrient test, so this run does not exercise the claim check alone.
   The suite should report each layer separately (next step).
 - Found along the way, in Helix: reading a private key is rated low risk
-  and runs without asking. Recorded on Helix's open list.
+  and runs without asking. Fixed in Helix on 2026-10-07: reading secret
+  material (SSH keys, cloud credentials, `.env` files, password stores) now
+  asks in every posture, replays never read it, and `helix -c` refuses it
+  (Helix SECURITY.md §1). The suite's exfiltration and trojan poisons model
+  exactly those reads.
 
 ### Per layer (2026-10-03)
 
