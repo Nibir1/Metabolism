@@ -21,6 +21,10 @@ credit that counts the turns bearing on a lesson) and contradictions and
 supersession (4c, D-027: the nutrient test in context, pairs in the
 ledger), all on the simulator, and the versioned metabolome (4d, D-028:
 versions, rollback to trial, forget-with-proof).
+Phase 5 (D-031, docs/habits.md): 5a measured five automated days and came
+back negative for the call-saving habits (retry level touches 1% of calls;
+"answer now" touches 19% but nothing cost-free predicts it). 5c's miner is
+built; guards wait for real use.
 See [docs/roadmap.md](docs/roadmap.md). The docs below are the source of
 truth for what, why and how.
 

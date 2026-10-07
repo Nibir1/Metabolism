@@ -35,6 +35,18 @@ level. A chat-fallback turn is always recorded as failed.
    after.
 5. New exit criteria, including beating the small-model baseline.
 
+**5a judged 2026-10-07 (five days, decided by the user): the stop
+condition fires for both measured candidates.** Over days 2 to 5 (335
+turns, 1,013 calls, after the native-planner fix) "retry level" touches 1%
+of calls, under the 15% bar. "Answer now or read more" touches 19% of calls
+and 21.5% of planner input, but the cost-free predictor never reaches 90%
+precision, so it saves 0% against the 50% bar. A content-aware predictor
+(Jev reading what was read) would need paid replays; the user chose not to
+build it. Written up as a negative result: the habit compiler is not built
+for these decisions. Planning mode ("think or not") saves tokens, not
+calls, was outside this measure, and stays a candidate to measure on its
+own. 5c continues. Details and the day log in habits.md.
+
 **5a's first data (2026-10-07):** Helix's native planner path was refused
 by DeepSeek on every planning, which was half the recorded calls. Fixed in
 Helix; details in habits.md. "Think or not, per request" is a planning-mode

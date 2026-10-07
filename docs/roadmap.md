@@ -377,9 +377,12 @@ Deliverables:
 
 Exit criteria:
 
-- [ ] 5a: the measurement is written up. If no decision covers ≥ 15% of
+- [x] 5a: the measurement is written up. If no decision covers ≥ 15% of
       model calls or none can save half of its calls, the cost claim fails
-      in Helix and is published as a negative result.
+      in Helix and is published as a negative result. **Done 2026-10-07,
+      negative:** retry level touches 1% of calls; answer-now touches 19%
+      but nothing cost-free predicts it (0% saved). Planning mode, a token
+      saving, was not part of this measure (D-031, habits.md).
 - [ ] 5b: at least one habit is accepted by live credit (cheaper at cost
       BF ≥ 30, success not worse), saves at least half the slow-path cost
       on its decision at equal or better outcomes, and beats routing that

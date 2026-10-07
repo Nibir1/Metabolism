@@ -188,6 +188,7 @@ makes one, smaller call), so its saving can only be measured per round.
 | 2026-10-07 12:55 (after the fix) | 98 | 295 | 33% | 1% | 66% | 21% |
 | 2026-10-07 14:15 (with per-round sizes) | 99 | 279 | 36% | 1% | 64% | 19% |
 | 2026-10-07 15:12 (interrupted, resumed) | 48 | 156 | 31% | 1% | 69% | 19% |
+| 2026-10-07 15:55 (10 turns lost, see below) | 90 | 283 | 32% | 0% | 68% | 18% |
 
 Day 1 already rules out **retry level** (2% of calls, below the 15% bar).
 **Answer now or read more** passes the share half of the bar, narrowly
@@ -208,8 +209,23 @@ a lookup short. Knowing what the last round did and whether it worked does
 not tell whether the planner will answer next; the planner decides from
 what was read, and the recording does not keep that (privacy: step
 subjects only). A content-aware predictor (Jev reading the request and
-what was read) could only be tested through replays, at API cost. One
-more day is needed before the stop condition is judged (D-031).
+what was read) could only be tested through replays, at API cost.
+
+**Days 2 to 5 together (335 turns, 1,013 calls).** Answer-only rounds are
+19% of calls and 21.5% of planner input: the share half holds. The free
+predictor, learned on the first half and tested on the last 335 follow-up
+rounds (94 answer-only), never fires: it saves 0% against the 50% bar. The
+stop condition fires for the cost-free answer-now habit (D-031). A
+content-aware predictor is the only way left to rescue it, and it can only
+be tested through paid replays. **Decided 2026-10-07: recorded as a
+negative result** (D-031); no paid predictor, no answer-now habit.
+
+Day 5 lost 10 of its 100 turns before the planner: Helix's input
+classifier ran "run go test ./internal/... in …" and "summarise CLAUDE.md
+in …" as shell commands (zsh: command not found). An unknown first word
+plus a path token scored as shell with confidence 1.0. Those turns left no
+episode, so the counts above are not skewed, but a person typing the same
+words meets the same failure.
 
 The same test showed native tool-calling works with thinking off, which
 would also avoid paying for reasoning tokens. Whether a request needs the
