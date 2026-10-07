@@ -12,6 +12,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"html"
 	"slices"
 	"strings"
 
@@ -245,7 +246,10 @@ func Parse(text string) ([]types.Lesson, int, error) {
 			continue
 		}
 		l := types.Lesson{Kind: types.LessonKind(strings.ToLower(strings.TrimSpace(p.Kind))),
-			Text: strings.TrimSpace(p.Text), Rationale: clip(strings.TrimSpace(p.Rationale), 400)}
+			// A model sometimes writes HTML entities ("&lt;package&gt;"):
+			// decoded, so the text reads as meant and digest's duplicate
+			// check sees the lesson it already has.
+			Text: strings.TrimSpace(html.UnescapeString(p.Text)), Rationale: clip(strings.TrimSpace(html.UnescapeString(p.Rationale)), 400)}
 		if p.Scope != nil {
 			l.Scope = types.Scope{Level: types.ScopeLevel(strings.ToLower(p.Scope.Level)), Key: p.Scope.Key}
 		}

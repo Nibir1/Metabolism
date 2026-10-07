@@ -143,3 +143,15 @@ func TestReflectRetriesAnEmptyAnswerOnce(t *testing.T) {
 		t.Fatalf("err %v", err)
 	}
 }
+
+// HTML entities in a model's answer are decoded, so "explain &lt;package&gt;"
+// is the same lesson as "explain <package>".
+func TestParseDecodesHTMLEntities(t *testing.T) {
+	ls, _, err := Parse(`{"lessons":[{"kind":"pattern","text":"For 'explain &lt;package&gt;' requests, glob once &amp; grep once.","sources":["x"]}]}`)
+	if err != nil || len(ls) != 1 {
+		t.Fatalf("%v %+v", err, ls)
+	}
+	if ls[0].Text != "For 'explain <package>' requests, glob once & grep once." {
+		t.Fatalf("text %q", ls[0].Text)
+	}
+}

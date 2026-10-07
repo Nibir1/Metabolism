@@ -187,6 +187,7 @@ makes one, smaller call), so its saving can only be measured per round.
 | 2026-10-07 12:05 (before the fix; refused native calls removed by hand) | 100 | 255 | 39% | 2% | 61% | 19% |
 | 2026-10-07 12:55 (after the fix) | 98 | 295 | 33% | 1% | 66% | 21% |
 | 2026-10-07 14:15 (with per-round sizes) | 99 | 279 | 36% | 1% | 64% | 19% |
+| 2026-10-07 15:12 (interrupted, resumed) | 48 | 156 | 31% | 1% | 69% | 19% |
 
 Day 1 already rules out **retry level** (2% of calls, below the 15% bar).
 **Answer now or read more** passes the share half of the bar, narrowly
@@ -207,8 +208,8 @@ a lookup short. Knowing what the last round did and whether it worked does
 not tell whether the planner will answer next; the planner decides from
 what was read, and the recording does not keep that (privacy: step
 subjects only). A content-aware predictor (Jev reading the request and
-what was read) could only be tested through replays, at API cost. Two
-more days are needed before the stop condition is judged (D-031).
+what was read) could only be tested through replays, at API cost. One
+more day is needed before the stop condition is judged (D-031).
 
 The same test showed native tool-calling works with thinking off, which
 would also avoid paying for reasoning tokens. Whether a request needs the
