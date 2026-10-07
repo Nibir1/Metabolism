@@ -176,6 +176,18 @@ native path off for the session. The native schema also lacked `file` and
 recorded before the fix count those refused calls as `tool`; 5a's
 measurement should leave them out.
 
+**5a measurement log.** `metabolism decisions -since <the fix>` counts
+only days recorded after the native-planner fix.
+
+| Day | Turns | Real calls | First attempts | Retries | Follow-up rounds | Answer-only rounds |
+|---|---|---|---|---|---|---|
+| 2026-10-07 12:05 (before the fix; refused native calls removed by hand) | 100 | 255 | 39% | 2% | 61% | 19% |
+
+Day 1 already rules out **retry level** (2% of calls, below the 15% bar).
+**Answer now or read more** passes the share half of the bar, narrowly
+(19%). Follow-up rounds, reading more, are where 61% of calls go; 53 of
+100 turns needed 2 to 7 planner rounds. Four more days are needed (D-031).
+
 The same test showed native tool-calling works with thinking off, which
 would also avoid paying for reasoning tokens. Whether a request needs the
 model to think is a **planning-mode habit candidate** for 5b, to be

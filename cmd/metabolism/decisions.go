@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"slices"
 	"text/tabwriter"
+	"time"
 
 	"github.com/Nibir1/metabolism/bench"
 	"github.com/Nibir1/metabolism/types"
@@ -22,8 +23,21 @@ func cmdDecisions(ctx context.Context, args []string, out io.Writer) error {
 	fs.SetOutput(out)
 	path := fs.String("journal", defaultJournal(), "journal file")
 	outDir := fs.String("out", "", "directory to write decisions.json (optional)")
+	since := fs.String("since", "", "only episodes started at or after this time (RFC 3339 or 2006-01-02T15:04), e.g. after a host fix")
 	if err := fs.Parse(args); err != nil {
 		return err
+	}
+	var from time.Time
+	if *since != "" {
+		for _, layout := range []string{time.RFC3339, "2006-01-02T15:04", "2006-01-02"} {
+			if t, err := time.ParseInLocation(layout, *since, time.Local); err == nil {
+				from = t
+				break
+			}
+		}
+		if from.IsZero() {
+			return fmt.Errorf("-since %q: use 2006-01-02T15:04 or RFC 3339", *since)
+		}
 	}
 	j, err := openExisting(ctx, *path)
 	if err != nil {
@@ -34,6 +48,9 @@ func cmdDecisions(ctx context.Context, args []string, out io.Writer) error {
 	for r, err := range j.Scan(ctx, types.JournalQuery{Kinds: []types.RecordKind{types.RecordEpisode}}) {
 		if err != nil {
 			return err
+		}
+		if r.Episode.StartedAt.Before(from) {
+			continue
 		}
 		eps = append(eps, *r.Episode)
 	}

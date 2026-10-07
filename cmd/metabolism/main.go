@@ -20,7 +20,7 @@
 //	metabolism poison-eval [-seeds 2] [-turns 1500] [-out DIR]
 //	metabolism drift-eval [-seeds 5] [-before 3000] [-after 3000] [-out DIR]
 //	metabolism pairs-eval [-seeds 5] [-turns 6000] [-out DIR]
-//	metabolism decisions -journal PATH [-out DIR]
+//	metabolism decisions -journal PATH [-since TIME] [-out DIR]
 //	metabolism patterns -journal PATH [-min 3] [-min-requests 2] [-out DIR]
 //	metabolism snapshot [-note TEXT] NAME
 //	metabolism versions
