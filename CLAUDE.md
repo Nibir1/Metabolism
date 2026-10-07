@@ -100,6 +100,8 @@ truth for what, why and how.
    libraries and benchmarks with URLs.
 8. [docs/poisoning.md](docs/poisoning.md) — Phase 4a: the poisoning suite's
    threat model, cases and metrics (modelled on MemSecBench).
+9. [docs/habits.md](docs/habits.md) — Phase 5 design (proposed, D-031):
+   what Helix's model decisions really are, and measuring before compiling.
 
 ## Non-negotiables
 

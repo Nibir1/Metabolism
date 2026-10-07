@@ -5,6 +5,45 @@ change it. Don't reverse a decision without adding a new entry that says why.
 
 ---
 
+### D-031 · 2026-10-07 · Phase 5 measures before it compiles: habits and guards, 5a first
+**What was found:** Helix does not have the decisions Phase 5 was written
+for. On a normal turn it calls a model in three places: the planner (nearly
+every turn, up to ~12 calls through retries), the firewall critic (rare,
+yes/no) and the chat fallback (only after a planning failure). The
+roadmap's example decision ("compile error or network error?") is rules in
+Helix already, as are input routing, voice intent, error diagnosis and the
+follow-up continue/stop logic. The recording keeps only total calls per
+turn: no per-kind counts, no plan intent, no critic verdict, no retry
+level. A chat-fallback turn is always recorded as failed.
+
+**Proposal** (docs/habits.md):
+1. Two kinds, kept apart. A **habit** saves cost on a choice with no
+   authority and is governed like a lesson (coin flip, credit). A **guard**
+   only restricts and is inactive until the user approves it. "Gate" means
+   a guard, so helix-integration.md rule 2 stands as written.
+2. **5a first:** recording wire v3, with calls per kind, the plan's intent
+   and tool per round, retry level, critic verdict, fallback cause, and
+   round per step. Then measure on at least five automated days.
+   **Stop condition:** no candidate decision covers ≥ 15% of model calls,
+   or none can save half of its calls. Then Phase 5's cost claim fails in
+   Helix, and that is written up as a negative result.
+3. **5b, only if 5a passes:** habits for planning mode, "answer now or read
+   more" on follow-up rounds, and retry level, as linted Jev question sets.
+   Each is tested against the slow path and a small-model route, and
+   credited live.
+4. **5c:** guards from recurring failures, proposed for approval, credited
+   after.
+5. New exit criteria, including beating the small-model baseline.
+
+**Decided 2026-10-07 by the user, all four points as proposed:**
+- two kinds (habits governed like lessons; guards restrict-only and
+  approved; "gate" means a guard);
+- 5a first, with the stop condition;
+- the new exit criteria, including beating a small-model route;
+- 5c runs regardless of 5a's result.
+
+---
+
 ### D-030 · 2026-10-07 · Credit sees cost: cheaper and not worse is accepted, costlier and no better is eliminated
 **What happened:** the first live tallies (2026-10-04) showed turns
 succeeding 94 to 100% whether a lesson was delivered or withheld. Every

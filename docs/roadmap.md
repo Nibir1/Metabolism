@@ -346,6 +346,12 @@ Exit criteria:
 
 ## Phase 5: Habit compilation, System 2 → System 1 (about 4 weeks). C6, C9
 
+**Design (approved, D-031):** [habits.md](habits.md). Helix turned out to
+have few compilable model decisions, so 5a instruments and measures first,
+with a stop condition, before any compiler is built. Habits (cost, governed
+like lessons) and guards (restrict-only, approved) are separate; 5c (guards)
+runs whatever 5a finds.
+
 **Before starting:** finish the literature check for novelty. Done
 2026-10-07 (research.md, "Habit compilation: prior art"). Compiling
 repeated LLM work into something cheaper is established: cascades, neural
@@ -360,19 +366,26 @@ per-step small-model route as well as against the slow model.
 
 Deliverables:
 
-- Detection of recurring decision shapes in episodes.
-- A Jev question-set generator, gated by typesafe-go's analyzers
-  (`atomicquestion`, `jaggededge`, `confidencecheck`).
-- Nutrient testing of gates against past decisions; fallback below the
-  confidence threshold.
-- In Helix, compiled gates are **restrict-only** and require the user's
-  approval to become active.
+- 5a: recording wire v3 (calls per kind, the plan's intent and tool per
+  round, retry level, critic verdict, fallback cause, round per step), and
+  the measurement over at least five automated days.
+- 5b (if 5a passes): habits as linted Jev question sets for planning mode,
+  "answer now or read more" and retry level; replay tests against the slow
+  path and a small-model route; coin-flip delivery and credit.
+- 5c: guards from recurring failures, proposed for the user's approval in
+  Helix, restrict-only, credited after approval.
 
 Exit criteria:
 
-- [ ] At least one compiled gate cuts slow-model calls for its decision by ≥ 50% at
-      equal or better accuracy, and beats routing that decision to a small
-      model (the prior-art baseline, research.md).
+- [ ] 5a: the measurement is written up. If no decision covers ≥ 15% of
+      model calls or none can save half of its calls, the cost claim fails
+      in Helix and is published as a negative result.
+- [ ] 5b: at least one habit is accepted by live credit (cheaper at cost
+      BF ≥ 30, success not worse), saves at least half the slow-path cost
+      on its decision at equal or better outcomes, and beats routing that
+      decision to a small model.
+- [ ] 5c: at least one approved guard lowers failed turns on its pattern
+      (credit on success, BF ≥ 30) with no rise in declined confirmations.
 - [ ] Cost per finished task falls on the curves.
 
 ## Phase 6: Procedural tier and skills (about 4–6 weeks). C4
