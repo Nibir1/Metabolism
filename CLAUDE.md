@@ -40,7 +40,7 @@ truth for what, why and how.
   | `types/` | vocabulary |
   | `ports/` | interfaces; the engine imports only these and `types` |
   | `adapters/journal/sqlite` | durable journal |
-  | `adapters/ndjson` | `metabolism ingest`: reads Helix's recorded episodes (wire v1 and v2) and `/lessons forget [--hard]` feedback; purges forgotten records from them |
+  | `adapters/ndjson` | `metabolism ingest`: reads Helix's recorded episodes (wire v1, v2 and v3) and `/lessons forget [--hard]` feedback; purges forgotten records from them |
   | `episodic/` | tier-1 memory: time-aware case recall over the journal |
   | `metabolome/` | event-sourced lessons; the only code that changes lesson state (D-014) |
   | `immune/` | deterministic screen: no lesson may weaken a safety gate |
@@ -61,7 +61,7 @@ truth for what, why and how.
 - Helix integration work happens in `../Helix` on branch
   `feat/metabolism-integration` (the same branch name in typesafe-go). Never
   on main. Helix ↔ engine contracts, each pinned by a golden file in both
-  repos: recording wire v1 and v2 (D-013, D-019), replay v1 and v2 (D-017, D-021) and the
+  repos: recording wire v1, v2 and v3 (D-013, D-019, D-031), replay v1 and v2 (D-017, D-021) and the
   delivery file v1 (D-019). `make check-wire` compares them all.
 - Helix is built and tested with `CGO_ENABLED=0` on this machine (the cgo
   linker fails; see [docs/verifying.md](docs/verifying.md)).

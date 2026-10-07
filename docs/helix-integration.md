@@ -97,7 +97,8 @@ delivery).
 | 6 | `/purge` and `helix uninstall` remove Metabolism's state | **built** for Helix's recording (`~/.helix/metabolism/`); the engine's journal (`~/.metabolism/`) is the engine's to remove |
 | 7 | `/doctor` shows the engine's status | not built in Helix; `metabolism doctor` reports recording, delivery and the journal |
 
-Changes 1 and 2 are a recorder that writes NDJSON (wire v2 since Phase 3)
+Changes 1 and 2 are a recorder that writes NDJSON (wire v2 since Phase 3, v3
+with decision records since Phase 5a, D-031)
 rather than calling the engine (D-013). Change 3 in live turns reads a file
 the engine writes (D-019). What was built:
 

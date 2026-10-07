@@ -72,6 +72,16 @@ rule 2 then stays exactly as written.
 
 ### 5a. Make decisions visible (instrumentation)
 
+**Built 2026-10-07** (Helix `feat/metabolism-integration`, the engine on
+`main`): recording wire v3, ingest, and `metabolism decisions`, which prints
+calls by kind and by planner cause and each candidate's share against the
+15% bar. The measurement starts with the next automated days. Two fields
+differ from the sketch below: the plan record also says why a planning
+failed (`result`: planned, error, parse-error, canary, quarantined), and
+"which retry succeeded" is the calls the planning cost, from Helix's meter,
+since the ladder is internal to the provider call. The critic now counts as
+its own kind instead of as chat.
+
 Recording wire v3 (golden files in both repos, `make check-wire`), with
 optional fields only, so v2 readers keep working:
 

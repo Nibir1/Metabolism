@@ -20,6 +20,7 @@
 //	metabolism poison-eval [-seeds 2] [-turns 1500] [-out DIR]
 //	metabolism drift-eval [-seeds 5] [-before 3000] [-after 3000] [-out DIR]
 //	metabolism pairs-eval [-seeds 5] [-turns 6000] [-out DIR]
+//	metabolism decisions -journal PATH [-out DIR]
 //	metabolism snapshot [-note TEXT] NAME
 //	metabolism versions
 //	metabolism diff    FROM [TO]
@@ -72,6 +73,7 @@ commands:
   poison-eval  the poisoning suite: do poisoned lessons persist or do harm? (simulator)
   drift-eval   are accepted lessons retired when the world changes under them? (simulator)
   pairs-eval   are contradicting and redundant lessons set aside? (simulator)
+  decisions where the host's model calls went, for Phase 5a (wire v3 episodes)
   snapshot name the current version of the metabolome
   versions list named versions and forget records
   diff     which lessons changed state between two versions
@@ -135,6 +137,8 @@ func run(ctx context.Context, args []string, out io.Writer) error {
 		return cmdCreditEval(ctx, args[1:], out)
 	case "auto":
 		return cmdAuto(ctx, args[1:], out)
+	case "decisions":
+		return cmdDecisions(ctx, args[1:], out)
 	case "snapshot":
 		return cmdSnapshot(ctx, args[1:], out)
 	case "versions":
@@ -155,7 +159,7 @@ func run(ctx context.Context, args []string, out io.Writer) error {
 		_, _ = fmt.Fprint(out, usage)
 		return nil
 	}
-	return fmt.Errorf("unknown command %q (try: doctor, ingest, sim, curves, inspect, recall, recall-eval, digest, verify, lessons, nutrient-eval, replay, label, crosscheck, credit, export, credit-eval, auto, poison-eval, drift-eval, pairs-eval, snapshot, versions, diff, rollback, forget)", args[0])
+	return fmt.Errorf("unknown command %q (try: doctor, ingest, sim, curves, inspect, recall, recall-eval, digest, verify, lessons, nutrient-eval, replay, label, crosscheck, credit, export, credit-eval, auto, poison-eval, drift-eval, pairs-eval, snapshot, versions, diff, rollback, forget, decisions)", args[0])
 }
 
 func defaultJournal() string {

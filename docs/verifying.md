@@ -324,6 +324,11 @@ spends most of its money there. `auto` (and `-resume`) refuses to start
 when peak applies now or within 2 hours, and names the next safe start;
 `-allow-peak` pays the peak price instead. `-plan-only` is exempt.
 
+Phase 5a (D-031): once days are recorded with Helix's wire v3,
+`bin/metabolism decisions -journal .runs/auto/journal.db` shows where the
+model calls went (by kind, and the planner's by cause) and each candidate
+decision's share against the 15% stop bar.
+
 The synthetic user never starts a request with a command name: Helix runs
 such a line as a shell command and it never reaches the planner (6 of 20
 requests on the first day).

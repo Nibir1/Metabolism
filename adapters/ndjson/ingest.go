@@ -1,9 +1,11 @@
 // Package ndjson ingests episodes that a host recorded as NDJSON, the
 // file-based contract that keeps a host's build independent of the engine.
 //
-// Helix writes version 2 of the format (Helix: internal/metabolism/wire.go);
-// files recorded before Phase 3 hold version 1, which is still read.
-// Version 2 adds an episode's withheld lessons and the feedback record.
+// Helix writes version 3 of the format (Helix: internal/metabolism/wire.go);
+// older files hold version 1 or 2, which are still read. Version 2 adds an
+// episode's withheld lessons and the feedback record; version 3 (D-031) adds
+// what the turn decided: calls per kind, plan records, the critic's verdict,
+// the fallback's cause and step rounds.
 // testdata/helix_wire_v1.ndjson and helix_wire_v2.ndjson are byte-for-byte
 // copies of Helix's golden files; the tests here decode them into the
 // engine's types with unknown fields refused, so a format drift on either
@@ -30,7 +32,7 @@ import (
 
 // WireVersion is the newest host format version this build reads. Every
 // version from 1 up is read.
-const WireVersion = 2
+const WireVersion = 3
 
 // maxProblems bounds how many problems Stats keeps verbatim.
 const maxProblems = 10
@@ -193,6 +195,9 @@ func ingestLine(ctx context.Context, j ports.Journal, line []byte, st *Stats) er
 		if env.V < 2 && len(ep.Withheld) > 0 {
 			return fmt.Errorf("%w: withheld lessons in a v1 record", errMalformed)
 		}
+		if env.V < 3 && (len(ep.Plans) > 0 || ep.Critic != nil || ep.Fallback != "" || len(ep.Usage.ByKind) > 0 || hasRounds(ep.Steps)) {
+			return fmt.Errorf("%w: decision records in a v%d record", errMalformed, env.V)
+		}
 		if err := j.AppendEpisode(ctx, ep); err != nil {
 			return err
 		}
@@ -233,4 +238,13 @@ func strictDecode(data []byte, v any) error {
 	dec := json.NewDecoder(bytes.NewReader(data))
 	dec.DisallowUnknownFields()
 	return dec.Decode(v)
+}
+
+func hasRounds(steps []types.Step) bool {
+	for _, s := range steps {
+		if s.Round != 0 {
+			return true
+		}
+	}
+	return false
 }

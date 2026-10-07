@@ -100,7 +100,7 @@ func TestBadLinesAreCountedNotFatal(t *testing.T) {
 		g[1], // outcome before its episode: orphan
 		g[0],
 		strings.Replace(g[2], `"note"`, `"surprise":1,"note"`, 1), // unknown field
-		strings.Replace(g[0], `"v":1`, `"v":3`, 1),                // future version
+		strings.Replace(g[0], `"v":1`, `"v":9`, 1),                // future version
 		strings.Replace(g[0], `"host":"helix"`, `"host":""`, 1),   // fails validation
 		`{"v":1,"kind":"episode","episode":{"id":"01`,             // cut off mid-write
 	)
@@ -189,13 +189,47 @@ func TestWireVersionsAreNotMixed(t *testing.T) {
 	writeLines(t, path,
 		`{"v":1,"kind":"feedback","feedback":{"id":"0199a1b2c3d6a7b8c9d0e1f2a3b6","lesson_id":"0199a1b2c3d4e5f6a7b8c9d0e1f4","at":"2026-10-03T10:05:00Z","action":"forget","reason":"x"}}`,
 		`{"v":2,"kind":"feedback","feedback":{"id":"0199a1b2c3d6a7b8c9d0e1f2a3b7","lesson_id":"0199a1b2c3d4e5f6a7b8c9d0e1f4","at":"2026-10-03T10:05:00Z","action":"promote","reason":"x"}}`,
-		`{"v":3,"kind":"outcome","outcome":{}}`,
+		`{"v":4,"kind":"outcome","outcome":{}}`,
+		// v3 decision records in a v2 episode.
+		`{"v":2,"kind":"episode","episode":{"id":"0199a1b2c3d4e5f6a7b8c9d0e1f9","host":"helix","scope":{"level":"global"},"started_at":"2026-10-03T10:00:00Z","ended_at":"2026-10-03T10:00:01Z","request":{"text":"x","provenance":"user-typed"},"usage":{"model_calls":1,"input_chars":1,"output_chars":1},"end":"done","plans":[{"round":1,"prompt":"full","calls":1,"result":"planned"}]}}`,
 	)
 	st, err := Ingest(ctx, j, path)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(st.Feedback) != 0 || st.Malformed != 2 || st.Invalid != 1 {
+	if len(st.Feedback) != 0 || st.Malformed != 3 || st.Invalid != 1 {
 		t.Fatalf("stats %+v, problems %v", st, st.Problems)
+	}
+}
+
+// Wire v3 (D-031): calls per kind, a plan record per planner round, the
+// critic's verdict, the fallback's cause and each step's round all reach the
+// journal. The golden file is a copy of Helix's
+// internal/metabolism/testdata/wire_v3.ndjson.
+func TestHelixGoldenV3(t *testing.T) {
+	ctx := context.Background()
+	j := openJournal(t)
+	st, err := Ingest(ctx, j, filepath.Join("testdata", "helix_wire_v3.ndjson"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if st.Episodes != 2 || st.Invalid+st.Malformed != 0 {
+		t.Fatalf("stats %+v, problems %v", st, st.Problems)
+	}
+	var eps []types.Episode
+	for r, err := range j.Scan(ctx, types.JournalQuery{Kinds: []types.RecordKind{types.RecordEpisode}}) {
+		if err != nil {
+			t.Fatal(err)
+		}
+		eps = append(eps, *r.Episode)
+	}
+	lookup, quarantined := eps[0], eps[1]
+	if len(lookup.Plans) != 2 || lookup.Plans[1].FirstTool != "response" || !lookup.Plans[1].Answered ||
+		lookup.Usage.ByKind["planner"] != 3 || lookup.Steps[1].Round != 2 {
+		t.Fatalf("lookup episode: %+v", lookup)
+	}
+	if quarantined.Critic == nil || quarantined.Critic.Verdict != "no" || quarantined.Fallback != "critic-quarantine" ||
+		quarantined.Plans[0].Result != "quarantined" || quarantined.Usage.ByKind["critic"] != 1 {
+		t.Fatalf("quarantined episode: %+v", quarantined)
 	}
 }

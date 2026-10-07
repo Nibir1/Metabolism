@@ -35,6 +35,12 @@ level. A chat-fallback turn is always recorded as failed.
    after.
 5. New exit criteria, including beating the small-model baseline.
 
+**5a built 2026-10-07:** recording wire v3 (golden files in both repos),
+ingest, and `metabolism decisions`. A chat fallback that answered is now
+recorded as done, not failed: the turns recorded before v3 that ended in a
+fallback are therefore labelled failures, and comparisons across that
+change should say so.
+
 **Decided 2026-10-07 by the user, all four points as proposed:**
 - two kinds (habits governed like lessons; guards restrict-only and
   approved; "gate" means a guard);

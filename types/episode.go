@@ -39,6 +39,36 @@ type Episode struct {
 	Usage Usage  `json:"usage"`
 	End   RunEnd `json:"end"`
 	Attrs Attrs  `json:"attrs,omitempty"`
+
+	// What the turn decided (recording wire v3, D-031): one record per
+	// planner round, the firewall critic's verdict when it ran, and why a
+	// chat fallback answered instead of a plan. Empty in older recordings.
+	Plans    []PlanRecord  `json:"plans,omitempty"`
+	Critic   *CriticRecord `json:"critic,omitempty"`
+	Fallback string        `json:"fallback,omitempty"`
+}
+
+// PlanRecord is one planner round of a recorded turn (wire v3, D-031).
+type PlanRecord struct {
+	Round int `json:"round"`
+	// Prompt is the planner prompt that produced it: full, compact or
+	// minimal.
+	Prompt string `json:"prompt"`
+	// Calls is how many model calls the planning cost, retries included.
+	Calls int `json:"calls"`
+	// Result: planned, error, parse-error, canary or quarantined.
+	Result string `json:"result"`
+	// The plan's own routing labels, and whether it only answered.
+	Intent    string `json:"intent,omitempty"`
+	FirstTool string `json:"first_tool,omitempty"`
+	Answered  bool   `json:"answered,omitempty"`
+	Steps     int    `json:"steps,omitempty"`
+}
+
+// CriticRecord is the host's safety critic's review of a plan (wire v3).
+type CriticRecord struct {
+	Verdict string `json:"verdict"`
+	Calls   int    `json:"calls"`
 }
 
 // Attrs carries host-specific detail the engine does not interpret.
@@ -60,8 +90,9 @@ type Step struct {
 	Err      string        `json:"err,omitempty"`
 	Duration time.Duration `json:"duration,omitempty"`
 
-	// Replay only (D-021): the planner round that planned the step (1-based;
-	// 0 in a recorded episode) and whether the replay ran it. A replay runs
+	// The planner round that planned the step (1-based): in a replay
+	// (D-021), and in a recorded episode from wire v3 (D-031); 0 in older
+	// recordings. Ran is replay only: whether the replay ran it. A replay runs
 	// only read-only file steps, between rounds; every other step is planned
 	// and never run, and its OK means only "not known to fail".
 	Round int  `json:"round,omitempty"`
@@ -74,6 +105,9 @@ type Usage struct {
 	ModelCalls  int `json:"model_calls"`
 	InputChars  int `json:"input_chars"`
 	OutputChars int `json:"output_chars"`
+	// ByKind splits ModelCalls by what each call was for, as the host names
+	// it (Helix: planner, critic, chat, tool, vision). Wire v3, D-031.
+	ByKind map[string]int `json:"by_kind,omitempty"`
 }
 
 // RunEnd is how the host says the run finished, at the moment it finished.
