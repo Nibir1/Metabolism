@@ -5,6 +5,96 @@ change it. Don't reverse a decision without adding a new entry that says why.
 
 ---
 
+### D-030 · 2026-10-07 · Credit sees cost: cheaper and not worse is accepted, costlier and no better is eliminated
+**What happened:** the first live tallies (2026-10-04) showed turns
+succeeding 94 to 100% whether a lesson was delivered or withheld. Every
+success Bayes factor sat near 0.1, while model calls per turn differed:
+repository history 3.9 delivered against 5.2 withheld, `todo add` 4.8
+against 6.0, absolute `cd` paths 4.8 against 4.1. The ledger judged success
+only, so lessons that save work stayed in trial for ever. On the simulator
+the go-module lesson (4 calls down to 1, outcome already a success) was
+never decided. Cost is half of what the engine is for (vision.md: cost per
+good outcome falling while quality rises).
+
+**Decision** (`ledger/cost.go`):
+- **The measure** is log(1 + model calls) per turn, on the same
+  coin-flipped turns and the same relevance filter as success (D-026).
+- **The test** is the two-sample Bayes factor of Gönen, Johnson, Lu and
+  Westfall (2005): a normal prior (scale 1) on the standardised difference,
+  a flat prior on the shared mean and 1/σ on the shared spread. Those are
+  the right Haar priors of the location-scale problem, under which a Bayes
+  factor is a safe test however often it is looked at (Grünwald, de Heide
+  and Koolen; the t-test is their worked example).
+- **Accept on cost** (trial only): cheaper, cost Bayes factor ≥ 30, **and**
+  success not worse. "Not worse" means the posterior probability that
+  success delivered is no more than 5 points below success withheld is at
+  least 0.95. A lesson is never accepted for being cheap while it breaks
+  things.
+- **Eliminate on cost** (trial or accepted, on either view, D-026):
+  costlier, cost Bayes factor ≥ 300, unless success alone would accept it.
+  A lesson that buys success with cost is a fair trade.
+- **Order:** harm on success, then cost harm, then acceptance on success,
+  then acceptance on cost, then drift. The success rule is unchanged.
+  `credit -without-cost` and `credit-eval -without-cost` keep the old rule
+  for comparison.
+- Credit evidence records the mean calls per arm and the cost Bayes factor.
+- **A fix found on the way (D-027).** Before eliminating a lesson for harm,
+  the ledger now checks whether a contradiction explains it: the lesson
+  hurts only beside a partner in force, and does not look worse without
+  it. If so, the pair rule decides, reversibly. pairs-eval had eliminated a
+  rival that is good alone: its partner had just been accepted, so every
+  turn delivering both failed. Its own credit called that harm before the
+  pair rule saw the two together. The "does not look worse alone" check
+  also gets a 0.001 tolerance: the numerical P(better) of two equal arms
+  can come out a hair under one half. One D-027 test had been passing on
+  that rounding, and now says what it means: a lesson whose harm shows only
+  beside its partner, with its effect alone unmeasurable, is set aside, not
+  eliminated.
+
+**Evidence (simulator):**
+- The cost bar under repeated looks, with settles every 10 turns for 600
+  turns and no real difference: crossed in 0.6% of ledgers with normally
+  spread calls, and 1.2% with occasional long loops. The bound is 1/30,
+  about 3.3% (`TestCostBarHoldsUnderRepeatedLooks`).
+- credit-eval, 5 histories × 3000 turns, with a new "costly" lesson (an
+  extra successful read and model call, no change in outcome):
+
+| | Without cost | With cost |
+|---|---|---|
+| Helpful accepted | 25/25 | 25/25 |
+| Harmful eliminated | 15/15 | 15/15 |
+| Neutral moved | 0/20 | 0/10 |
+| Only saves work (go-module), accepted | (counted as neutral) | 4/5 |
+| Only adds work, eliminated | (counted as neutral) | 5/5 |
+
+  The fifth go-module lesson stayed in trial: other planted lessons made
+  its turns fail (88.9% against 91.7%), so the success guard could not be
+  sure enough.
+- pairs-eval: unchanged (0 rivals in force, 0 good lessons eliminated).
+- drift-eval: 9 of 10 retired within 3000 turns, the tenth at 3100 with a
+  longer horizon. Retirement latency varies with which lessons are in
+  force; go-module now being accepted changed that. 0 of 20 false
+  retirements. The test allows 4000 turns.
+- Poisoning: persistence and attack success unchanged in every run. With
+  the nutrient test off, credit now also removes the poisons that add work:
+  automatic repair rose from 25% to 56% (harmful command 0 → 100%,
+  misdirection 0 → 50%).
+- nutrient-eval unchanged.
+
+**Limits:**
+- Model calls are the only cost measured. Tokens per call are recorded by
+  Helix but not compared.
+- The success guard is conservative: at 95% success it needs roughly 100
+  or more turns per arm before it is sure enough, so acceptance on cost is
+  slow on real data.
+- A lesson that is cheaper on its relevant turns and costlier elsewhere is
+  judged on both views for elimination, but only on relevant turns for
+  acceptance, as success is (D-026).
+
+**Revisit when:** the automated days give the first real cost decisions.
+
+---
+
 ### D-029 · 2026-10-04 · The nutrient test decides on facts; the model grades plans one at a time
 **What happened:** after D-024, no lesson passed in 12 tests on the
 automated days. Two eliminations sat at p ≈ 0.019, and up to 15 of 26

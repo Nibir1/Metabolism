@@ -3,20 +3,19 @@
   "turns_before": 3000,
   "turns_after": 3000,
   "drifted_accepted": 10,
-  "drifted_retired": 10,
+  "drifted_retired": 9,
   "latencies": [
-    1100,
     1200,
     1300,
-    1300,
+    1400,
+    1400,
+    1400,
     1400,
     1400,
     1500,
-    1500,
-    1600,
-    1900
+    1600
   ],
-  "controls_accepted": 15,
+  "controls_accepted": 20,
   "false_retirements": 0,
   "rows": [
     {
@@ -32,8 +31,8 @@
       "seed": 1,
       "text": "This is a Go module: read go.mod, not package.json, to find build and dependency information (go-module).",
       "drifted": false,
-      "at_drift": "trial",
-      "final": "trial"
+      "at_drift": "accepted",
+      "final": "accepted"
     },
     {
       "seed": 1,
@@ -62,8 +61,8 @@
       "drifted": true,
       "at_drift": "accepted",
       "final": "eliminated",
-      "retired_after": 1400,
-      "reason": "credit: stopped helping (drift): over its last 200 turns on the turns that bear on it it succeeded 10% of 181 delivered vs 53% of 19 withheld, P(better) 0.000, Bayes factor 1.77e+03"
+      "retired_after": 1500,
+      "reason": "credit: stopped helping (drift): over its last 200 turns on the turns that bear on it it succeeded 8% of 183 delivered vs 59% of 17 withheld, P(better) 0.000, Bayes factor 3.85e+04"
     },
     {
       "seed": 2,
@@ -78,8 +77,8 @@
       "seed": 2,
       "text": "This is a Go module: read go.mod, not package.json, to find build and dependency information (go-module).",
       "drifted": false,
-      "at_drift": "trial",
-      "final": "trial"
+      "at_drift": "accepted",
+      "final": "accepted"
     },
     {
       "seed": 2,
@@ -108,8 +107,8 @@
       "drifted": true,
       "at_drift": "accepted",
       "final": "eliminated",
-      "retired_after": 1100,
-      "reason": "credit: stopped helping (drift): over its last 200 turns on the turns that bear on it it succeeded 28% of 177 delivered vs 74% of 23 withheld, P(better) 0.000, Bayes factor 2.27e+03"
+      "retired_after": 1400,
+      "reason": "credit: stopped helping (drift): over its last 200 turns on the turns that bear on it it succeeded 9% of 182 delivered vs 56% of 18 withheld, P(better) 0.000, Bayes factor 1.14e+04"
     },
     {
       "seed": 3,
@@ -117,15 +116,15 @@
       "drifted": true,
       "at_drift": "accepted",
       "final": "eliminated",
-      "retired_after": 1500,
-      "reason": "credit: stopped helping (drift): over its last 200 turns on the turns that bear on it it succeeded 22% of 186 delivered vs 71% of 14 withheld, P(better) 0.000, Bayes factor 406"
+      "retired_after": 1400,
+      "reason": "credit: stopped helping (drift): over its last 200 turns on the turns that bear on it it succeeded 27% of 182 delivered vs 89% of 18 withheld, P(better) 0.000, Bayes factor 1.41e+05"
     },
     {
       "seed": 3,
       "text": "This is a Go module: read go.mod, not package.json, to find build and dependency information (go-module).",
       "drifted": false,
-      "at_drift": "trial",
-      "final": "trial"
+      "at_drift": "accepted",
+      "final": "accepted"
     },
     {
       "seed": 3,
@@ -153,9 +152,7 @@
       "text": "Edit files with the file tool's exact-snippet edit, not in-place sed, which reports success when it changes nothing (file-edit).",
       "drifted": true,
       "at_drift": "accepted",
-      "final": "eliminated",
-      "retired_after": 1900,
-      "reason": "credit: stopped helping (drift): over its last 200 turns on the turns that bear on it it succeeded 26% of 178 delivered vs 73% of 22 withheld, P(better) 0.000, Bayes factor 2.34e+03"
+      "final": "accepted"
     },
     {
       "seed": 4,
@@ -163,15 +160,15 @@
       "drifted": true,
       "at_drift": "accepted",
       "final": "eliminated",
-      "retired_after": 1600,
-      "reason": "credit: stopped helping (drift): over its last 200 turns on the turns that bear on it it succeeded 21% of 182 delivered vs 67% of 18 withheld, P(better) 0.000, Bayes factor 494"
+      "retired_after": 1400,
+      "reason": "credit: stopped helping (drift): over its last 200 turns on the turns that bear on it it succeeded 32% of 177 delivered vs 83% of 23 withheld, P(better) 0.000, Bayes factor 1.14e+04"
     },
     {
       "seed": 4,
       "text": "This is a Go module: read go.mod, not package.json, to find build and dependency information (go-module).",
       "drifted": false,
-      "at_drift": "trial",
-      "final": "trial"
+      "at_drift": "accepted",
+      "final": "accepted"
     },
     {
       "seed": 4,
@@ -201,7 +198,7 @@
       "at_drift": "accepted",
       "final": "eliminated",
       "retired_after": 1200,
-      "reason": "credit: stopped helping (drift): over its last 200 turns on the turns that bear on it it succeeded 15% of 181 delivered vs 58% of 19 withheld, P(better) 0.000, Bayes factor 829"
+      "reason": "credit: stopped helping (drift): over its last 200 turns on the turns that bear on it it succeeded 18% of 180 delivered vs 60% of 20 withheld, P(better) 0.000, Bayes factor 431"
     },
     {
       "seed": 5,
@@ -209,15 +206,15 @@
       "drifted": true,
       "at_drift": "accepted",
       "final": "eliminated",
-      "retired_after": 1500,
-      "reason": "credit: stopped helping (drift): over its last 200 turns on the turns that bear on it it succeeded 28% of 176 delivered vs 79% of 24 withheld, P(better) 0.000, Bayes factor 2.12e+04"
+      "retired_after": 1600,
+      "reason": "credit: stopped helping (drift): over its last 200 turns on the turns that bear on it it succeeded 22% of 183 delivered vs 76% of 17 withheld, P(better) 0.000, Bayes factor 7.07e+03"
     },
     {
       "seed": 5,
       "text": "This is a Go module: read go.mod, not package.json, to find build and dependency information (go-module).",
       "drifted": false,
-      "at_drift": "trial",
-      "final": "trial"
+      "at_drift": "accepted",
+      "final": "accepted"
     },
     {
       "seed": 5,
@@ -246,8 +243,8 @@
       "drifted": true,
       "at_drift": "accepted",
       "final": "eliminated",
-      "retired_after": 1300,
-      "reason": "credit: stopped helping (drift): over its last 200 turns on the turns that bear on it it succeeded 20% of 182 delivered vs 72% of 18 withheld, P(better) 0.000, Bayes factor 5.13e+03"
+      "retired_after": 1400,
+      "reason": "credit: stopped helping (drift): over its last 200 turns on the turns that bear on it it succeeded 11% of 183 delivered vs 65% of 17 withheld, P(better) 0.000, Bayes factor 3.02e+04"
     }
   ]
 }

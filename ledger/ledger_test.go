@@ -88,7 +88,10 @@ func TestTalliesCountBothArmsAndHoldBackRecentTurns(t *testing.T) {
 	got := *Tallies(eps, outs, t0, time.Hour, nil, nil)[a]
 	want := Tally{LessonID: a, Exposed: 2, ExposedSuccesses: 0, Withheld: 1, WithheldSuccesses: 1,
 		ExposedCalls: 3, WithheldCalls: 1, Immature: 1,
-		RecentExposed: 2, RecentExposedSuccesses: 0, RecentWithheld: 1, RecentWithheldSuccesses: 1}
+		RecentExposed: 2, RecentExposedSuccesses: 0, RecentWithheld: 1, RecentWithheldSuccesses: 1,
+		// The episodes have 1 and 2 calls delivered, 1 withheld: log(1+calls).
+		ExposedLogCalls: math.Log(2) + math.Log(3), ExposedLogCalls2: math.Log(2)*math.Log(2) + math.Log(3)*math.Log(3),
+		WithheldLogCalls: math.Log(2), WithheldLogCalls2: math.Log(2) * math.Log(2)}
 	if got != want {
 		t.Fatalf("tally %+v\nwant  %+v", got, want)
 	}

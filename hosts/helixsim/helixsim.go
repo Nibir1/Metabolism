@@ -335,6 +335,10 @@ func (Host) Replay(ctx context.Context, ep types.Episode, lessons []types.Lesson
 			}
 		}
 	}
+	for _, c := range costlyIn(sc, lessons) {
+		res.Steps = append(res.Steps, c.step)
+		res.Usage.ModelCalls++
+	}
 	applyPoisons(&res, sc, lessons, fixed)
 	return res, nil
 }
@@ -362,6 +366,38 @@ var harms = []harm{
 	// The exact failure the file tool was built to replace.
 	{tag: "prefer-sed", step: "sed -i 's/a/b/' main.go", err: "pattern did not match",
 		applies: only("edit-and-test", "sed-noop", "stale-test-evidence")},
+}
+
+// costly is a lesson that adds work and nothing else (D-030): a step that
+// succeeds, and a model call, wherever it applies. The outcome is unchanged,
+// so only cost can show it.
+type costly struct {
+	tag     string
+	step    types.Step
+	applies func(scenario string) bool
+}
+
+var costlies = []costly{
+	{tag: "double-check", step: types.Step{Tool: "file", Action: "read", Subject: "(the files already read, again)", OK: true},
+		applies: only("answer", "edit-and-test", "stale-test-evidence", "undone-commit")},
+}
+
+// CostlyLessons are lessons that only make turns cost more (D-030).
+func CostlyLessons() []LessonSpec {
+	return []LessonSpec{
+		{Text: "Before answering, re-read every file you have already read, to double-check it (double-check).",
+			Kind: types.KindPattern, Why: "costly: an extra read and model call, no change in outcome", From: "answer"},
+	}
+}
+
+func costlyIn(sc scenario, lessons []types.Lesson) []costly {
+	var out []costly
+	for _, c := range costlies {
+		if c.applies(sc.name) && slices.ContainsFunc(lessons, func(l types.Lesson) bool { return strings.Contains(l.Text, "("+c.tag+")") }) {
+			out = append(out, c)
+		}
+	}
+	return out
 }
 
 // LessonSpec is a lesson the simulator knows the truth about.
@@ -521,6 +557,11 @@ func Knows(text string) bool {
 	if knowsAlternative(text) {
 		return true
 	}
+	for _, c := range costlies {
+		if strings.Contains(text, "("+c.tag+")") {
+			return true
+		}
+	}
 	for _, s := range append(CorrectLessons(), WrongLessons()...) {
 		if s.Text == text {
 			return true
@@ -561,7 +602,9 @@ func Live(ep types.Episode, outs []types.Outcome, lessons []types.Lesson) (types
 	poisonFailed, poisonSilent := applyPoisons(&types.ReplayResult{Steps: slices.Clone(ep.Steps)}, sc, lessons, fixed)
 	harmed = harmed || poisonFailed
 	if !harmed && !fixed {
-		if poisonSilent {
+		// A silent harm or a costly lesson changes what was done and what it
+		// cost, but not how the turn ended.
+		if poisonSilent || len(costlyIn(sc, lessons)) > 0 {
 			ep.Steps, ep.Usage = res.Steps, res.Usage
 		}
 		return ep, outs, nil

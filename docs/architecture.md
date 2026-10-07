@@ -163,6 +163,9 @@ what makes C6 measurable.
   request resembles its sources' (`ledger.Relevance`, D-026). Harm counts
   on every turn. An accepted lesson is also judged on its last 200 turns, so
   one that stops holding is retired (drift).
+- Cost too (D-030): model calls per turn, delivered against withheld. A
+  trial lesson that is cheaper and no worse is accepted; one that is
+  costlier and no better is eliminated.
 - Lessons are also judged in pairs on the turns they share (D-027). Each
   coin is flipped on its own, so every combination occurs. A lesson that
   hurts when the other is delivered (contradiction), or adds nothing beside

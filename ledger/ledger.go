@@ -35,6 +35,12 @@ type Tally struct {
 	// Model calls summed over each arm, for the cost side of the report.
 	ExposedCalls  int `json:"exposed_calls"`
 	WithheldCalls int `json:"withheld_calls"`
+	// Sums of log(1 + model calls) and of its square per arm, for the cost
+	// test (D-030).
+	ExposedLogCalls   float64 `json:"exposed_log_calls,omitempty"`
+	ExposedLogCalls2  float64 `json:"exposed_log_calls2,omitempty"`
+	WithheldLogCalls  float64 `json:"withheld_log_calls,omitempty"`
+	WithheldLogCalls2 float64 `json:"withheld_log_calls2,omitempty"`
 	// Immature counts turns too recent to judge: a late outcome (an undo, a
 	// repeated request) may still arrive for them.
 	Immature int `json:"immature"`
@@ -262,6 +268,7 @@ func tallies(eps []types.Episode, outs map[types.ID][]types.Outcome, now time.Ti
 			t.Exposed++
 			t.ExposedSuccesses += win
 			t.ExposedCalls += ep.Usage.ModelCalls
+			t.addCost(true, ep.Usage.ModelCalls)
 		}
 		for _, id := range ep.Withheld {
 			if ep.StartedAt.Before(eras[id]) {
@@ -283,6 +290,7 @@ func tallies(eps []types.Episode, outs map[types.ID][]types.Outcome, now time.Ti
 			t.Withheld++
 			t.WithheldSuccesses += win
 			t.WithheldCalls += ep.Usage.ModelCalls
+			t.addCost(false, ep.Usage.ModelCalls)
 		}
 	}
 	return tallies
@@ -315,6 +323,15 @@ type Rule struct {
 	Redundant float64
 	// WithoutPairs skips pair decisions (D-027). For comparison.
 	WithoutPairs bool
+	// Cost (D-030): a trial lesson is accepted when turns cost less with it
+	// (cost Bayes factor ≥ Accept) and success is not worse by more than
+	// CostMargin (default 0.05) with posterior probability NotWorse
+	// (default 0.95). A lesson that costs more (≥ Eliminate) and does not
+	// earn acceptance on success is eliminated. WithoutCost skips both, for
+	// comparison.
+	CostMargin  float64
+	NotWorse    float64
+	WithoutCost bool
 }
 
 // Defaults returns r with every zero field set to its default.
@@ -333,6 +350,12 @@ func (r Rule) Defaults() Rule {
 	}
 	if r.Redundant <= 0 {
 		r.Redundant = 30
+	}
+	if r.CostMargin <= 0 {
+		r.CostMargin = 0.05
+	}
+	if r.NotWorse <= 0 {
+		r.NotWorse = 0.95
 	}
 	if r.Maturity <= 0 {
 		r.Maturity = time.Hour
@@ -370,16 +393,34 @@ func Settle(ctx context.Context, m *metabolome.Metabolome, book Book, rule Rule,
 	// lesson that only repeats another is set aside rather than accepted
 	// and set aside a settle later (D-027).
 	if !rule.WithoutPairs {
+		// A lesson whose harm a contradiction explains (it hurts only when a
+		// partner in force is delivered too, and not without it) is left to
+		// the pair rule, which sets one of the two aside, reversibly, instead
+		// of eliminating a lesson that is good alone. Found on pairs-eval: a
+		// rival whose partner had just been accepted was eliminated by its
+		// own credit before the pair rule could see the two together.
 		skip := map[types.ID]bool{}
+		explained := map[types.ID]types.ID{}
 		for _, d := range out {
-			if d.To == types.StateEliminated {
-				skip[d.Lesson.ID] = true
+			if d.To != types.StateEliminated {
+				continue
 			}
+			if other, ok := harmExplainedByPair(m, d.Lesson.ID, book.Pairs, rule); ok {
+				explained[d.Lesson.ID] = other
+				continue
+			}
+			skip[d.Lesson.ID] = true
 		}
 		pds, err := settlePairs(ctx, m, book.Pairs, rule, dryRun, skip)
 		for _, pd := range pds {
 			i := slices.IndexFunc(out, func(d Decision) bool { return d.Lesson.ID == pd.Loser.ID })
 			out[i] = Decision{Lesson: pd.Loser, Tally: pd.Tally, To: types.StateSuperseded, Reason: pd.Reason, Other: pd.Winner.ID}
+		}
+		for i, d := range out {
+			if other, ok := explained[d.Lesson.ID]; ok && d.To == types.StateEliminated {
+				out[i] = Decision{Lesson: d.Lesson, Tally: d.Tally, Other: other,
+					Reason: fmt.Sprintf("worse when delivered, but only beside %s, which it contradicts; the pair rule decides: %s", other, rates(d.Tally))}
+			}
 		}
 		if err != nil {
 			return out, err
@@ -394,11 +435,13 @@ func Settle(ctx context.Context, m *metabolome.Metabolome, book Book, rule Rule,
 			result = types.ResultFail
 		}
 		t := d.Tally // the counts the decision rests on: a view or a window
+		ce, cw := t.Calls()
 		ev, err := m.RecordEvidence(ctx, types.Evidence{
 			LessonID: d.Lesson.ID, Kind: types.EvidenceCredit, Result: result, Summary: d.Reason,
 			Exposed: t.Exposed, ExposedSuccesses: t.ExposedSuccesses,
 			Withheld: t.Withheld, WithheldSuccesses: t.WithheldSuccesses, PBetter: round4(t.PBetter()),
-			BayesFactor: math.Round(t.BayesFactor()*100) / 100,
+			BayesFactor:  math.Round(t.BayesFactor()*100) / 100,
+			CallsExposed: round4(ce), CallsWithheld: round4(cw), CostBayesFactor: round4(t.CostBayesFactor()),
 		})
 		if err != nil {
 			return out, err
@@ -436,6 +479,13 @@ func decide(l types.Lesson, t Tally, r Rule) Decision {
 			return d
 		}
 	}
+	if !r.WithoutCost {
+		for _, v := range views {
+			if d, ok := decideCostlier(l, v, r); ok {
+				return d
+			}
+		}
+	}
 	d := Decision{Lesson: l, Tally: t}
 	if t.Exposed < r.MinExposed || t.Withheld < r.MinWithheld {
 		d.Reason = fmt.Sprintf("not enough turns yet%s: %d delivered (need %d), %d withheld (need %d)",
@@ -447,6 +497,14 @@ func decide(l types.Lesson, t Tally, r Rule) Decision {
 		d.Reason = "credit: better when delivered" + views[0].where + ": " + rates(t)
 		return d
 	}
+	if l.State == types.StateTrial && !r.WithoutCost && t.Cheaper() && t.CostBayesFactor() >= r.Accept {
+		if nw := t.NotWorse(r.CostMargin); nw >= r.NotWorse {
+			d.To = types.StateAccepted
+			d.Reason = fmt.Sprintf("credit: cheaper when delivered%s, and success not worse: %s; %s, P(not worse by %.0f points) %.3f",
+				views[0].where, costLine(t), rates(t), 100*r.CostMargin, nw)
+			return d
+		}
+	}
 	if l.State == types.StateAccepted {
 		for _, v := range views {
 			if drifted, ok := decideDrift(l, view{v.t.Recent(), v.where}, r); ok {
@@ -456,6 +514,21 @@ func decide(l types.Lesson, t Tally, r Rule) Decision {
 	}
 	d.Reason = "undecided" + views[0].where + ": " + rates(t)
 	return d
+}
+
+// decideCostlier eliminates a lesson that makes turns cost more, by the
+// elimination bar, unless it earns acceptance on success: a lesson that buys
+// success with cost is a fair trade (D-030).
+func decideCostlier(l types.Lesson, v view, r Rule) (Decision, bool) {
+	t := v.t
+	if t.Exposed < r.MinExposed || t.Withheld < r.MinWithheld || t.Cheaper() || t.CostBayesFactor() < r.Eliminate {
+		return Decision{}, false
+	}
+	if t.PBetter() > 0.5 && t.BayesFactor() >= r.Accept {
+		return Decision{}, false
+	}
+	return Decision{Lesson: l, Tally: t, To: types.StateEliminated,
+		Reason: "credit: costlier when delivered" + v.where + ", and no better: " + costLine(t) + "; " + rates(t)}, true
 }
 
 // view is a tally and the turns it covers, for reasons.

@@ -195,6 +195,16 @@ the same mistake, so this is weaker than human labels, and the
 human-labelled Phase 2 criterion stays open. It points to where labelling
 effort is worth spending: pairs where the plans differ in substance.
 
+## Credit and cost (D-030)
+
+2026-10-07: credit also compares model calls per turn. With a new "costly"
+lesson planted (an extra successful read and model call): helpful 25/25
+accepted, harmful 15/15 eliminated, neutral 0/10 moved, lessons that only
+save work 4/5 accepted, lessons that only add work 5/5 eliminated.
+`credit-eval -without-cost` gives the old rule: the 10 cost-only lessons
+stay in trial. drift-eval is now 9/10 within 3000 turns (the tenth at
+3100). Details in D-030.
+
 ## Credit ledger on the simulator (Phase 3)
 
 2026-10-02: `credit-eval` plants all 11 simulator lessons in trial, delivers

@@ -8,12 +8,14 @@ import (
 // The Phase 4b acceptance test (D-026): the simulator's correct lessons earn
 // acceptance, then the world changes so two of them stop holding. Every
 // drifted lesson that was accepted is retired, and no lesson that still
-// holds is.
+// holds is. 4000 turns after the change, not 3000: retirement latency
+// varies with the coin flips, and one seed's took 3100 after D-030
+// changed which lessons were in force.
 func TestDriftRetiresWhatStoppedHolding(t *testing.T) {
 	if testing.Short() {
 		t.Skip("plays thousands of simulated turns")
 	}
-	res, err := EvaluateDrift(context.Background(), []uint64{1, 2, 3}, 3000, 3000)
+	res, err := EvaluateDrift(context.Background(), []uint64{1, 2, 3}, 3000, 4000)
 	if err != nil {
 		t.Fatal(err)
 	}

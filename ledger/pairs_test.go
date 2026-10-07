@@ -167,7 +167,7 @@ func TestRedundantLessonIsSetAside(t *testing.T) {
 // redundant: it helps nowhere, so the pair rule leaves it alone, as the
 // ledger leaves every neutral lesson. A lesson that hurts with or without
 // the other is harmful, not in a contradiction: the ledger's own rule
-// eliminates it.
+// eliminates it. One whose harm shows only beside the other is set aside.
 func TestNeutralAndHarmfulLessonsAreNotSuperseded(t *testing.T) {
 	w := newPairWorld(t)
 	w.play(t, 800, func(a, b bool) bool { return a })
@@ -175,10 +175,21 @@ func TestNeutralAndHarmfulLessonsAreNotSuperseded(t *testing.T) {
 		t.Fatalf("a neutral lesson was superseded: %s", d.Reason)
 	}
 
+	// Harmful whether the other is delivered or not: eliminated.
 	w = newPairWorld(t)
-	w.play(t, 800, func(a, b bool) bool { return a && !b })
+	w.play(t, 800, func(a, b bool) bool { return !b })
 	if d := w.settle(t)[w.b.ID]; d.To != types.StateEliminated {
 		t.Fatalf("a harmful lesson: to %q: %s", d.To, d.Reason)
+	}
+
+	// Harmful beside the other, with its effect alone unmeasurable (every
+	// turn without the other fails anyway): set aside, not eliminated. It
+	// comes back to trial only if the other leaves, where its own credit
+	// judges it alone.
+	w = newPairWorld(t)
+	w.play(t, 800, func(a, b bool) bool { return a && !b })
+	if d := w.settle(t)[w.b.ID]; d.To != types.StateSuperseded {
+		t.Fatalf("harm seen only beside the other: to %q: %s", d.To, d.Reason)
 	}
 }
 
@@ -206,5 +217,21 @@ func TestStratifiedMultipliesPeriods(t *testing.T) {
 	}
 	if _, ok := periodAt(ps, t0.Add(3*time.Hour)); ok {
 		t.Fatal("a superseded lesson is not in force")
+	}
+}
+
+// Two lessons that fail only together each look harmful in their own credit
+// (every turn succeeds unless both are delivered). The ledger must not
+// eliminate them for it: the pair rule sets the newer aside, reversibly,
+// and the older stays.
+func TestContradictionIsNotEliminatedAsHarm(t *testing.T) {
+	w := newPairWorld(t)
+	w.play(t, 600, func(a, b bool) bool { return !a || !b })
+	ds := w.settle(t)
+	if d := ds[w.a.ID]; d.To == types.StateEliminated {
+		t.Fatalf("the older lesson was eliminated: %s", d.Reason)
+	}
+	if d := ds[w.b.ID]; d.To != types.StateSuperseded || d.Other != w.a.ID {
+		t.Fatalf("newer: to %q other %s: %s", d.To, d.Other, d.Reason)
 	}
 }

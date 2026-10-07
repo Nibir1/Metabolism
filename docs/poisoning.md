@@ -303,6 +303,11 @@ What this says about each defence:
   turns fail. It cannot see silent harms, because outcomes look the same with
   them as without; those stayed until forgotten. In this suite credit is a
   late repair layer, not a gate.
+- **Since D-030 credit also sees cost.** Poisons that add a step and a model
+  call are removed on cost even though outcomes look the same. Without the
+  nutrient test, automatic repair rose from 25% to 56%: the harmful command
+  from 0 to 100%, misdirection from 0 to 50%. Free harms (a step that costs
+  no call) are still invisible to it.
 - **Faster credit accepts the trojan faster.** Since credit counts the
   turns that bear on a lesson (D-026), the trojan reaches accepted, not
   only trial, in the run without the immune screen: its real fix is real

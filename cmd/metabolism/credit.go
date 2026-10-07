@@ -66,7 +66,7 @@ func cmdCredit(ctx context.Context, args []string, out io.Writer) error {
 	}
 	say(out, "credit from live turns · delivered vs withheld by coin flip · since each lesson's last state change\n\n")
 	tw := tabwriter.NewWriter(out, 0, 0, 2, ' ', 0)
-	say(tw, "  LESSON\tSTATE\tDELIVERED\tWITHHELD\tP(BETTER)\tBF\tCALLS/TURN\tDECISION\n")
+	say(tw, "  LESSON\tSTATE\tDELIVERED\tWITHHELD\tP(BETTER)\tBF\tCALLS/TURN\tCOST BF\tDECISION\n")
 	moved := 0
 	for _, d := range ds {
 		t := d.Tally
@@ -77,9 +77,9 @@ func cmdCredit(ctx context.Context, args []string, out io.Writer) error {
 			decision = "→ " + string(d.To)
 			moved++
 		}
-		say(tw, "  %s\t%s\t%s of %d\t%s of %d\t%.3f\t%.3g\t%.1f / %.1f\t%s\n",
+		say(tw, "  %s\t%s\t%s of %d\t%s of %d\t%.3f\t%.3g\t%.1f / %.1f\t%.3g\t%s\n",
 			d.Lesson.ID, d.Lesson.State, pct(e), t.Exposed, pct(w), t.Withheld,
-			t.PBetter(), t.BayesFactor(), ce, cw, decision)
+			t.PBetter(), t.BayesFactor(), ce, cw, t.CostBayesFactor(), decision)
 	}
 	_ = tw.Flush()
 	for _, d := range ds {
@@ -99,7 +99,9 @@ func cmdCredit(ctx context.Context, args []string, out io.Writer) error {
 	}
 	say(out, "\nrule (D-020): accept at Bayes factor ≥ 30 for better, eliminate at ≥ 300 for worse,\n"+
 		"after ≥ 20 delivered and ≥ 10 withheld turns. Success = the turn ended done with no negative outcome.\n"+
-		"Only turns whose request resembles the lesson's sources count (D-026; -all-turns counts every turn).\n")
+		"Only turns whose request resembles the lesson's sources count (D-026; -all-turns counts every turn).\n"+
+		"Cost (D-030): accepted if cheaper at cost BF ≥ 30 and success not worse by 5 points (P ≥ 0.95);\n"+
+		"eliminated if costlier at cost BF ≥ 300 and not better. Cost is log(1 + model calls) per turn.\n")
 	return nil
 }
 
@@ -153,6 +155,7 @@ func cmdCreditEval(ctx context.Context, args []string, out io.Writer) error {
 	every := fs.Int("settle-every", 100, "settle the ledger every N turns, as a user running credit -apply would")
 	outDir := fs.String("out", "", "directory to write credit.json (optional)")
 	allTurns := fs.Bool("all-turns", false, "credit every turn, not only the turns that bear on each lesson (the D-020 analysis, for comparison)")
+	withoutCost := fs.Bool("without-cost", false, "decide on success only, as before D-030 (for comparison)")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
@@ -160,14 +163,19 @@ func cmdCreditEval(ctx context.Context, args []string, out io.Writer) error {
 	for i := 1; i <= *seeds; i++ {
 		ss = append(ss, uint64(i))
 	}
-	r, err := bench.EvaluateCredit(ctx, ss, *turns, *every, ledger.Rule{AllTurns: *allTurns})
+	r, err := bench.EvaluateCredit(ctx, ss, *turns, *every, ledger.Rule{AllTurns: *allTurns, WithoutCost: *withoutCost})
 	if err != nil {
 		return err
 	}
 	say(out, "credit ledger on simulated Helix · %d histories × %d turns · settled every %d turns\n\n", r.Seeds, r.Turns, r.SettleEvery)
 	say(out, "  lessons that help, accepted          %d / %d  (%s)\n", r.HelpAccepted, r.HelpTotal, pct(r.HelpAcceptRate))
 	say(out, "  lessons that harm, eliminated        %d / %d  (%s)\n", r.HarmEliminated, r.HarmTotal, pct(r.HarmEliminateRate))
-	say(out, "  lessons that change no outcome, moved %d / %d  (eliminated %d)\n\n", r.NeutralWrongMoves, r.NeutralTotal, r.NeutralEliminated)
+	say(out, "  lessons that change no outcome, moved %d / %d  (eliminated %d)\n", r.NeutralWrongMoves, r.NeutralTotal, r.NeutralEliminated)
+	if r.CheaperTotal+r.CostlierTotal > 0 {
+		say(out, "  lessons that only save work, accepted %d / %d\n", r.CheaperAccepted, r.CheaperTotal)
+		say(out, "  lessons that only add work, eliminated %d / %d\n", r.CostlierEliminated, r.CostlierTotal)
+	}
+	say(out, "\n")
 	tw := tabwriter.NewWriter(out, 0, 0, 2, ' ', 0)
 	say(tw, "  SEED\tEXPECT\tFINAL\tAT TURN\tDELIVERED\tWITHHELD\tLESSON\n")
 	for _, row := range r.Rows {

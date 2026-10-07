@@ -63,6 +63,11 @@ type Evidence struct {
 	WithheldSuccesses int     `json:"withheld_successes,omitempty"`
 	PBetter           float64 `json:"p_better,omitempty"`
 	BayesFactor       float64 `json:"bayes_factor,omitempty"`
+	// Cost (D-030): mean model calls per turn in each arm, and the Bayes
+	// factor for a difference in cost.
+	CallsExposed    float64 `json:"calls_exposed,omitempty"`
+	CallsWithheld   float64 `json:"calls_withheld,omitempty"`
+	CostBayesFactor float64 `json:"cost_bayes_factor,omitempty"`
 
 	// Context lists the lessons in force (accepted) that both sides of a
 	// nutrient test's replays carried: the lesson is judged on what it adds
@@ -109,6 +114,9 @@ func (e Evidence) Validate() error {
 	}
 	if e.ExposedSuccesses > e.Exposed || e.WithheldSuccesses > e.Withheld {
 		errs = append(errs, errors.New("more successes than turns"))
+	}
+	if e.CallsExposed < 0 || e.CallsWithheld < 0 || e.CostBayesFactor < 0 {
+		errs = append(errs, errors.New("negative cost"))
 	}
 	if e.BayesFactor < 0 {
 		errs = append(errs, errors.New("negative bayes_factor"))

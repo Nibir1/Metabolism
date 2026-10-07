@@ -24,8 +24,9 @@ type CreditRow struct {
 	Text string `json:"text"`
 	// Expect is what a sound ledger should do: "accept" a lesson that turns
 	// failures into successes, "eliminate" one that causes failures, "keep"
-	// one that changes no outcome (irrelevant, or a cost-only fix such as
-	// go-module, which credit by outcome cannot see).
+	// one that changes neither outcome nor cost; with cost in the rule
+	// (D-030), "accept-cost" a lesson that only saves work (go-module) and
+	// "eliminate-cost" one that only adds it. Without cost those are "keep".
 	Expect string            `json:"expect"`
 	Final  types.LessonState `json:"final"`
 	Tally  ledger.Tally      `json:"tally"`
@@ -44,6 +45,11 @@ type CreditResult struct {
 	HelpTotal, HelpAccepted         int `json:"-"`
 	HarmTotal, HarmEliminated       int `json:"-"`
 	NeutralTotal, NeutralWrongMoves int `json:"-"`
+	// Cost-only lessons (D-030).
+	CheaperTotal       int `json:"cheaper_total"`
+	CheaperAccepted    int `json:"cheaper_accepted"`
+	CostlierTotal      int `json:"costlier_total"`
+	CostlierEliminated int `json:"costlier_eliminated"`
 
 	HelpAcceptRate    float64     `json:"help_accept_rate"`
 	HarmEliminateRate float64     `json:"harm_eliminate_rate"`
@@ -53,14 +59,23 @@ type CreditResult struct {
 }
 
 // expect classifies a simulator lesson for the credit ledger.
-func expect(s helixsim.LessonSpec) string {
+func expect(s helixsim.LessonSpec, rule ledger.Rule) string {
 	switch {
 	case !s.Good && strings.HasPrefix(s.Why, "irrelevant"):
 		return "keep"
+	case strings.HasPrefix(s.Why, "costly"):
+		if rule.WithoutCost {
+			return "keep"
+		}
+		return "eliminate-cost"
 	case !s.Good:
 		return "eliminate"
 	case s.From == "missing-package-json":
-		return "keep" // it saves model calls; the outcome was already a success
+		// It saves model calls; the outcome was already a success.
+		if rule.WithoutCost {
+			return "keep"
+		}
+		return "accept-cost"
 	}
 	return "accept"
 }
@@ -102,6 +117,16 @@ func EvaluateCredit(ctx context.Context, seeds []uint64, turns, settleEvery int,
 			res.HarmTotal++
 			if r.Final == types.StateEliminated {
 				res.HarmEliminated++
+			}
+		case "accept-cost":
+			res.CheaperTotal++
+			if r.Final == types.StateAccepted {
+				res.CheaperAccepted++
+			}
+		case "eliminate-cost":
+			res.CostlierTotal++
+			if r.Final == types.StateEliminated {
+				res.CostlierEliminated++
 			}
 		default:
 			res.NeutralTotal++
@@ -152,7 +177,7 @@ func creditSeed(ctx context.Context, path string, seed uint64, turns, settleEver
 		return nil, err
 	}
 	m.SetClock(func() time.Time { return start })
-	specs := append(helixsim.CorrectLessons(), helixsim.WrongLessons()...)
+	specs := append(append(helixsim.CorrectLessons(), helixsim.WrongLessons()...), helixsim.CostlyLessons()...)
 	rows := make([]CreditRow, 0, len(specs))
 	ids := make([]types.ID, 0, len(specs))
 	for i, s := range specs {
@@ -179,7 +204,7 @@ func creditSeed(ctx context.Context, path string, seed uint64, turns, settleEver
 		if err := m.Move(ctx, l.ID, types.StateTrial, "planted by credit-eval", ev.ID); err != nil {
 			return nil, err
 		}
-		rows = append(rows, CreditRow{Seed: seed, Text: s.Text, Expect: expect(s)})
+		rows = append(rows, CreditRow{Seed: seed, Text: s.Text, Expect: expect(s, rule)})
 		ids = append(ids, l.ID)
 	}
 

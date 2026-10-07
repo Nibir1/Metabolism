@@ -39,4 +39,13 @@ func TestCreditLedgerOnTheSimulator(t *testing.T) {
 	if res.HelpAcceptRate < 0.9 {
 		t.Errorf("helpful lessons accepted %d/%d", res.HelpAccepted, res.HelpTotal)
 	}
+	// Cost (D-030): what only adds work is always eliminated; what only
+	// saves work is mostly accepted (the success guard can hold one back
+	// when other lessons make its turns fail).
+	if res.CostlierEliminated != res.CostlierTotal || res.CostlierTotal == 0 {
+		t.Errorf("costlier lessons eliminated %d/%d", res.CostlierEliminated, res.CostlierTotal)
+	}
+	if res.CheaperAccepted*10 < res.CheaperTotal*6 {
+		t.Errorf("cheaper lessons accepted %d/%d", res.CheaperAccepted, res.CheaperTotal)
+	}
 }

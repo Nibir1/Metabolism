@@ -257,8 +257,8 @@ func decidePair(a, b types.Lesson, p Pair, r Rule) PairDecision {
 	}
 	// A lesson that looks worse on its own too is not in a contradiction,
 	// only harmful: the ledger's own rule eliminates it.
-	ha := hurts(p.AddA) && p.SoloA.Pooled().PBetter() >= 0.5
-	hb := hurts(p.AddB) && p.SoloB.Pooled().PBetter() >= 0.5
+	ha := hurts(p.AddA) && notWorse(p.SoloA.Pooled())
+	hb := hurts(p.AddB) && notWorse(p.SoloB.Pooled())
 	switch {
 	case ha && hb:
 		if al := p.Alone; enough(al) && al.Pooled().PBetter() < 0.5 && al.BayesFactor() >= r.Accept {
@@ -289,6 +289,39 @@ func stratRates(s Stratified) string {
 	e, w := t.Rate()
 	return fmt.Sprintf("%.0f%% of %d turns delivered vs %.0f%% of %d withheld, Bayes factor %.3g over %d period(s)",
 		100*e, t.Exposed, 100*w, t.Withheld, s.BayesFactor(), len(s.Strata))
+}
+
+// notWorse reports whether a tally does not lean toward the lesson doing
+// worse. Equal arms give P(better) of exactly one half, which the numerical
+// integral can return up to about 1e-4 under; the tolerance keeps that a tie.
+func notWorse(t Tally) bool { return t.PBetter() >= 0.499 }
+
+// harmExplainedByPair reports whether a lesson's harm is a contradiction:
+// some pair with a partner in force shows it hurting when the partner is
+// delivered, by the elimination bar, and not looking worse without it.
+func harmExplainedByPair(m *metabolome.Metabolome, id types.ID, pairs []*Pair, r Rule) (types.ID, bool) {
+	for _, p := range pairs {
+		var add, solo Stratified
+		var other types.ID
+		switch id {
+		case p.A:
+			add, solo, other = p.AddA, p.SoloA, p.B
+		case p.B:
+			add, solo, other = p.AddB, p.SoloB, p.A
+		default:
+			continue
+		}
+		e, ok := m.Get(other)
+		if !ok || !e.Lesson.State.Injectable() {
+			continue
+		}
+		t := add.Pooled()
+		if t.Exposed >= r.MinExposed && t.Withheld >= r.MinWithheld && t.PBetter() < 0.5 &&
+			add.BayesFactor() >= r.Eliminate && notWorse(solo.Pooled()) {
+			return other, true
+		}
+	}
+	return "", false
 }
 
 // settlePairs decides the pairs of lessons in force, oldest pairs first,
