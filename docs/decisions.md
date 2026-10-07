@@ -35,6 +35,11 @@ level. A chat-fallback turn is always recorded as failed.
    after.
 5. New exit criteria, including beating the small-model baseline.
 
+**5a's first data (2026-10-07):** Helix's native planner path was refused
+by DeepSeek on every planning, which was half the recorded calls. Fixed in
+Helix; details in habits.md. "Think or not, per request" is a planning-mode
+habit candidate for 5b.
+
 **5c miner built 2026-10-07** (`metabolism patterns`): on the automated
 journal it finds no guard candidate, only lesson-territory failures and
 unattended refusals. A guard's evidence is a person undoing or declining a

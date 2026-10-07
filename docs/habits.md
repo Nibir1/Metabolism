@@ -164,6 +164,23 @@ This is closest to AgentGuard (2026). What is new is human approval,
 verification on the agent's own replays before proposal, and live credit
 after.
 
+**5a's first finding (2026-10-07, the first v3 day, while it ran):** every
+planning cost two calls. Helix first sent a native tool-calling request
+that DeepSeek-V4.1-Flash refuses in its default thinking mode ("Thinking
+mode does not support this tool_choice"), then planned through the prompt.
+That was 72 of the first 147 calls. A refused request generates no tokens,
+so it mostly cost a round trip, not money, but it doubled the recorded
+calls and input characters. Fixed in Helix the same day: a 400 switches the
+native path off for the session. The native schema also lacked `file` and
+`todo`, which mattered for providers where native calling works. Days
+recorded before the fix count those refused calls as `tool`; 5a's
+measurement should leave them out.
+
+The same test showed native tool-calling works with thinking off, which
+would also avoid paying for reasoning tokens. Whether a request needs the
+model to think is a **planning-mode habit candidate** for 5b, to be
+measured, not switched on.
+
 **The miner is built (2026-10-07):** `mine/` and `metabolism patterns`. It
 groups failures that recur the same way (at least 3 times, in at least 2
 different requests) and sorts each by what could answer it:
