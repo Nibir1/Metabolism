@@ -346,8 +346,17 @@ Exit criteria:
 
 ## Phase 5: Habit compilation, System 2 → System 1 (about 4 weeks). C6, C9
 
-**Before starting:** finish the literature check for novelty (research.md
-open task).
+**Before starting:** finish the literature check for novelty. Done
+2026-10-07 (research.md, "Habit compilation: prior art"). Compiling
+repeated LLM work into something cheaper is established: cascades, neural
+caching, System 2 distillation, plan caching, LLM-written rules accepted on
+held-out data, guardrails learned from traces. What is not found is the
+combination planned here: recurring decisions inside the agent's own loop,
+compiled into linted typed questions, replay-tested on its own past
+decisions, credited live by coin flip, and restrict-only with the user's
+approval. The live randomised credit is the clearest difference. Phase 5
+claims that, not "habit compilation is new", and measures a gate against a
+per-step small-model route as well as against the slow model.
 
 Deliverables:
 
@@ -362,7 +371,8 @@ Deliverables:
 Exit criteria:
 
 - [ ] At least one compiled gate cuts slow-model calls for its decision by ≥ 50% at
-      equal or better accuracy.
+      equal or better accuracy, and beats routing that decision to a small
+      model (the prior-art baseline, research.md).
 - [ ] Cost per finished task falls on the curves.
 
 ## Phase 6: Procedural tier and skills (about 4–6 weeks). C4

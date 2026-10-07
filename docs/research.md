@@ -127,10 +127,88 @@ its claims were wrong. **Don't reuse them:**
   - Eino, Google adk-go, CortexDB, pgvector-go, the Pinecone client,
     cohesion-org/deepseek-go.
 
+## Habit compilation: prior art (checked 2026-10-07)
+
+The question: has anyone compiled an LLM's repeated decisions into a fast
+classifier or a set of typed gates? **Yes, in several forms, so the idea
+itself is not new.** What has not been found is the combination Phase 5
+plans. URLs are in references.md.
+
+**Making repeated LLM work cheap: established.**
+- Cascades and routers: FrugalGPT (2023) sends a query to the cheapest
+  model first and escalates below a confidence threshold. RouteLLM (2024)
+  learns which queries need the strong model. Both work on whole queries.
+- Neural caching: Cache & Distil (Ramírez et al., ACL Findings 2024) trains
+  a small student online on the LLM's answers, with an active-learning
+  policy deciding when the student answers and when to defer. It is the
+  closest prior art to habit compilation, on whole user requests rather
+  than decisions inside an agent.
+- Distilling System 2 into System 1 (Yu, Xu, Weston, Kulikov, 2024)
+  fine-tunes the model on its own verified slow answers so it skips the
+  reasoning. The "System 2 to System 1" framing in vision.md is theirs too.
+- Agentic Plan Caching (NeurIPS 2025) extracts plan templates from
+  completed agent runs and reuses them on similar tasks, adapted by a small
+  model: 50% lower cost on average.
+- Per-step routing inside an agent loop is practice in 2026: small models
+  for routine steps, the large model for planning and recovery (StepRouter,
+  RSI-Router, AgentCollab). Mostly engineering reports, not evaluations.
+
+**Compiling LLM decisions into rules or code, accepted on held-out data:
+established in 2026.**
+- RuleChef (July 2026): an LLM proposes rules for a classification task;
+  each is accepted only on held-out precision, with human feedback; at
+  inference only the rules run.
+- Trace2Policy (June 2026): rules recovered from expert traces, compiled to
+  Python, refined against validation sets; it replaced the LLM in
+  production at 79.6% accuracy.
+- On-device agentic operation caches (Gulwani et al., September 2026): an
+  assistant's frequent natural-language-to-action requests become
+  classification over cached operations.
+- These work on standalone tasks or on whole requests, not on recurring
+  decisions inside an agent's own loop.
+
+**Learning restrictions from an agent's own traces: established.**
+- AgentGuard (September 2026) mines recurring failures from coding-agent
+  trajectories into restrict-only behavioural constraints. It does not
+  report human approval, pre-deployment verification or fewer model calls.
+- AgentSpec, ShieldAgent and GuardAgent enforce safety rules written by
+  people or extracted from policy documents, not learned from the agent's
+  own decisions.
+
+**What none of them does, together** (the honest claim for Phase 5):
+1. The unit is a recurring decision *inside* the agent's loop, found in its
+   own episodes ("is this output a compile error or a network error?"), not
+   a whole request (Cache & Distil, routers) or a whole plan (APC).
+2. It compiles into a typed question set for a calibrated typed model
+   (Jev), linted for atomic questions and known failure modes before use.
+   The others fine-tune a student, write code rules, or cache outputs.
+3. It is accepted by replaying the agent's own past decisions under an
+   A/A-calibrated rule, then credited on live turns by coin flip against
+   withholding it. None of the works found credits a compiled component on
+   randomised live outcomes.
+4. It is restrict-only and needs the user's approval in a host with safety
+   gates.
+
+Each part has a neighbour; the combination, and above all the live
+randomised credit, is what is new. That is a narrower claim than "habit
+compilation is new", and the one Phase 5 may make.
+
+**What Phase 5 should take from them:**
+- Cache & Distil's deferral policy: margin sampling or query-by-committee
+  on the gate's confidence decides when to fall back to the slow model.
+- RuleChef's and Trace2Policy's acceptance on held-out data, which the
+  nutrient test already does in its own way.
+- APC and per-step routing as **the baselines a gate must beat**. Phase 5's
+  exit criterion (≥ 50% fewer slow-model calls for a decision at equal or
+  better accuracy) should be measured against "route this step to a small
+  model" as well as against "always ask the slow model". A gate that only
+  matches a small model on that step is not worth its complexity.
+
 ## Open research tasks
 
-- [ ] Literature search: has anyone compiled repeated LLM decisions into a fast
-      classifier or typed-gate set? This decides whether habit compilation is novel.
+- [x] Literature search: has anyone compiled repeated LLM decisions into a fast
+      classifier or typed-gate set? Yes, in several forms (see "Habit
+      compilation: prior art" above); the Phase 5 combination is not found.
 - [ ] Close read of Relai and Harness Continual Learning (the closest
       competitors): what exactly do they verify, and how?
 - [ ] Pick the public benchmark: τ-bench, ContinualSkillBench or

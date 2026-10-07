@@ -42,6 +42,27 @@ A-MEM (Zettelkasten memory), MemGPT/Letta (tiered memory), Titans and TTT
 (test-time memory), Text-to-LoRA (Sakana), Absolute Zero (self-play with
 verification), "Era of Experience" (Silver & Sutton, 2025, position essay).
 
+## Habit compilation: prior art (checked 2026-10-07)
+
+| Work | Tag | URL |
+|---|---|---|
+| FrugalGPT (LLM cascades) | pre (2023) | https://arxiv.org/abs/2305.05176 |
+| RouteLLM (learned routing) | pre (2024) | https://arxiv.org/abs/2406.18665 |
+| Cache & Distil: neural caching | PR (ACL'24 Findings) | https://arxiv.org/abs/2310.13561 |
+| Distilling System 2 into System 1 | PR (NeurIPS'24 workshop) | https://arxiv.org/abs/2407.06023 |
+| Agentic Plan Caching | PR (NeurIPS'25) | https://arxiv.org/abs/2506.14852 |
+| Agent Workflow Memory | PR (ICML'25) | https://arxiv.org/abs/2409.07429 |
+| Dynamic Model Routing and Cascading: a survey | pre (2026) | https://arxiv.org/abs/2603.04445 |
+| AgentCollab (small-model-first agent steps) | pre (2026) | https://arxiv.org/abs/2603.26034 |
+| StepRouter (per-step routing) | TR | https://github.com/shipiit/shipit_agent/pull/33 |
+| RSI-Router (subtask routing, 51.7% cost cut) | vendor | https://getnadir.com/blog/rsi-router-subtask-level-llm-routing-agent-cost/ |
+| RuleChef (LLM-proposed rules, held-out acceptance) | pre (Jul 2026) | https://arxiv.org/abs/2607.01293 |
+| Trace2Policy (traces to compiled rules) | pre (Jun 2026) | https://arxiv.org/abs/2606.10457 |
+| On-device agentic operation caches | pre (Sep 2026) | https://arxiv.org/abs/2609.33141 |
+| AgentGuard (guardrails from agent trajectories) | pre (Sep 2026) | https://arxiv.org/abs/2609.16287 |
+| AgentSpec (runtime enforcement) | pre (2025) | https://arxiv.org/abs/2503.18666 |
+| ShieldAgent (verifiable safety policy) | pre (2025) | https://arxiv.org/abs/2503.22738 |
+
 ## Production systems
 
 | System | Tag | URL |
