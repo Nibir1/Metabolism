@@ -99,11 +99,32 @@ func cmdDecisions(ctx context.Context, args []string, out io.Writer) error {
 	say(out, "\nStop condition (D-031): Phase 5's cost work goes on only if a candidate touches ≥ %.0f%% of model calls\n"+
 		"and half of those can be saved. Share is the first half; savability is measured offline next.\n"+
 		"Planning mode saves tokens rather than calls and is not in this table.\n", 100*bench.StopShare)
+
+	// The second half: could "answer now" be predicted well enough?
+	sv := bench.MeasureSavability(eps, 0.5)
+	say(out, "\nsavability of \"answer now\" (learned on the earlier half of follow-up rounds, tested on the later half):\n")
+	say(out, "  %d test rounds, %d answer-only · fired %d: %d hits, %d lookups cut short · precision %.0f%%, recall %.0f%%\n",
+		sv.Rounds, sv.AnswerOnly, sv.Fired, sv.Hits, sv.FalseAlarms, 100*sv.Precision, 100*sv.Recall)
+	if sv.SizedAnswers > 0 {
+		say(out, "  full prompt ~%d characters · saves %d of %d answer-only input characters (%.0f%%)\n",
+			sv.FullPrompt, sv.SavedChars, sv.AnswerChars, 100*sv.SavedShare)
+	}
+	for _, r := range sv.Rules {
+		say(out, "  fires %s: %d of %d answered\n", r.Key, r.AnswerOnly, r.Seen)
+	}
+	verdict := "does not pass"
+	if sv.Passes {
+		verdict = "passes"
+	}
+	say(out, "  %s: %s (bars: precision ≥ %.0f%%, saved ≥ %.0f%%)\n", verdict, sv.Why, 100*bench.MinPrecision, 100*bench.MinSaved)
+
 	if *outDir != "" {
 		if err := os.MkdirAll(*outDir, 0o755); err != nil {
 			return err
 		}
-		return writeFile(filepath.Join(*outDir, "decisions.json"), func(w io.Writer) error { return writeJSON(w, d) })
+		return writeFile(filepath.Join(*outDir, "decisions.json"), func(w io.Writer) error {
+			return writeJSON(w, map[string]any{"decisions": d, "savability": sv})
+		})
 	}
 	return nil
 }

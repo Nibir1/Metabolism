@@ -186,13 +186,29 @@ makes one, smaller call), so its saving can only be measured per round.
 |---|---|---|---|---|---|---|
 | 2026-10-07 12:05 (before the fix; refused native calls removed by hand) | 100 | 255 | 39% | 2% | 61% | 19% |
 | 2026-10-07 12:55 (after the fix) | 98 | 295 | 33% | 1% | 66% | 21% |
+| 2026-10-07 14:15 (with per-round sizes) | 99 | 279 | 36% | 1% | 64% | 19% |
 
 Day 1 already rules out **retry level** (2% of calls, below the 15% bar).
 **Answer now or read more** passes the share half of the bar, narrowly
 (19%). Follow-up rounds, reading more, are where 61% of calls go; 53 of
 100 turns needed 2 to 7 planner rounds. Day 2, the first after the fix,
-agrees: retries 1%, answer-only rounds 21%, follow-up rounds 66%. Three
-more days are needed (D-031).
+agrees: retries 1%, answer-only rounds 21%, follow-up rounds 66%.
+
+Day 3 brought the first per-round sizes: answer-only follow-up rounds took
+22% of all planner input characters, the most an answer-now habit could
+touch. A full planner prompt is about 17,500 characters; an answer-only
+round about 23,500 (the full prompt plus what was read).
+
+**Savability, first reading (days 2 and 3, after the fix).** The cost-free
+predictor (`bench.MeasureSavability`) finds no situation before a
+follow-up round that predicts an answer-only round with 90% precision: it
+never fires. On days 1 and 2 alone it fired 13 times, 7 right and 6 cutting
+a lookup short. Knowing what the last round did and whether it worked does
+not tell whether the planner will answer next; the planner decides from
+what was read, and the recording does not keep that (privacy: step
+subjects only). A content-aware predictor (Jev reading the request and
+what was read) could only be tested through replays, at API cost. Two
+more days are needed before the stop condition is judged (D-031).
 
 The same test showed native tool-calling works with thinking off, which
 would also avoid paying for reasoning tokens. Whether a request needs the
