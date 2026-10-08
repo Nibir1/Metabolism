@@ -53,6 +53,8 @@ func cmdAuto(ctx context.Context, args []string, out io.Writer) error {
 	resume := fs.String("resume", "", "finish an interrupted run's engine steps (verify, credit, report) for this day folder, without driving Helix")
 	allowRemote := fs.Bool("allow-remote", false, "allow the run's remote calls (see the notices)")
 	allowPeak := fs.Bool("allow-peak", false, "run even during DeepSeek's peak hours, at double the price")
+	thinkingFlip := fs.Bool("thinking-flip", false, "planning-mode measurement (D-031): Helix flips a coin per turn and plans "+
+		"half the turns with the provider's thinking off; compare with metabolism decisions")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
@@ -179,7 +181,10 @@ func cmdAuto(ctx context.Context, args []string, out io.Writer) error {
 			return err
 		}
 	}
-	if err := setup.apply(lessonsOn, filepath.Join(dayDir, "lessons.json")); err != nil {
+	if *thinkingFlip {
+		say(out, "planning mode: Helix plans about half of today's turns with thinking off (coin flip per turn, recorded)\n")
+	}
+	if err := setup.apply(lessonsOn, *thinkingFlip, filepath.Join(dayDir, "lessons.json")); err != nil {
 		_, _ = setup.recover()
 		return err
 	}
@@ -342,9 +347,9 @@ func (h *helixSetup) backup(name string) string {
 }
 
 // apply backs up the config and delivery file, then turns recording on, wake
-// listening off, and lessons on or off, installing delivery when lessons are
-// on.
-func (h *helixSetup) apply(lessonsOn bool, delivery string) error {
+// listening off, lessons on or off (installing delivery when on), and the
+// planning-mode coin flip on or off.
+func (h *helixSetup) apply(lessonsOn, thinkingFlip bool, delivery string) error {
 	if err := os.MkdirAll(h.state, 0o700); err != nil {
 		return err
 	}
@@ -378,6 +383,11 @@ func (h *helixSetup) apply(lessonsOn bool, delivery string) error {
 	}
 	prefs["metabolism_record"] = true
 	prefs["metabolism_lessons"] = lessonsOn
+	if thinkingFlip {
+		prefs["metabolism_thinking_flip"] = true
+	} else {
+		delete(prefs, "metabolism_thinking_flip")
+	}
 	doc["user_preferences"] = prefs
 	speech, _ := doc["speech"].(map[string]any)
 	if speech == nil {

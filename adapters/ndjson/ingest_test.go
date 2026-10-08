@@ -1,6 +1,7 @@
 package ndjson
 
 import (
+	"bytes"
 	"context"
 	"os"
 	"path/filepath"
@@ -189,7 +190,7 @@ func TestWireVersionsAreNotMixed(t *testing.T) {
 	writeLines(t, path,
 		`{"v":1,"kind":"feedback","feedback":{"id":"0199a1b2c3d6a7b8c9d0e1f2a3b6","lesson_id":"0199a1b2c3d4e5f6a7b8c9d0e1f4","at":"2026-10-03T10:05:00Z","action":"forget","reason":"x"}}`,
 		`{"v":2,"kind":"feedback","feedback":{"id":"0199a1b2c3d6a7b8c9d0e1f2a3b7","lesson_id":"0199a1b2c3d4e5f6a7b8c9d0e1f4","at":"2026-10-03T10:05:00Z","action":"promote","reason":"x"}}`,
-		`{"v":4,"kind":"outcome","outcome":{}}`,
+		`{"v":9,"kind":"outcome","outcome":{}}`,
 		// v3 decision records in a v2 episode.
 		`{"v":2,"kind":"episode","episode":{"id":"0199a1b2c3d4e5f6a7b8c9d0e1f9","host":"helix","scope":{"level":"global"},"started_at":"2026-10-03T10:00:00Z","ended_at":"2026-10-03T10:00:01Z","request":{"text":"x","provenance":"user-typed"},"usage":{"model_calls":1,"input_chars":1,"output_chars":1},"end":"done","plans":[{"round":1,"prompt":"full","calls":1,"result":"planned"}]}}`,
 	)
@@ -231,5 +232,56 @@ func TestHelixGoldenV3(t *testing.T) {
 	if quarantined.Critic == nil || quarantined.Critic.Verdict != "no" || quarantined.Fallback != "critic-quarantine" ||
 		quarantined.Plans[0].Result != "quarantined" || quarantined.Usage.ByKind["critic"] != 1 {
 		t.Fatalf("quarantined episode: %+v", quarantined)
+	}
+}
+
+// Wire v4 (D-031, planning mode): the provider's reported tokens per episode
+// and per plan, and the thinking arm, reach the journal. The golden file is a
+// copy of Helix's internal/metabolism/testdata/wire_v4.ndjson.
+func TestHelixGoldenV4(t *testing.T) {
+	ctx := context.Background()
+	j := openJournal(t)
+	st, err := Ingest(ctx, j, filepath.Join("testdata", "helix_wire_v4.ndjson"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if st.Episodes != 2 || st.Invalid+st.Malformed != 0 {
+		t.Fatalf("stats %+v, problems %v", st, st.Problems)
+	}
+	var eps []types.Episode
+	for r, err := range j.Scan(ctx, types.JournalQuery{Kinds: []types.RecordKind{types.RecordEpisode}}) {
+		if err != nil {
+			t.Fatal(err)
+		}
+		eps = append(eps, *r.Episode)
+	}
+	on, off := eps[0], eps[1]
+	want := types.Tokens{Prompt: 4600, CacheHit: 3800, Completion: 900, Reasoning: 780, Calls: 1}
+	if on.Thinking != types.ThinkingOn || on.Usage.Tokens == nil || *on.Usage.Tokens != want ||
+		on.Plans[0].Tokens == nil || *on.Plans[0].Tokens != want {
+		t.Fatalf("thinking-on episode: %+v", on)
+	}
+	if off.Thinking != types.ThinkingOff || off.Usage.Tokens.Reasoning != 0 || off.Usage.Tokens.Completion != 110 {
+		t.Fatalf("thinking-off episode: %+v", off)
+	}
+}
+
+// Version 4 fields in an older line are refused, as v3's are in v2 lines.
+func TestV4FieldsRefusedInOlderLines(t *testing.T) {
+	data, err := os.ReadFile(filepath.Join("testdata", "helix_wire_v4.ndjson"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	old := bytes.ReplaceAll(data, []byte(`{"v":4,`), []byte(`{"v":3,`))
+	path := filepath.Join(t.TempDir(), "old.ndjson")
+	if err := os.WriteFile(path, old, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	st, err := Ingest(context.Background(), openJournal(t), path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if st.Episodes != 0 || st.Malformed != 2 {
+		t.Fatalf("stats %+v, problems %v", st, st.Problems)
 	}
 }

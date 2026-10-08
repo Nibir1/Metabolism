@@ -232,6 +232,29 @@ would also avoid paying for reasoning tokens. Whether a request needs the
 model to think is a **planning-mode habit candidate** for 5b, to be
 measured, not switched on.
 
+**Planning mode, the measurement (built 2026-10-08).** Thinking saves
+tokens, not calls, so 5a's call shares cannot see it. It is measured on
+its own, with the same two halves:
+- **Share.** Helix now asks DeepSeek for its usage report on every call
+  (recording wire v4): prompt tokens, cache hits, completion and the
+  reasoning part of it, per turn and per planner round. `metabolism
+  decisions` prices them at DeepSeek-V4.1-Flash's off-peak rates ($0.003
+  per million cache-hit tokens, $0.15 cache-miss, $0.60 output, reasoning
+  billed as output) and reports reasoning's share of planner cost on turns
+  that thought. Under 15%, the candidate stops there.
+- **No harm, by coin flip.** `metabolism auto -thinking-flip` sets Helix's
+  `metabolism_thinking_flip` for the run: each recorded turn flips a coin,
+  and on "off" the planner asks for no reasoning. Success is compared with
+  the credit ledger's statistics, thinking off as the treated arm: it
+  passes if success is no more than 5 points lower with P ≥ 0.95 and turns
+  are cheaper (cost Bayes factor on log(1 + micro-dollars)). That needs
+  more turns than it sounds: at equal 95% success rates, roughly 100 per
+  arm; at 90%, about 200. Two to four flipped days.
+
+If both halves pass, "think or not, per request" is the first habit for
+5b: something cheap decides per request, and the coin keeps measuring it
+live. If either fails, it is written up beside 5a's negative result.
+
 **The miner is built (2026-10-07):** `mine/` and `metabolism patterns`. It
 groups failures that recur the same way (at least 3 times, in at least 2
 different requests) and sorts each by what could answer it:

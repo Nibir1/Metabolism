@@ -35,6 +35,14 @@ level. A chat-fallback turn is always recorded as failed.
    after.
 5. New exit criteria, including beating the small-model baseline.
 
+**Planning mode instrumented 2026-10-08:** recording wire v4 carries the
+provider's reported tokens (prompt, cache hits, completion, reasoning) per
+turn and per planner round, and the turn's arm of a thinking coin flip
+(`metabolism auto -thinking-flip`). `metabolism decisions` prices them and
+judges the same two halves as 5a: reasoning ≥ 15% of planner cost, and
+thinking off no more than 5 points worse (P ≥ 0.95) and cheaper. Details in
+habits.md.
+
 **5a judged 2026-10-07 (five days, decided by the user): the stop
 condition fires for both measured candidates.** Over days 2 to 5 (335
 turns, 1,013 calls, after the native-planner fix) "retry level" touches 1%

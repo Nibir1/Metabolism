@@ -39,7 +39,7 @@ func TestHelixSetupAppliesAndRestoresExactly(t *testing.T) {
 		h := newSetup(t, withLessons)
 		delivery := filepath.Join(t.TempDir(), "lessons.json")
 		_ = os.WriteFile(delivery, []byte("today's lessons"), 0o600)
-		if err := h.apply(true, delivery); err != nil {
+		if err := h.apply(true, true, delivery); err != nil {
 			t.Fatal(err)
 		}
 		var doc map[string]any
@@ -50,6 +50,7 @@ func TestHelixSetupAppliesAndRestoresExactly(t *testing.T) {
 		prefs := doc["user_preferences"].(map[string]any)
 		wake := doc["speech"].(map[string]any)["wake_word"].(map[string]any)
 		if prefs["metabolism_record"] != true || prefs["metabolism_lessons"] != true || wake["enabled"] != false ||
+			prefs["metabolism_thinking_flip"] != true ||
 			prefs["typing_effect"] != true || wake["phrase"] != "hey helix" || doc["provider"] != "deepseek" {
 			t.Fatalf("applied config: %s", data)
 		}
@@ -82,7 +83,7 @@ func TestHelixSetupRecoversAKilledRun(t *testing.T) {
 	if ok, err := h.recover(); ok || err != nil {
 		t.Fatalf("nothing to recover: %v %v", ok, err)
 	}
-	if err := h.apply(false, ""); err != nil {
+	if err := h.apply(false, false, ""); err != nil {
 		t.Fatal(err)
 	}
 	// ...the process dies here...
@@ -92,6 +93,22 @@ func TestHelixSetupRecoversAKilledRun(t *testing.T) {
 	}
 	if data, _ := os.ReadFile(h.configPath()); string(data) != userConfig {
 		t.Fatalf("config after recovery:\n%s", data)
+	}
+}
+
+// Without -thinking-flip the run leaves no flip preference behind, even one
+// a config somehow already had.
+func TestHelixSetupWithoutThinkingFlip(t *testing.T) {
+	h := newSetup(t, false)
+	if err := h.apply(false, false, ""); err != nil {
+		t.Fatal(err)
+	}
+	data, _ := os.ReadFile(h.configPath())
+	if strings.Contains(string(data), "metabolism_thinking_flip") {
+		t.Fatalf("flip preference set without -thinking-flip:\n%s", data)
+	}
+	if err := h.restore(); err != nil {
+		t.Fatal(err)
 	}
 }
 

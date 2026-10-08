@@ -46,6 +46,38 @@ type Episode struct {
 	Plans    []PlanRecord  `json:"plans,omitempty"`
 	Critic   *CriticRecord `json:"critic,omitempty"`
 	Fallback string        `json:"fallback,omitempty"`
+
+	// Thinking is the turn's arm of the host's planning-mode coin flip:
+	// "on" or "off" (wire v4, D-031). Empty when no coin was flipped.
+	Thinking string `json:"thinking,omitempty"`
+}
+
+// The arms of the planning-mode coin flip (wire v4).
+const (
+	ThinkingOn  = "on"
+	ThinkingOff = "off"
+)
+
+// Tokens is what the provider itself reported model calls cost (wire v4).
+// Calls is how many calls came with a report; calls without one are not in
+// these counts. Reasoning is part of Completion; CacheHit is part of Prompt.
+type Tokens struct {
+	Prompt     int `json:"prompt"`
+	CacheHit   int `json:"cache_hit,omitempty"`
+	Completion int `json:"completion"`
+	Reasoning  int `json:"reasoning,omitempty"`
+	Calls      int `json:"calls"`
+}
+
+// Add sums two token counts.
+func (t Tokens) Add(o Tokens) Tokens {
+	return Tokens{Prompt: t.Prompt + o.Prompt, CacheHit: t.CacheHit + o.CacheHit,
+		Completion: t.Completion + o.Completion, Reasoning: t.Reasoning + o.Reasoning, Calls: t.Calls + o.Calls}
+}
+
+func (t Tokens) valid() bool {
+	return t.Prompt >= 0 && t.CacheHit >= 0 && t.Completion >= 0 && t.Reasoning >= 0 && t.Calls >= 0 &&
+		t.CacheHit <= t.Prompt && t.Reasoning <= t.Completion
 }
 
 // PlanRecord is one planner round of a recorded turn (wire v3, D-031).
@@ -67,6 +99,8 @@ type PlanRecord struct {
 	// included: a habit that changes the prompt saves these, not calls.
 	InputChars  int `json:"input_chars,omitempty"`
 	OutputChars int `json:"output_chars,omitempty"`
+	// Tokens is what the provider reported the planning cost (wire v4).
+	Tokens *Tokens `json:"tokens,omitempty"`
 }
 
 // CriticRecord is the host's safety critic's review of a plan (wire v3).
@@ -103,8 +137,9 @@ type Step struct {
 	Ran   bool `json:"ran,omitempty"`
 }
 
-// Usage is what the episode cost. Characters rather than tokens, because not
-// every provider reports tokens; bench converts with a stated estimate.
+// Usage is what the episode cost. Characters always, because not every
+// provider reports tokens; bench converts with a stated estimate. Tokens too
+// where the provider reported them.
 type Usage struct {
 	ModelCalls  int `json:"model_calls"`
 	InputChars  int `json:"input_chars"`
@@ -112,6 +147,9 @@ type Usage struct {
 	// ByKind splits ModelCalls by what each call was for, as the host names
 	// it (Helix: planner, critic, chat, tool, vision). Wire v3, D-031.
 	ByKind map[string]int `json:"by_kind,omitempty"`
+	// Tokens is the provider's reported token count for the episode, over
+	// the calls that reported one (wire v4, D-031).
+	Tokens *Tokens `json:"tokens,omitempty"`
 }
 
 // RunEnd is how the host says the run finished, at the moment it finished.
@@ -178,6 +216,17 @@ func (ep Episode) Validate() error {
 	}
 	if ep.Usage.ModelCalls < 0 || ep.Usage.InputChars < 0 || ep.Usage.OutputChars < 0 {
 		errs = append(errs, errors.New("usage has a negative count"))
+	}
+	if t := ep.Usage.Tokens; t != nil && !t.valid() {
+		errs = append(errs, errors.New("usage tokens are negative or inconsistent"))
+	}
+	for i, p := range ep.Plans {
+		if p.Tokens != nil && !p.Tokens.valid() {
+			errs = append(errs, fmt.Errorf("plan %d tokens are negative or inconsistent", i))
+		}
+	}
+	if ep.Thinking != "" && ep.Thinking != ThinkingOn && ep.Thinking != ThinkingOff {
+		errs = append(errs, fmt.Errorf("thinking %q is neither on nor off", ep.Thinking))
 	}
 	return errors.Join(errs...)
 }

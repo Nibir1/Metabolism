@@ -45,9 +45,14 @@ func cmdDecisions(ctx context.Context, args []string, out io.Writer) error {
 	}
 	defer func() { _ = j.Close() }()
 	var eps []types.Episode
-	for r, err := range j.Scan(ctx, types.JournalQuery{Kinds: []types.RecordKind{types.RecordEpisode}}) {
+	outs := map[types.ID][]types.Outcome{}
+	for r, err := range j.Scan(ctx, types.JournalQuery{Kinds: []types.RecordKind{types.RecordEpisode, types.RecordOutcome}}) {
 		if err != nil {
 			return err
+		}
+		if r.Outcome != nil {
+			outs[r.Outcome.EpisodeID] = append(outs[r.Outcome.EpisodeID], *r.Outcome)
+			continue
 		}
 		if r.Episode.StartedAt.Before(from) {
 			continue
@@ -98,7 +103,7 @@ func cmdDecisions(ctx context.Context, args []string, out io.Writer) error {
 	_ = tw.Flush()
 	say(out, "\nStop condition (D-031): Phase 5's cost work goes on only if a candidate touches ≥ %.0f%% of model calls\n"+
 		"and half of those can be saved. Share is the first half; savability is measured offline next.\n"+
-		"Planning mode saves tokens rather than calls and is not in this table.\n", 100*bench.StopShare)
+		"Planning mode saves tokens rather than calls and is not in this table; it has its own section below.\n", 100*bench.StopShare)
 
 	// The second half: could "answer now" be predicted well enough?
 	sv := bench.MeasureSavability(eps, 0.5)
@@ -118,13 +123,56 @@ func cmdDecisions(ctx context.Context, args []string, out io.Writer) error {
 	}
 	say(out, "  %s: %s (bars: precision ≥ %.0f%%, saved ≥ %.0f%%)\n", verdict, sv.Why, 100*bench.MinPrecision, 100*bench.MinSaved)
 
+	th := bench.MeasureThinking(eps, outs, bench.DeepSeekFlashOffPeak)
+	printThinking(out, th)
+
 	if *outDir != "" {
 		if err := os.MkdirAll(*outDir, 0o755); err != nil {
 			return err
 		}
 		return writeFile(filepath.Join(*outDir, "decisions.json"), func(w io.Writer) error {
-			return writeJSON(w, map[string]any{"decisions": d, "savability": sv})
+			return writeJSON(w, map[string]any{"decisions": d, "savability": sv, "thinking": th})
 		})
 	}
 	return nil
+}
+
+// printThinking reports the planning-mode measurement (D-031): how much of
+// planning is reasoning, and the coin-flipped arms.
+func printThinking(out io.Writer, th bench.Thinking) {
+	say(out, "\nplanning mode: does the planner need to think? (provider-reported tokens, wire v4; priced at DeepSeek-V4.1-Flash off-peak)\n")
+	if th.Episodes == 0 {
+		say(out, "  %s\n", th.Verdict)
+		return
+	}
+	pc := th.PlannerCost
+	tot := max(pc.Total(), 1e-12)
+	say(out, "  %d episodes with reported tokens · %d of %d planner rounds reported\n", th.Episodes, th.ReportedPlans, th.Plans)
+	say(out, "  planning on turns that thought: %d prompt tokens (%d from the cache), %d completion (%d reasoning)\n",
+		th.Planner.Prompt, th.Planner.CacheHit, th.Planner.Completion, th.Planner.Reasoning)
+	say(out, "  priced: $%.4f · cache hits %.0f%%, cache misses %.0f%%, answers %.0f%%, reasoning %.0f%%\n",
+		pc.Total(), 100*pc.CacheHit/tot, 100*pc.CacheMiss/tot, 100*pc.Answer/tot, 100*pc.Reasoning/tot)
+	mark := "no"
+	if th.PassesShare {
+		mark = "yes"
+	}
+	say(out, "  reasoning share of planner cost: %.1f%% · ≥ %.0f%%? %s\n", 100*th.ReasoningShare, 100*bench.StopShare, mark)
+	if th.Flipped > 0 {
+		tw := tabwriter.NewWriter(out, 0, 0, 2, ' ', 0)
+		say(tw, "  ARM\tTURNS\tSUCCEEDED\tCALLS/TURN\tREASONING/TURN\t$/TURN\n")
+		for _, a := range []struct {
+			name string
+			arm  bench.Arm
+		}{{"thinking on", th.On}, {"thinking off", th.Off}} {
+			n := max(a.arm.Turns, 1)
+			say(tw, "  %s\t%d\t%.1f%%\t%.1f\t%.0f\t%.5f\n", a.name, a.arm.Turns, 100*a.arm.Rate(),
+				float64(a.arm.Calls)/float64(n), float64(a.arm.Tokens.Reasoning)/float64(n), a.arm.PerTurn())
+		}
+		_ = tw.Flush()
+		say(out, "  P(success off ≥ on − %.0f points) %.3f · cost Bayes factor %.3g (off %s)\n",
+			100*bench.ThinkingMargin, th.PNotWorse, th.CostBF, map[bool]string{true: "cheaper", false: "not cheaper"}[th.Cheaper])
+	}
+	say(out, "  %s\n", th.Verdict)
+	say(out, "  bars: reasoning ≥ %.0f%% of planner cost; off no more than %.0f points worse with P ≥ %.2f, and cheaper\n",
+		100*bench.StopShare, 100*bench.ThinkingMargin, bench.ThinkingSure)
 }

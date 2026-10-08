@@ -329,6 +329,13 @@ Phase 5a (D-031): once days are recorded with Helix's wire v3,
 model calls went (by kind, and the planner's by cause) and each candidate
 decision's share against the 15% stop bar.
 
+Planning mode (D-031): `bin/metabolism auto -allow-remote -thinking-flip`
+plans about half the turns with DeepSeek's thinking off, by coin flip per
+turn. The same `decisions` command then ends with the planning-mode section:
+reasoning's share of planner cost, and the two arms' success and cost per
+turn. It needs a Helix built from `feat/metabolism-integration` with wire v4
+(`make helix-build`).
+
 The synthetic user never starts a request with a command name: Helix runs
 such a line as a shell command and it never reaches the planner (6 of 20
 requests on the first day).
