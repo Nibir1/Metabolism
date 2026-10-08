@@ -251,6 +251,27 @@ its own, with the same two halves:
   more turns than it sounds: at equal 95% success rates, roughly 100 per
   arm; at 90%, about 200. Two to four flipped days.
 
+**First flipped day (2026-10-08 12:03, 84 turns: 45 on, 39 off).** Every
+planner round came with a token report (207 of 207).
+- **Share passes:** reasoning is 36% of priced planner cost on turns that
+  thought (cache misses 43%, answers 19%, cache hits 3%), well over 15%.
+- **Thinking off is much cheaper:** $0.00059 per turn against $0.00147
+  (60% less, cost Bayes factor 60), and 1.8 model calls per turn against
+  3.1. Most of that saving is not reasoning tokens: turns without thinking
+  ran fewer follow-up rounds and read half as many files (2.1 file steps
+  per turn against 4.3).
+- **No harm is not shown:** 92.3% succeeded off against 97.8% on,
+  P(at most 5 points worse) 0.49. Of the three off-arm failures, two were
+  edits refused for want of a confirmation (the unattended run refuses
+  every one) and one a `todo add` that fails in both arms; none is clearly
+  caused by not thinking. One day is far from the 100 to 200 turns per arm
+  this half needs.
+- **What success cannot see:** reading half as much may mean shallower
+  answers that still end "done". The success measure counts finished
+  turns, not answer quality. If the arms stay close on success, a quality
+  check of explain answers (the run keeps each reply in drive.ndjson) is
+  needed before calling thinking off harmless.
+
 If both halves pass, "think or not, per request" is the first habit for
 5b: something cheap decides per request, and the coin keeps measuring it
 live. If either fails, it is written up beside 5a's negative result.
