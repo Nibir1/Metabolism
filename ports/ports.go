@@ -164,3 +164,21 @@ func (r ModelResponse) Describe() string {
 	}
 	return fmt.Sprintf("finish_reason=%q reasoning=%v output_tokens=%d text=%q", r.FinishReason, r.Reasoned, r.OutputTokens, text)
 }
+
+// TrainRequest is one fine-tuning run (Phase 7): a base model, a dataset
+// directory (train.jsonl, valid.jsonl in chat format) and where to put the
+// adapter.
+type TrainRequest struct {
+	Base    string
+	DataDir string
+	OutDir  string
+	Iters   int
+}
+
+// Trainer fine-tunes a model on verified examples (Phase 7, C7). The one
+// place non-Go code is allowed sits behind it (the non-negotiables): an
+// external trainer run as a separate process.
+type Trainer interface {
+	Name() string
+	Train(ctx context.Context, req TrainRequest) error
+}

@@ -21,7 +21,7 @@ DEMO         := .demo/cli
 
 .DEFAULT_GOAL := help
 .PHONY: help all check test race lint fmt build install demo verify \
-	check-wire helix-branch helix-verify helix-build helix-howto \
+	collect bench-setup trainer-setup check-wire helix-branch helix-verify helix-build helix-howto \
 	doctor helix-ingest helix-report helix-baseline baseline-sim clean
 
 help: ## list the targets
@@ -118,6 +118,28 @@ baseline-sim: ## regenerate the synthetic baseline in bench/results/
 	rm -f bench/results/baseline-helixsim/journal.db*
 
 # ---------------------------------------------------------------- Helix
+
+collect: build ## gather the evidence for every open exit criterion, then the scorecard (DAYS=n BENCH=n PLANTED=n TRANSFER=n TRAIN=1 FLIP=0|1 LEARN=0 LABEL=0)
+	@DAYS=$(or $(DAYS),0) FLIP=$(or $(FLIP),1) REQUESTS=$(or $(REQUESTS),100) LEARN=$(or $(LEARN),1) LABEL=$(or $(LABEL),1) \
+		TRANSFER=$(or $(TRANSFER),0) BENCH=$(or $(BENCH),0) TRAIN=$(or $(TRAIN),0) PLANTED=$(or $(PLANTED),0) $(if $(PROJECTS),PROJECTS=$(PROJECTS)) \
+		scripts/collect.sh
+
+bench-setup: ## download the public benchmark (Aider's polyglot benchmark) into .runs/bench, once; you run it
+	@if [ -d .runs/bench/polyglot-benchmark/go/exercises/practice ]; then \
+		echo "✔ the benchmark is in .runs/bench/polyglot-benchmark ($$(git -C .runs/bench/polyglot-benchmark rev-parse --short HEAD))"; \
+	else \
+		mkdir -p .runs/bench && \
+		git clone --depth 1 https://github.com/Aider-AI/polyglot-benchmark .runs/bench/polyglot-benchmark && \
+		echo "✔ $$(ls .runs/bench/polyglot-benchmark/go/exercises/practice | wc -l | tr -d ' ') Go exercises at commit $$(git -C .runs/bench/polyglot-benchmark rev-parse --short HEAD)"; \
+	fi
+
+trainer-setup: ## Phase 7: a Python environment with MLX's LoRA trainer in .runs/trainer, once; you run it
+	@if [ -x .runs/trainer/venv/bin/python ] && .runs/trainer/venv/bin/python -c "import mlx_lm" 2>/dev/null; then \
+		echo "✔ the trainer is set up: $$(.runs/trainer/venv/bin/python -c 'import mlx_lm; print("mlx-lm", mlx_lm.__version__)')"; \
+	else \
+		python3 -m venv .runs/trainer/venv && .runs/trainer/venv/bin/pip install --quiet --upgrade pip mlx-lm && \
+		echo "✔ $$(.runs/trainer/venv/bin/python -c 'import mlx_lm; print("mlx-lm", mlx_lm.__version__)') in .runs/trainer/venv"; \
+	fi
 
 check-wire: ## the Helix contracts: recording, replay and delivery golden files must match byte for byte
 	@if [ -f $(HELIX)/internal/metabolism/testdata/wire_v1.ndjson ]; then \

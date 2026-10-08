@@ -5,6 +5,50 @@ change it. Don't reverse a decision without adding a new entry that says why.
 
 ---
 
+### D-032 · 2026-10-08 · Build the remaining phases; one `make collect` gathers the evidence
+
+**Context.** What is left of Phases 1 to 9 is mostly evidence, not code:
+real Helix use, a human-labelled judge sample, months of elapsed time, a
+second host and a trainer. The code for Phases 6 to 9 can be built ahead of
+that evidence.
+
+**Decision (the user, 2026-10-08):**
+1. Build Phases 6 to 9 now, in this order: the collector, Phase 6
+   (procedures and transfer), Phase 8's second host, Phase 7's training
+   path, Phase 9's scorecard. Each step ends with `make check` green.
+2. **One target, `make collect`** (`scripts/collect.sh`), run only when the
+   user starts it, never on a schedule. It checks preconditions (off-peak,
+   the Helix branch, fresh builds), ingests the user's real Helix recording
+   into its own journal (`.runs/real/`, never mixed with the synthetic one),
+   runs every measurement, hands out and picks up the human labelling
+   sheet, and writes `.runs/collect/<date>/summary.md`: each exit criterion
+   met, short (by how much) or waiting. Code changes are made from that
+   summary. An automated day is optional (`DAYS=n`), with the planning-mode
+   flip on until that test is settled.
+3. **Phase 7 trains locally with MLX** (LoRA on a small open model, Apple
+   M5 Pro, 26 GB), as a Python sidecar behind a trainer port: the single
+   non-Go exception the non-negotiables allow. Training data never leaves
+   the machine. The user installs it (`make trainer-setup`).
+4. **Phase 8's second host is a coding agent on a public benchmark** (a
+   SWE-bench Lite subset): real tasks with objective pass/fail, which also
+   gives Phase 0 its public benchmark. Its calls go to DeepSeek, behind
+   `-allow-remote`, off-peak.
+
+**Built 2026-10-08.** All of Phases 6 to 9 in code (roadmap): transfer and
+procedure lessons; the coding host on a public benchmark with a sandbox; the
+local MLX trainer, adapter registry and forgetting check; planted wrong
+lessons on real replays (in a copy of the journal); the scorecard with the
+C1–C9 rubric (3 of 9 on the first run: C2, C3, C6). One change from point
+4: **the benchmark is Aider's polyglot benchmark (Go exercises), not
+SWE-bench Lite**, whose tasks need a Docker environment per Python
+repository and cannot run well here, the case this entry allowed for. The
+Phase 7 experiment runs on the coding host, not Helix: Helix's recording
+keeps no planner prompts, by design, so there is nothing to train on there.
+
+**What would change it.** A trainer that cannot reach the C7 bar on this
+machine (then a hosted LoRA API, as a new opt-in decision); a benchmark
+whose tasks cannot run locally (then another benchmark).
+
 ### D-031 · 2026-10-07 · Phase 5 measures before it compiles: habits and guards, 5a first
 **What was found:** Helix does not have the decisions Phase 5 was written
 for. On a normal turn it calls a model in three places: the planner (nearly

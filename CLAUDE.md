@@ -26,6 +26,9 @@ back negative for the call-saving habits (retry level touches 1% of calls;
 "answer now" touches 19% but nothing cost-free predicts it). 5c's miner is
 built; guards wait for real use. Planning mode (does the planner need to
 think?) is instrumented: wire v4 tokens and `auto -thinking-flip`.
+Phases 6 to 9 are built in code (D-032): transfer and procedures, the
+second host (`hosts/coder`), the local trainer (`parametric/`), the
+scorecard (`audit/`). What is left is evidence: `make collect`.
 See [docs/roadmap.md](docs/roadmap.md). The docs below are the source of
 truth for what, why and how.
 
@@ -35,6 +38,10 @@ truth for what, why and how.
   - `make check`: lint (gofmt, vet, golangci-lint v2.13.2), race tests and the wire contract. Keep it green.
   - `make verify`: `check`, plus Helix's integration tests and an end-to-end CLI demo.
   - `make baseline-sim`: regenerates the synthetic baseline in `bench/results/`.
+  - `make collect` (`scripts/collect.sh`, D-032): the user runs it to gather
+    evidence for every open exit criterion; it ends with
+    `.runs/collect/<time>/summary.md`, the scorecard code changes are made
+    from. `DAYS=n` adds automated days.
 - Checking with real Helix: [docs/verifying.md](docs/verifying.md)
   (`make helix-build`, `make doctor`, `make helix-report`). The user runs Helix
   and shares the output.
@@ -55,12 +62,16 @@ truth for what, why and how.
   | `ledger/` | the credit ledger: delivered vs withheld turns, Bayes-factor decisions (D-020), relevance and drift (D-026), pairs and supersession (D-027) |
   | `judge/` | judges: heuristic, LLM (via `ports.Model`), and the plain-words pair view every model judge sees |
   | `llmreflect/` | LLM reflector (via `ports.Model`) |
-  | `adapters/remote/` | the only code that reaches beyond the machine: `llm` (Ollama, DeepSeek), `jev` (typesafe-go), `helix` (drives `helix replay`). Imported only by the CLI, behind `-allow-remote` (D-016, D-017) |
+  | `adapters/remote/` | the only code that reaches beyond the machine: `llm` (Ollama, DeepSeek, local MLX), `jev` (typesafe-go), `helix` (drives `helix replay`), `mlx` (Phase 7 trainer; downloads its base model once). Imported only by the CLI, behind `-allow-remote` (D-016, D-017) |
   | `internal/privacyguard` | test: no network code outside `adapters/remote/` |
+  | `internal/hostguard` | test: no engine package depends on a host |
   | `hosts/helixsim` | simulated Helix |
+  | `hosts/coder` | the second host (Phase 8, D-032): a coding agent on a public benchmark's Go exercises, model code run only in a macOS sandbox |
+  | `parametric/` | Phase 7: promotion rule, training set, forgetting check, adapter registry with rollback |
   | `hosts/helixuser` | synthetic Helix user: writes a day's requests for `metabolism auto` (D-023) |
   | `mine/` | Phase 5c: recurring failures, sorted into guard candidates (a person pushed back), lesson territory and unattended refusals (D-031) |
   | `versions/` | the versioned metabolome: named versions, as-of, diff, rollback, forget plans (D-028) |
+  | `audit/` | the scorecard: every open exit criterion, its bar, and whether the evidence clears it (D-032) |
   | `bench/` | metrics, curves, recall evaluation, nutrient-test and credit evaluation, judge agreement (κ) |
   | `cmd/metabolism` | CLI |
 

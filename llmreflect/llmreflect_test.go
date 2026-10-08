@@ -3,6 +3,7 @@ package llmreflect
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"strings"
 	"testing"
 	"time"
@@ -153,5 +154,36 @@ func TestParseDecodesHTMLEntities(t *testing.T) {
 	}
 	if ls[0].Text != "For 'explain <package>' requests, glob once & grep once." {
 		t.Fatalf("text %q", ls[0].Text)
+	}
+}
+
+// Successes that took several steps are shown before one-step ones: they
+// are what a procedure is learned from (Phase 6).
+func TestPickShowsMultiStepSuccessesFirst(t *testing.T) {
+	at := time.Date(2026, 10, 8, 12, 0, 0, 0, time.UTC)
+	exp := func(i, steps int, ok bool) types.Experience {
+		ep := types.Episode{ID: types.ID(fmt.Sprintf("%028d", i)), StartedAt: at.Add(time.Duration(i) * time.Minute),
+			Request: types.Request{Text: "x", Provenance: types.ProvUserTyped}}
+		for range steps {
+			ep.Steps = append(ep.Steps, types.Step{Tool: "file", OK: true})
+		}
+		return types.Experience{Episode: ep, Succeeded: ok}
+	}
+	batch := []types.Experience{exp(1, 1, true), exp(2, 4, true), exp(3, 1, true), exp(4, 2, false)}
+	got := pick(batch, 3)
+	if len(got) != 3 || got[0].Episode.ID != batch[3].Episode.ID || got[1].Episode.ID != batch[1].Episode.ID {
+		var ids []types.ID
+		for _, g := range got {
+			ids = append(ids, g.Episode.ID)
+		}
+		t.Fatalf("picked %v: want the failure, then the four-step success", ids)
+	}
+}
+
+// A procedure proposal parses with its kind.
+func TestParseProcedure(t *testing.T) {
+	ls, dropped, err := Parse(`{"lessons":[{"kind":"procedure","text":"To add a doc comment: 1) grep the symbol 2) read the lines around it 3) edit once","sources":["01a1140000d4e5f6a7b8c9d0e1f7"]}]}`)
+	if err != nil || dropped != 0 || len(ls) != 1 || ls[0].Kind != types.KindProcedure {
+		t.Fatalf("%+v %d %v", ls, dropped, err)
 	}
 }

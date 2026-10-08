@@ -117,18 +117,78 @@ func TestPreflightRefusals(t *testing.T) {
 	ctx := context.Background()
 	h := newSetup(t, false)
 	missing := filepath.Join(t.TempDir(), "no-helix") // status fails: no daemon
-	if err := preflight(ctx, h.home, missing); err != nil {
+	if err := preflight(ctx, h.home, missing, false); err != nil {
 		t.Fatalf("a quiet Helix was refused: %v", err)
 	}
 	lock := fmt.Sprintf(`{"kind":"tty","pid":1,"ts":%d}`, time.Now().Unix())
 	_ = os.WriteFile(filepath.Join(h.home, "active.lock"), []byte(lock), 0o600)
-	if err := preflight(ctx, h.home, missing); err == nil || !strings.Contains(err.Error(), "interactive") {
+	if err := preflight(ctx, h.home, missing, false); err == nil || !strings.Contains(err.Error(), "interactive") {
 		t.Fatalf("fresh session lock: %v", err)
 	}
 	_ = os.WriteFile(filepath.Join(h.home, "active.lock"), []byte(`{"kind":"tty","pid":1,"ts":1}`), 0o600)
 	_ = os.WriteFile(filepath.Join(h.home, "metabolism", "episodes.ndjson"), []byte("{}\n"), 0o600)
-	if err := preflight(ctx, h.home, missing); err == nil || !strings.Contains(err.Error(), "recording") {
+	if err := preflight(ctx, h.home, missing, false); err == nil || !strings.Contains(err.Error(), "recording") {
 		t.Fatalf("the user's own recording: %v", err)
+	}
+	if err := preflight(ctx, h.home, missing, true); err != nil {
+		t.Fatalf("with -keep-own-recording the user's recording is set aside, not refused: %v", err)
+	}
+}
+
+// The user's own recording is set aside for the run and comes back
+// untouched; the run's recording never mixes with it.
+func TestOwnRecordingIsSetAsideAndPutBack(t *testing.T) {
+	h := newSetup(t, false)
+	own := filepath.Join(h.home, "metabolism", "episodes.ndjson")
+	_ = os.WriteFile(own, []byte("the user's turn\n"), 0o600)
+	_ = os.WriteFile(own+".1", []byte("an older generation\n"), 0o600)
+	stashed, err := h.stashRecording()
+	if err != nil || !stashed {
+		t.Fatalf("stash: %v %v", stashed, err)
+	}
+	if _, err := os.Stat(own); err == nil {
+		t.Fatal("the user's recording is still where the run will record")
+	}
+	_ = os.WriteFile(own, []byte("the run's turn\n"), 0o600) // the run records
+	if err := moveRecording(filepath.Join(h.home, "metabolism"), filepath.Join(t.TempDir(), "day")); err != nil {
+		t.Fatal(err)
+	}
+	if err := h.unstashRecording(); err != nil {
+		t.Fatal(err)
+	}
+	for path, want := range map[string]string{own: "the user's turn\n", own + ".1": "an older generation\n"} {
+		if got, _ := os.ReadFile(path); string(got) != want {
+			t.Fatalf("%s = %q, want %q", path, got, want)
+		}
+	}
+	if _, err := os.Stat(h.stashDir()); err == nil {
+		t.Fatal("stash directory left behind")
+	}
+}
+
+// A run killed with the user's recording set aside is put right by the
+// next: the interrupted run's recording is kept apart, the user's restored.
+func TestOwnRecordingRecoveredAfterAKilledRun(t *testing.T) {
+	h := newSetup(t, false)
+	own := filepath.Join(h.home, "metabolism", "episodes.ndjson")
+	_ = os.WriteFile(own, []byte("the user's turn\n"), 0o600)
+	if _, err := h.stashRecording(); err != nil {
+		t.Fatal(err)
+	}
+	_ = os.WriteFile(own, []byte("the killed run's turn\n"), 0o600)
+	// ...the process dies here...
+	kept, err := h.recoverRecording()
+	if err != nil || kept == "" {
+		t.Fatalf("recover: %q %v", kept, err)
+	}
+	if got, _ := os.ReadFile(own); string(got) != "the user's turn\n" {
+		t.Fatalf("own recording = %q", got)
+	}
+	if got, _ := os.ReadFile(filepath.Join(kept, "episodes.ndjson")); string(got) != "the killed run's turn\n" {
+		t.Fatalf("interrupted run's recording = %q", got)
+	}
+	if again, err := h.recoverRecording(); again != "" || err != nil {
+		t.Fatalf("nothing left to recover: %q %v", again, err)
 	}
 }
 

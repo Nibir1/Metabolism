@@ -400,9 +400,27 @@ Deliverables:
 - Transfer tests: a lesson learned in repo A helps in repo B; a lesson learned on
   one model helps on another.
 
+**Built 2026-10-08 (D-032):**
+- Procedure lessons: the reflector may propose `procedure` lessons (one line
+  of numbered steps, under 300 characters) from successful multi-step
+  episodes, which it is now shown first among successes. They pass the same
+  nutrient test and credit as every lesson.
+- Transfer: `metabolism transfer` runs a tested lesson's nutrient test only
+  on episodes from projects its sources are not from (`-group-by`: the
+  workspace a request names, or the host's project scope), and records
+  `transfer` evidence that never moves the lesson. Automated days in
+  `make collect` work in a third project (typesafe-go), so lessons learned
+  in Metabolism and Helix have somewhere new to be tested.
+  `make collect TRANSFER=n` measures n lessons per run.
+- Not built: transfer across models (a lesson learned with one planner
+  model tried with another). It needs a second planner model in Helix's
+  replays, at more cost; it waits on the first transfer results.
+
 Exit criteria:
 
-- [ ] Measured transfer on held-out projects or tasks (the C4 bar).
+- [ ] Measured transfer on held-out projects or tasks (the C4 bar): on at
+      least 5 lessons, more help than harm, at least one helping
+      (`audit`, the scorecard's 6.transfer).
 
 ## Phase 7: Parametric tier (about 6–8 weeks). C7
 
@@ -417,6 +435,21 @@ Deliverables:
   adapter is used.
 - Adapter serving through a local runtime (Ollama or llama.cpp) as a Helix
   provider.
+
+**Built 2026-10-08 (D-032), on the second host first:** the trainer runs on
+this machine (MLX LoRA, `adapters/remote/mlx`, behind `ports.Trainer`;
+`make trainer-setup`) instead of a hosted API, and the experiment runs on
+the coding host, where tests check every answer; Helix's recording keeps no
+planner prompts to train on. `parametric/`: the promotion rule (accepted,
+credited on ≥ 50 delivered turns, accepted ≥ 7 days), the dataset (a small
+model's own passing first attempts with the text lessons, on a fixed
+training half of the exercises, with the lessons removed from the prompt),
+the evaluation (retention on what the base model solved alone; adapter
+against text lessons on the held-out half, pass rate and prompt size) and an
+append-only adapter registry with rollback. `metabolism train` runs it all
+and exercises the rollback; `metabolism adapter` lists, uses or rolls back.
+Not built: serving an adapter to Helix as a provider; that waits on an
+adapter that passes.
 
 Exit criteria:
 
@@ -437,10 +470,29 @@ Deliverables:
 
 Exit criteria:
 
+**Built 2026-10-08 (D-032):** the second host, `hosts/coder`: a coding agent
+on the Go exercises of Aider's polyglot benchmark (Exercism), with go test as
+the judge. SWE-bench Lite, named first, needs a Docker environment per Python
+repository; D-032 allowed another benchmark for that case. Model-written
+code runs only in a copy, under macOS's sandbox (no network, no writes
+outside the copy; tested). `metabolism bench` runs it: the lessons-off
+baseline until every exercise has run (Phase 0's public benchmark), then
+lessons delivered by the reference coin flip, then the engine's own digest,
+`verify -host coder` and credit. `internal/hostguard` tests that no engine
+package depends on any host. Tenure analysis waits on the months; the
+Metabolic Benchmark package waits on results worth packaging.
+
+Exit criteria:
+
 - [ ] Stable or improving curves over ≥ 3 months (the C8 bar).
 - [ ] The second host runs with zero changes to `engine/`.
 
 ## Phase 9: The 100% audit
+
+**Built 2026-10-08 (D-032):** `audit/` and `metabolism scorecard`: every
+open exit criterion with its bar, the evidence and what moves it, and the
+C1–C9 rubric scored from them. `make collect` ends with it. It is the
+audit's input, not its verdict.
 
 - Score Metabolism on C1–C9 against the evidence bars in
   [vision.md](vision.md), ideally with an outside reviewer.

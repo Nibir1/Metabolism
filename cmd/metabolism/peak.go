@@ -1,7 +1,9 @@
 package main
 
 import (
+	"context"
 	"fmt"
+	"io"
 	"time"
 )
 
@@ -69,4 +71,14 @@ func offPeakCheck(now time.Time) error {
 	return fmt.Errorf("DeepSeek's peak prices (double) apply now or within the next %s; "+
 		"start at %s or later (local time), or pass -allow-peak to pay them",
 		runAllowance, next.Local().Format("Mon 15:04"))
+}
+
+// cmdOffPeak exits with an error during (or within a run's allowance of)
+// DeepSeek's peak hours, for scripts that are about to spend: make collect.
+func cmdOffPeak(_ context.Context, _ []string, out io.Writer) error {
+	if err := offPeakCheck(peakClock()); err != nil {
+		return err
+	}
+	say(out, "off-peak: DeepSeek is at its lower price for the next %s\n", runAllowance)
+	return nil
 }

@@ -344,6 +344,53 @@ What it sends: the projects' file outlines and README openings to DeepSeek
 (the request writer); each request through Helix to its provider; lessons to
 DeepSeek (digest) and comparisons to Jev (verify).
 
+## 2f. Gathering everything: `make collect` (D-032)
+
+One target gathers the evidence for every open exit criterion and ends with
+a scorecard. Run it yourself, when you are at the machine; it never
+schedules anything.
+
+```bash
+make collect                # gather and measure only: no API cost
+make collect DAYS=1         # plus one automated day (planning-mode flip on)
+make collect DAYS=2 FLIP=0  # two days without the flip
+```
+
+In order, `scripts/collect.sh`:
+
+1. builds Helix (`feat/metabolism-integration`) and Metabolism;
+2. ingests your own Helix recording into the real journal
+   (`~/.metabolism/journal.db`), apart from the automated one. Once the
+   lessons-off baseline is in (≥ 300 episodes over ≥ 21 days), it also
+   digests, verifies, credits and exports lessons from your own use (paid,
+   off-peak only; `LEARN=0` skips it), and you turn them on with
+   `/lessons on`;
+3. runs `DAYS` automated days. Your own recording is set aside for each
+   run and put back after it (`auto -keep-own-recording`), even if the run
+   is interrupted;
+4. writes every measurement to `.runs/collect/<time>/`;
+5. adds each day's judged comparisons to the labelling pool
+   (`.runs/labels/`, the current judge only, shuffled) and, while fewer
+   than 30 are labelled, offers the blind labelling session (`LABEL=0`
+   skips it);
+6. writes `summary.md` beside them: each criterion met, short, waiting,
+   manual or not built, with its bar, the evidence and what moves it.
+
+Paste `summary.md` to Claude; code changes are made from it.
+
+The paid or long steps are opt-in per run (all off-peak only):
+
+| Setting | What it gathers | Once first |
+|---|---|---|
+| `DAYS=n` | automated Helix days (planning-mode flip while `FLIP=1`) | |
+| `BENCH=n` | the second host on n benchmark exercises: the lessons-off baseline, then learning (Phase 0, 8) | `make bench-setup` |
+| `PLANTED=n` | n planted wrong lessons, tested in a copy of the automated journal (Phase 2) | |
+| `TRANSFER=n` | n tested lessons measured on projects they were not learned in (Phase 6) | |
+| `TRAIN=1` | consolidate the second host's credited lessons into a small local model, about an hour (Phase 7) | `make trainer-setup` |
+
+`make bench-setup` and `make trainer-setup` download the benchmark (git)
+and MLX's trainer (pip); run them yourself, once.
+
 ## 3. Once there are weeks of data
 
 ```bash

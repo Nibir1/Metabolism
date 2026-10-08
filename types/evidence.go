@@ -79,6 +79,8 @@ type Evidence struct {
 	Other ID `json:"other,omitempty"`
 	// Version is the journal position a rollback returned to (D-028).
 	Version int64 `json:"version,omitempty"`
+	// Groups are the held-out groups a transfer test ran on (Phase 6).
+	Groups []string `json:"groups,omitempty"`
 }
 
 // Passed reports whether the evidence supports the lesson.
@@ -130,6 +132,9 @@ func (e Evidence) Validate() error {
 	if e.PHelp < 0 || e.PHelp > 1 || e.PHarm < 0 || e.PHarm > 1 {
 		errs = append(errs, errors.New("p-value outside [0, 1]"))
 	}
+	if e.Kind == EvidenceTransfer && len(e.Groups) == 0 {
+		errs = append(errs, errors.New("transfer evidence names no held-out group"))
+	}
 	if e.Kind == EvidenceRollback && e.Version <= 0 {
 		errs = append(errs, errors.New("rollback evidence must name the version"))
 	}
@@ -161,12 +166,16 @@ const (
 	// EvidenceRollback: the user rolled the metabolome back to a version
 	// (D-028). Version is that version's journal position.
 	EvidenceRollback EvidenceKind = "rollback"
+	// EvidenceTransfer: the nutrient test run only on episodes from groups
+	// (projects, task kinds) the lesson's sources are not from (Phase 6,
+	// C4). It never moves the lesson. Groups names the held-out groups.
+	EvidenceTransfer EvidenceKind = "transfer"
 )
 
 // Valid reports whether k is a known evidence kind.
 func (k EvidenceKind) Valid() bool {
 	switch k {
-	case EvidenceNutrientTest, EvidenceCredit, EvidenceContradiction, EvidenceRedundancy, EvidenceRollback:
+	case EvidenceNutrientTest, EvidenceCredit, EvidenceContradiction, EvidenceRedundancy, EvidenceRollback, EvidenceTransfer:
 		return true
 	}
 	return false

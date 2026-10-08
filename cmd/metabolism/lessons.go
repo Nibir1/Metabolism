@@ -18,6 +18,7 @@ import (
 	"github.com/Nibir1/metabolism/adapters/remote/llm"
 	"github.com/Nibir1/metabolism/bench"
 	"github.com/Nibir1/metabolism/digest"
+	"github.com/Nibir1/metabolism/hosts/coder"
 	"github.com/Nibir1/metabolism/hosts/helixsim"
 	"github.com/Nibir1/metabolism/judge"
 	"github.com/Nibir1/metabolism/llmreflect"
@@ -129,8 +130,28 @@ func pickHost(name, bin, dir string, rounds int, r remote) (ports.Host, error) {
 			return nil, err
 		}
 		return &helixhost.Host{Command: bin, Dir: dir, Rounds: rounds}, nil
+	case "coder":
+		// The second host (D-032): dir is the benchmark's exercises. Each
+		// replay solves an exercise again, its code run only in a
+		// sandboxed copy.
+		if dir == "" {
+			dir = defaultExercises
+		}
+		exs, err := coder.Load(dir)
+		if err != nil {
+			return nil, fmt.Errorf("-host coder: %w (make bench-setup)", err)
+		}
+		m, err := pickModel("deepseek", "", r)
+		if err != nil {
+			return nil, err
+		}
+		byName := map[string]coder.Exercise{}
+		for _, ex := range exs {
+			byName[ex.Name] = ex
+		}
+		return coder.Host{Agent: coder.Agent{Model: m}, Exercises: byName}, nil
 	}
-	return nil, fmt.Errorf("-host %q is not available (have: sim, helix)", name)
+	return nil, fmt.Errorf("-host %q is not available (have: sim, helix, coder)", name)
 }
 
 // checkPair refuses combinations that cannot mean anything: the heuristic
@@ -279,9 +300,10 @@ func cmdVerify(ctx context.Context, args []string, out io.Writer) error {
 	fs := flag.NewFlagSet("verify", flag.ContinueOnError)
 	fs.SetOutput(out)
 	path := fs.String("journal", defaultJournal(), "journal file")
-	hostName := fs.String("host", "sim", "what replays episodes without side effects: sim, helix")
+	hostName := fs.String("host", "sim", "what replays episodes without side effects: sim, helix, coder (the second host)")
 	helixBin := fs.String("helix-bin", "helix", "helix binary for -host helix (e.g. bin/helix from make helix-build)")
-	replayDir := fs.String("replay-dir", "", "directory Helix plans replays in (default: this one); episodes record only a hashed project key")
+	replayDir := fs.String("replay-dir", "", "directory Helix plans replays in (default: this one); episodes record only a hashed project key; "+
+		"for -host coder, the benchmark's exercises")
 	rounds := fs.Int("rounds", defaultRounds, "planner rounds per Helix replay; between rounds only read-only file steps run (1: first plan only)")
 	save := fs.String("save", "", "append every judged comparison to this NDJSON file, for metabolism label")
 	judgeName := fs.String("judge", "heuristic", "what compares replays: heuristic, ollama, deepseek, jev; outcome+<judge> compares multi-round outcomes first (D-024)")

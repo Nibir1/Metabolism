@@ -22,6 +22,7 @@ import (
 	"hash/fnv"
 	"math"
 	"slices"
+	"strings"
 
 	"github.com/Nibir1/metabolism/episodic"
 	"github.com/Nibir1/metabolism/judge"
@@ -114,6 +115,9 @@ func NewHistory(eps []types.Episode, outcomes map[types.ID][]types.Outcome) *His
 	}
 	return h
 }
+
+// IDs lists the episodes in journal order.
+func (h *History) IDs() []types.ID { return slices.Clone(h.order) }
 
 // Episode returns a past episode and its outcomes.
 func (h *History) Episode(id types.ID) (types.Episode, []types.Outcome, bool) {
@@ -231,15 +235,86 @@ func (v *Verifier) Test(ctx context.Context, m *metabolome.Metabolome, id types.
 	if lesson.State != types.StateCandidate && lesson.State != types.StateQuarantined {
 		return Report{}, fmt.Errorf("lesson %s is %s; only candidates and quarantined lessons are tested", id, lesson.State)
 	}
+	relevant := v.relevant(lesson, cfg.MaxRelevant, nil)
+	regression := v.regression(lesson, relevant, cfg.RegressionSample, nil)
+	rep, ev, err := v.run(ctx, m, lesson, types.EvidenceNutrientTest, relevant, regression, cfg)
+	if err != nil {
+		return Report{}, err
+	}
+	recorded, err := m.RecordEvidence(ctx, ev)
+	if err != nil {
+		return Report{}, err
+	}
+	rep.Evidence = recorded
+
+	switch recorded.Result {
+	case types.ResultPass:
+		if err := m.Move(ctx, id, types.StateTrial, "passed the nutrient test: "+recorded.Summary, recorded.ID); err != nil {
+			return Report{}, err
+		}
+		rep.To = types.StateTrial
+	case types.ResultFail:
+		if err := m.Move(ctx, id, types.StateEliminated, "failed the nutrient test: "+recorded.Summary, recorded.ID); err != nil {
+			return Report{}, err
+		}
+		rep.To = types.StateEliminated
+	}
+	return rep, nil
+}
+
+// Transfer runs the nutrient test for a tested lesson (trial or accepted)
+// on held-out episodes only: those keep says are from a group (a project, a
+// kind of task) the lesson's sources are not from. That is Phase 6's C4
+// measurement: does what was learned in one place help in another? The
+// evidence is recorded with the held-out groups and never moves the lesson;
+// credit on live turns decides its state.
+func (v *Verifier) Transfer(ctx context.Context, m *metabolome.Metabolome, id types.ID, groups []string,
+	keep func(types.Episode) bool) (Report, error) {
+	cfg := v.Config.withDefaults()
+	entry, ok := m.Get(id)
+	if !ok {
+		return Report{}, fmt.Errorf("%w: %s", ports.ErrUnknownLesson, id)
+	}
+	lesson := entry.Lesson
+	if lesson.State != types.StateTrial && lesson.State != types.StateAccepted {
+		return Report{}, fmt.Errorf("lesson %s is %s; transfer is measured for tested lessons (trial or accepted)", id, lesson.State)
+	}
+	if len(groups) == 0 || keep == nil {
+		return Report{}, errors.New("transfer needs held-out groups")
+	}
+	relevant := v.relevant(lesson, cfg.MaxRelevant, keep)
+	regression := v.regression(lesson, relevant, cfg.RegressionSample, keep)
+	if len(relevant) == 0 {
+		return Report{}, fmt.Errorf("%w: no held-out episode resembles lesson %s", ErrNoHeldOut, id)
+	}
+	rep, ev, err := v.run(ctx, m, lesson, types.EvidenceTransfer, relevant, regression, cfg)
+	if err != nil {
+		return Report{}, err
+	}
+	ev.Groups = groups
+	ev.Summary = "on held-out " + strings.Join(groups, ", ") + ": " + ev.Summary
+	recorded, err := m.RecordEvidence(ctx, ev)
+	if err != nil {
+		return Report{}, err
+	}
+	rep.Evidence = recorded
+	return rep, nil
+}
+
+// ErrNoHeldOut: nothing outside the lesson's own groups is about it.
+var ErrNoHeldOut = errors.New("no held-out episodes")
+
+// run replays lesson against the relevant and regression episodes, judges
+// each pair beside its A/A noise, and decides: the comparison loop the
+// nutrient test and the transfer test share. It records nothing.
+func (v *Verifier) run(ctx context.Context, m *metabolome.Metabolome, lesson types.Lesson, kind types.EvidenceKind,
+	relevant, regression []types.ID, cfg Config) (Report, types.Evidence, error) {
 	if v.baseline == nil {
 		v.baseline = map[string]types.ReplayResult{}
 	}
-
-	relevant := v.relevant(lesson, cfg.MaxRelevant)
-	regression := v.regression(lesson, relevant, cfg.RegressionSample)
-
+	id := lesson.ID
 	rep := Report{Lesson: id, From: lesson.State, To: lesson.State}
-	ev := types.Evidence{LessonID: id, Kind: types.EvidenceNutrientTest, Judge: v.Judge.Name()}
+	ev := types.Evidence{LessonID: id, Kind: kind, Judge: v.Judge.Name()}
 	for _, set := range []struct {
 		eps        []types.ID
 		regression bool
@@ -264,7 +339,7 @@ func (v *Verifier) Test(ctx context.Context, m *metabolome.Metabolome, id types.
 			}
 			if err != nil {
 				if errors.Is(err, ports.ErrCannotReplay) || ctx.Err() != nil {
-					return Report{}, err
+					return Report{}, types.Evidence{}, err
 				}
 				rep.Skipped = append(rep.Skipped, err.Error())
 				ev.Skipped++
@@ -302,7 +377,7 @@ func (v *Verifier) Test(ctx context.Context, m *metabolome.Metabolome, id types.
 	}
 
 	if len(ev.Episodes) == 0 && ev.Skipped > 0 {
-		return Report{}, fmt.Errorf("every replay for lesson %s failed (%d); first: %s", id, ev.Skipped, rep.Skipped[0])
+		return Report{}, types.Evidence{}, fmt.Errorf("every replay for lesson %s failed (%d); first: %s", id, ev.Skipped, rep.Skipped[0])
 	}
 	Calibrate(&ev)
 	ev.Result, ev.Summary = decide(ev, lesson.State == types.StateQuarantined, cfg)
@@ -312,25 +387,7 @@ func (v *Verifier) Test(ctx context.Context, m *metabolome.Metabolome, id types.
 	if ev.Skipped > 0 {
 		ev.Summary += fmt.Sprintf("; %d episode(s) skipped: a replay or judge call failed", ev.Skipped)
 	}
-	recorded, err := m.RecordEvidence(ctx, ev)
-	if err != nil {
-		return Report{}, err
-	}
-	rep.Evidence = recorded
-
-	switch recorded.Result {
-	case types.ResultPass:
-		if err := m.Move(ctx, id, types.StateTrial, "passed the nutrient test: "+recorded.Summary, recorded.ID); err != nil {
-			return Report{}, err
-		}
-		rep.To = types.StateTrial
-	case types.ResultFail:
-		if err := m.Move(ctx, id, types.StateEliminated, "failed the nutrient test: "+recorded.Summary, recorded.ID); err != nil {
-			return Report{}, err
-		}
-		rep.To = types.StateEliminated
-	}
-	return rep, nil
+	return rep, ev, nil
 }
 
 func decisive(v types.Verdict, cfg Config) bool {
@@ -512,11 +569,11 @@ func grounded(with, without types.ReplayResult) (types.Verdict, bool) {
 // relevant returns the lesson's sources first, then the episodes episodic
 // memory finds for the lesson's text and for each source's request, in its
 // scope, up to max.
-func (v *Verifier) relevant(l types.Lesson, max int) []types.ID {
+func (v *Verifier) relevant(l types.Lesson, max int, keep func(types.Episode) bool) []types.ID {
 	var out []types.ID
 	add := func(id types.ID) {
 		if len(out) < max && !slices.Contains(out, id) {
-			if _, ok := v.History.byID[id]; ok && inScope(v.History.byID[id], l.Scope) {
+			if ep, ok := v.History.byID[id]; ok && inScope(ep, l.Scope) && (keep == nil || keep(ep)) {
 				out = append(out, id)
 			}
 		}
@@ -524,12 +581,17 @@ func (v *Verifier) relevant(l types.Lesson, max int) []types.ID {
 	for _, id := range l.Sources {
 		add(id)
 	}
+	k := max
+	if keep != nil {
+		// Held-out episodes are a minority of what retrieval returns.
+		k = 8 * max
+	}
 	queries := []string{l.Text}
 	for _, id := range l.Sources {
 		queries = append(queries, v.History.byID[id].Request.Text)
 	}
 	for _, q := range queries {
-		for _, c := range v.History.index.Retrieve(episodic.Query{Text: q, Scope: l.Scope, K: max}) {
+		for _, c := range v.History.index.Retrieve(episodic.Query{Text: q, Scope: l.Scope, K: k}) {
 			add(c.Episode.ID)
 		}
 	}
@@ -540,11 +602,11 @@ func (v *Verifier) relevant(l types.Lesson, max int) []types.ID {
 // scope that are not in the relevant set. The order is a hash of lesson and
 // episode IDs, so a test reruns identically and different lessons sample
 // different successes.
-func (v *Verifier) regression(l types.Lesson, relevant []types.ID, n int) []types.ID {
+func (v *Verifier) regression(l types.Lesson, relevant []types.ID, n int, keep func(types.Episode) bool) []types.ID {
 	var pool []types.ID
 	for _, id := range v.History.order {
 		ep := v.History.byID[id]
-		if slices.Contains(relevant, id) || !inScope(ep, l.Scope) || !ep.Request.Provenance.Trusted() {
+		if slices.Contains(relevant, id) || !inScope(ep, l.Scope) || !ep.Request.Provenance.Trusted() || (keep != nil && !keep(ep)) {
 			continue
 		}
 		if types.Succeeded(ep, v.History.outcomes[id]) {

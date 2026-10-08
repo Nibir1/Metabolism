@@ -82,6 +82,14 @@ commands:
   rollback put what is delivered back to what was delivered at a version (-apply records it)
   forget   delete episodes or lessons with an audit record (forget-with-proof; -apply deletes)
   auto     one automated day: a synthetic user drives real Helix, then ingest, digest, verify, credit
+  scorecard every open exit criterion: its bar, the evidence, what moves it (make collect ends with it)
+  pool     add saved comparisons to the labelling pool, once each
+  bench    the second host: a coding agent on a public benchmark's Go exercises (Phase 8)
+  planted  plant wrong lessons in a copy of a journal; does the nutrient test keep them out on real replays? (Phase 2)
+  train    consolidate credited lessons into a small local model's weights, and check it forgets nothing (Phase 7)
+  adapter  list trained adapters, put one in use, or roll back
+  transfer does a lesson help on projects it was not learned in? (Phase 6, C4)
+  offpeak  fail during DeepSeek's peak hours (scripts call it before spending)
 
 run "metabolism <command> -h" for a command's flags
 `
@@ -159,11 +167,27 @@ func run(ctx context.Context, args []string, out io.Writer) error {
 		return cmdDriftEval(ctx, args[1:], out)
 	case "poison-eval":
 		return cmdPoisonEval(ctx, args[1:], out)
+	case "scorecard":
+		return cmdScorecard(ctx, args[1:], out)
+	case "pool":
+		return cmdPool(ctx, args[1:], out)
+	case "offpeak":
+		return cmdOffPeak(ctx, args[1:], out)
+	case "transfer":
+		return cmdTransfer(ctx, args[1:], out)
+	case "bench":
+		return cmdBench(ctx, args[1:], out)
+	case "train":
+		return cmdTrain(ctx, args[1:], out)
+	case "planted":
+		return cmdPlanted(ctx, args[1:], out)
+	case "adapter":
+		return cmdAdapter(ctx, args[1:], out)
 	case "help", "-h", "--help":
 		_, _ = fmt.Fprint(out, usage)
 		return nil
 	}
-	return fmt.Errorf("unknown command %q (try: doctor, ingest, sim, curves, inspect, recall, recall-eval, digest, verify, lessons, nutrient-eval, replay, label, crosscheck, credit, export, credit-eval, auto, poison-eval, drift-eval, pairs-eval, snapshot, versions, diff, rollback, forget, decisions, patterns)", args[0])
+	return fmt.Errorf("unknown command %q (try: doctor, ingest, sim, curves, inspect, recall, recall-eval, digest, verify, lessons, nutrient-eval, replay, label, crosscheck, credit, export, credit-eval, auto, poison-eval, drift-eval, pairs-eval, snapshot, versions, diff, rollback, forget, decisions, patterns, scorecard, pool)", args[0])
 }
 
 func defaultJournal() string {

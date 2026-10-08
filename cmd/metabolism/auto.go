@@ -53,6 +53,8 @@ func cmdAuto(ctx context.Context, args []string, out io.Writer) error {
 	resume := fs.String("resume", "", "finish an interrupted run's engine steps (verify, credit, report) for this day folder, without driving Helix")
 	allowRemote := fs.Bool("allow-remote", false, "allow the run's remote calls (see the notices)")
 	allowPeak := fs.Bool("allow-peak", false, "run even during DeepSeek's peak hours, at double the price")
+	keepOwn := fs.Bool("keep-own-recording", false, "set your own Helix recording aside for the run and put it back after, "+
+		"instead of refusing (ingest it first: make collect does)")
 	thinkingFlip := fs.Bool("thinking-flip", false, "planning-mode measurement (D-031): Helix flips a coin per turn and plans "+
 		"half the turns with the provider's thinking off; compare with metabolism decisions")
 	if err := fs.Parse(args); err != nil {
@@ -86,6 +88,11 @@ func cmdAuto(ctx context.Context, args []string, out io.Writer) error {
 		return fmt.Errorf("recovering the Helix setup from an interrupted run: %w", err)
 	} else if recovered {
 		say(out, "recovered: restored the Helix config and delivery file an interrupted run had changed\n")
+	}
+	if kept, err := setup.recoverRecording(); err != nil {
+		return fmt.Errorf("putting back your recording from an interrupted run: %w", err)
+	} else if kept != "" {
+		say(out, "recovered: put your own recording back; the interrupted run's recording is in %s\n", kept)
 	}
 
 	journal := filepath.Join(absDir, "journal.db")
@@ -173,8 +180,28 @@ func cmdAuto(ctx context.Context, args []string, out io.Writer) error {
 		return nil
 	}
 
-	if err := preflight(ctx, *helixHome, *helixBin); err != nil {
+	if err := preflight(ctx, *helixHome, *helixBin, *keepOwn); err != nil {
 		return err
+	}
+	if *keepOwn {
+		stashed, err := setup.stashRecording()
+		if err != nil {
+			return err
+		}
+		if stashed {
+			say(out, "your own Helix recording is set aside for the run, and comes back after it\n")
+			defer func() {
+				// On the normal path the run's recording was moved into the
+				// day folder; on any other it is still in place: keep it there
+				// too, so it never mixes with yours.
+				if matches, _ := filepath.Glob(filepath.Join(setup.home, "metabolism", "episodes.ndjson*")); len(matches) > 0 {
+					_ = moveRecording(filepath.Join(setup.home, "metabolism"), filepath.Join(dayDir, "recording"))
+				}
+				if err := setup.unstashRecording(); err != nil {
+					say(out, "PUTTING BACK YOUR RECORDING FAILED: it is in %s (%v)\n", setup.stashDir(), err)
+				}
+			}()
+		}
 	}
 	if lessonsOn {
 		if err := run(ctx, []string{"export", "-journal", journal, "-to", filepath.Join(dayDir, "lessons.json")}, out); err != nil {
@@ -453,7 +480,7 @@ func (h *helixSetup) recover() (bool, error) {
 }
 
 // preflight refuses to run over anything the user is doing with Helix.
-func preflight(ctx context.Context, helixHome, helixBin string) error {
+func preflight(ctx context.Context, helixHome, helixBin string, keepOwn bool) error {
 	bin, err := filepath.Abs(helixBin)
 	if err != nil {
 		return err
@@ -469,11 +496,65 @@ func preflight(ctx context.Context, helixHome, helixBin string) error {
 			return errors.New("an interactive Helix session is active (or exited under 5 minutes ago); try again later")
 		}
 	}
-	if matches, _ := filepath.Glob(filepath.Join(helixHome, "metabolism", "episodes.ndjson*")); len(matches) > 0 {
-		return fmt.Errorf("%s holds a recording that is not this run's (your own /metabolism use?); ingest or move it first",
-			filepath.Join(helixHome, "metabolism"))
+	if matches, _ := filepath.Glob(filepath.Join(helixHome, "metabolism", "episodes.ndjson*")); len(matches) > 0 && !keepOwn {
+		return fmt.Errorf("%s holds a recording that is not this run's (your own /metabolism use?); ingest it, then run "+
+			"with -keep-own-recording (make collect does both)", filepath.Join(helixHome, "metabolism"))
 	}
 	return nil
+}
+
+// stashDir holds the user's own recording while a run drives Helix.
+func (h *helixSetup) stashDir() string { return filepath.Join(h.state, "own-recording") }
+
+// stashRecording moves the user's own recording aside, if there is one. It
+// stays on this machine, in the run's state directory, for the length of
+// the run only.
+func (h *helixSetup) stashRecording() (bool, error) {
+	matches, _ := filepath.Glob(filepath.Join(h.home, "metabolism", "episodes.ndjson*"))
+	if len(matches) == 0 {
+		return false, nil
+	}
+	if err := os.MkdirAll(h.stashDir(), 0o700); err != nil {
+		return false, err
+	}
+	for _, m := range matches {
+		if err := os.Rename(m, filepath.Join(h.stashDir(), filepath.Base(m))); err != nil {
+			return false, err
+		}
+	}
+	return true, nil
+}
+
+// unstashRecording puts the user's recording back where Helix keeps it.
+func (h *helixSetup) unstashRecording() error {
+	matches, _ := filepath.Glob(filepath.Join(h.stashDir(), "episodes.ndjson*"))
+	for _, m := range matches {
+		dst := filepath.Join(h.home, "metabolism", filepath.Base(m))
+		if _, err := os.Stat(dst); err == nil {
+			return fmt.Errorf("%s exists: refusing to overwrite it with your stashed recording", dst)
+		}
+		if err := os.Rename(m, dst); err != nil {
+			return err
+		}
+	}
+	return os.Remove(h.stashDir())
+}
+
+// recoverRecording puts back a recording an interrupted run set aside. What
+// is in Helix's place then is the interrupted run's: it is moved into the
+// state directory first and its path returned.
+func (h *helixSetup) recoverRecording() (string, error) {
+	if _, err := os.Stat(h.stashDir()); err != nil {
+		return "", nil
+	}
+	kept := ""
+	if matches, _ := filepath.Glob(filepath.Join(h.home, "metabolism", "episodes.ndjson*")); len(matches) > 0 {
+		kept = filepath.Join(h.state, "interrupted-"+time.Now().Format("20060102T150405"))
+		if err := moveRecording(filepath.Join(h.home, "metabolism"), kept); err != nil {
+			return "", err
+		}
+	}
+	return kept, h.unstashRecording()
 }
 
 // cloneProject clones home/p into ws, replacing yesterday's clone, and
