@@ -346,7 +346,7 @@ func benchmarkCriterion(b *Benchmark) Criterion {
 		c.Status, c.Have, c.Next = Waiting, "benchmark not downloaded", "make bench-setup (once), then make collect BENCH=n"
 	case b.Covered < b.Tasks:
 		c.Status, c.Have, c.Next = Short, fmt.Sprintf("%d of %d exercises run, %.0f%% passed", b.Covered, b.Tasks, 100*b.Passed),
-			fmt.Sprintf("make collect BENCH=%d BENCH_LESSONS=0", b.Tasks-b.Covered)
+			fmt.Sprintf("make collect BENCH=%d (lessons stay off until every exercise has run)", b.Tasks-b.Covered)
 	default:
 		c.Status, c.Have = Met, fmt.Sprintf("all %d exercises, %d runs, %.0f%% passed", b.Tasks, b.Runs, 100*b.Passed)
 	}

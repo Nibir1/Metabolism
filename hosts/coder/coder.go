@@ -181,7 +181,11 @@ func (a Agent) Solve(ctx context.Context, ex Exercise, lessons []types.Lesson) (
 		if round == 1 {
 			res.PromptChars = len(system) + len(user)
 		}
-		resp, err := a.Model.Complete(ctx, ports.ModelRequest{System: system, User: user, JSON: true, MaxTokens: 8000})
+		// No completion bound: a reasoning model thinks before it answers,
+		// and a bound of 8000 tokens cut most answers off before the code
+		// (the first benchmark run, 2026-10-08: 14 of 20 attempts empty or
+		// truncated). The provider's own limit applies.
+		resp, err := a.Model.Complete(ctx, ports.ModelRequest{System: system, User: user, JSON: true})
 		res.Usage.ModelCalls++
 		res.Usage.InputChars += len(system) + len(user)
 		res.Usage.OutputChars += len(resp.Text)
@@ -196,7 +200,9 @@ func (a Agent) Solve(ctx context.Context, ex Exercise, lessons []types.Lesson) (
 		files, perr := parseFiles(resp.Text, ex.Solution)
 		write := types.Step{Tool: "model", Action: "write", Subject: strings.Join(ex.Solution, ","), OK: perr == nil, Round: round}
 		if perr != nil {
-			write.Err = clip(perr.Error(), 200)
+			// Say what came back (finish reason, reasoning, size), so a
+			// truncated answer is told apart from a wrong one.
+			write.Err = clip(perr.Error()+"; "+resp.Describe(), 200)
 			res.Steps = append(res.Steps, write)
 			feedback = "Your last answer could not be used: " + perr.Error() + ". Answer with the JSON object only."
 			continue

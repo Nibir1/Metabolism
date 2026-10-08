@@ -62,13 +62,16 @@ var ErrRejected = errors.New("lesson rejected by the immune screen")
 // Policy says what a host accepts.
 type Policy struct {
 	// Kinds are the lesson kinds the reflector may propose. Gates (Phase 5)
-	// and procedures (Phase 6) are never accepted from a reflector here.
+	// are never accepted from a reflector: a gate restricts, and only the
+	// user approves one.
 	Kinds []types.LessonKind
 }
 
-// DefaultPolicy accepts what Phase 2 learns: facts, patterns, preferences.
+// DefaultPolicy accepts what a reflector learns: facts, patterns,
+// preferences, and procedures (Phase 6, D-032), which pass the same text
+// screen and the same nutrient test as any lesson.
 func DefaultPolicy() Policy {
-	return Policy{Kinds: []types.LessonKind{types.KindFact, types.KindPattern, types.KindPreference}}
+	return Policy{Kinds: []types.LessonKind{types.KindFact, types.KindPattern, types.KindPreference, types.KindProcedure}}
 }
 
 var (
