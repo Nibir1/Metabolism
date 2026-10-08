@@ -63,7 +63,7 @@ func (t Trainer) Train(ctx context.Context, req ports.TrainRequest) error {
 	if iters <= 0 {
 		iters = 200
 	}
-	cmd := exec.CommandContext(ctx, py, "-m", "mlx_lm.lora", "--model", req.Base, "--train",
+	cmd := exec.CommandContext(ctx, py, "-m", "mlx_lm", "lora", "--model", req.Base, "--train",
 		"--data", req.DataDir, "--adapter-path", req.OutDir, "--iters", strconv.Itoa(iters), "--batch-size", "1")
 	cmd.Stdout, cmd.Stderr = orDiscard(t.Log), orDiscard(t.Log)
 	if err := cmd.Run(); err != nil {
@@ -94,7 +94,7 @@ func (s Server) Start(ctx context.Context) (baseURL string, stop func(), err err
 	if err != nil {
 		return "", nil, err
 	}
-	args := []string{"-m", "mlx_lm.server", "--model", s.Base, "--host", "127.0.0.1", "--port", strconv.Itoa(port)}
+	args := []string{"-m", "mlx_lm", "server", "--model", s.Base, "--host", "127.0.0.1", "--port", strconv.Itoa(port)}
 	if s.Adapter != "" {
 		args = append(args, "--adapter-path", s.Adapter)
 	}
