@@ -454,3 +454,42 @@ func TestChangedPlansWithEqualOutcomesAreNotNothing(t *testing.T) {
 		t.Fatalf("identical plans: %s, identical %d of %d", rep.Evidence.Summary, rep.Evidence.Identical, rep.Evidence.Compared)
 	}
 }
+
+// D-034: wins must also beat the lesson's own losses. With a judge decisive
+// on most pairs (15 of 24 baseline pairs), 8 wins against 6 losses cleared
+// the noise on wins alone; it is not evidence the lesson helps.
+func TestDecideWinsMustBeatLosses(t *testing.T) {
+	cfg := Config{}.withDefaults()
+	ev := func(w, l, ties, noiseDecisive, noiseCompared int) types.Evidence {
+		e := types.Evidence{Wins: w, Losses: l, Ties: ties, Compared: w + l + ties,
+			NoiseDecisive: noiseDecisive, NoiseCompared: noiseCompared}
+		Calibrate(&e)
+		return e
+	}
+	cases := []struct {
+		name string
+		e    types.Evidence
+		want types.TestResult
+	}{
+		{"8 against 6, noisy judge (the case that passed)", ev(8, 6, 0, 15, 24), types.ResultInconclusive},
+		{"4 against 0, quiet judge", ev(4, 0, 12, 4, 26), types.ResultPass},
+		{"8 against 2, noisy judge", ev(8, 2, 4, 15, 24), types.ResultPass},
+		{"6 losses against 7 wins is not worse", ev(7, 6, 3, 15, 24), types.ResultInconclusive},
+	}
+	for _, c := range cases {
+		if got, why := decide(c.e, false, cfg); got != c.want {
+			t.Errorf("%s: %s (%s)", c.name, got, why)
+		}
+	}
+}
+
+// With no losses there is nothing to weigh the wins against: a quiet
+// judge's 2 clean wins pass as under D-018.
+func TestDecideCleanWinsStillPass(t *testing.T) {
+	cfg := Config{}.withDefaults()
+	e := types.Evidence{Wins: 2, Compared: 14, Ties: 12, NoiseDecisive: 0, NoiseCompared: 26}
+	Calibrate(&e)
+	if got, why := decide(e, false, cfg); got != types.ResultPass {
+		t.Fatalf("2 clean wins with a quiet judge: %s (%s)", got, why)
+	}
+}

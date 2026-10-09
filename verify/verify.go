@@ -411,11 +411,30 @@ func decisive(v types.Verdict, cfg Config) bool {
 func decide(ev types.Evidence, quarantined bool, cfg Config) (types.TestResult, string) {
 	r := noiseRate(ev)
 	pHurt := tail(ev.Losses, ev.Compared, r/2)
+	// D-034: against its own losses too. A judge that picks a winner in most
+	// pairs (D-033's, reading the answers: 15 of 24 baseline pairs decisive)
+	// gives a lesson that only changes the plans many wins and many losses,
+	// and wins alone then clear the noise: one passed on 8 wins against 6.
+	// Of the decisive pairs, the lesson must win (or lose) clearly more than
+	// half: a sign test, at the same level as the call it guards. It applies
+	// only when there is something to weigh: with no losses (or no wins)
+	// D-018's test against the noise floor decides alone, as before; a sign
+	// test cannot speak below 4 decisive pairs, and a quiet judge's 2 clean
+	// wins are good evidence (the simulator's correct lessons fell from 100%
+	// accepted to 67% when it applied there).
+	decisive := ev.Wins + ev.Losses
+	pWinsSign, pLossesSign := 0.0, 0.0
+	if ev.Losses > 0 {
+		pWinsSign = tail(ev.Wins, decisive, 0.5)
+	}
+	if ev.Wins > 0 {
+		pLossesSign = tail(ev.Losses, decisive, 0.5)
+	}
 	// Both tails are shown: a lesson eliminated for its losses was once
 	// reported with only its wins' p (p=0.186), which reads as a lesson
 	// eliminated far above the bar.
-	counts := fmt.Sprintf("relevant: %d wins, %d losses, %d ties (p_help=%.3f, p_worse=%.3f); past successes: %d worse, %d better (p_harm=%.3f); noise: %d of %d A/A pairs decisive (r=%.2f)",
-		ev.Wins, ev.Losses, ev.Ties, ev.PHelp, pHurt, ev.Regressions, ev.RegressionWins, ev.PHarm, ev.NoiseDecisive, ev.NoiseCompared, r)
+	counts := fmt.Sprintf("relevant: %d wins, %d losses, %d ties (p_help=%.3f, p_worse=%.3f, wins against losses p=%.3f); past successes: %d worse, %d better (p_harm=%.3f); noise: %d of %d A/A pairs decisive (r=%.2f)",
+		ev.Wins, ev.Losses, ev.Ties, ev.PHelp, pHurt, pWinsSign, ev.Regressions, ev.RegressionWins, ev.PHarm, ev.NoiseDecisive, ev.NoiseCompared, r)
 	switch {
 	case ev.Regressions >= cfg.MinHarm && ev.PHarm <= cfg.HarmAlpha:
 		return types.ResultFail, "harms past successes it is not about, beyond noise: " + counts
@@ -430,13 +449,13 @@ func decide(ev types.Evidence, quarantined bool, cfg Config) (types.TestResult, 
 		return types.ResultFail, "changes nothing where it should help (identical plans): " + counts
 	case ev.Wins == 0 && ev.Losses == 0:
 		return types.ResultInconclusive, "changed the plans but no outcome: " + counts
-	case ev.Losses >= cfg.MinHarm && pHurt <= cfg.HarmAlpha:
+	case ev.Losses >= cfg.MinHarm && pHurt <= cfg.HarmAlpha && pLossesSign <= cfg.Alpha:
 		return types.ResultFail, "makes things worse where it applies, beyond noise: " + counts
-	case quarantined && ev.Wins >= cfg.QuarantineMinWins && ev.PHelp <= cfg.QuarantineAlpha:
+	case quarantined && ev.Wins >= cfg.QuarantineMinWins && ev.PHelp <= cfg.QuarantineAlpha && pWinsSign <= cfg.QuarantineAlpha:
 		return types.ResultPass, "clears the quarantine bar: " + counts
 	case quarantined:
 		return types.ResultFail, fmt.Sprintf("quarantined lessons need %d decisive wins and p ≤ %g: %s", cfg.QuarantineMinWins, cfg.QuarantineAlpha, counts)
-	case ev.Wins >= cfg.MinWins && ev.PHelp <= cfg.Alpha:
+	case ev.Wins >= cfg.MinWins && ev.PHelp <= cfg.Alpha && pWinsSign <= cfg.Alpha:
 		return types.ResultPass, "helps where it should, beyond noise, and harms nothing: " + counts
 	}
 	return types.ResultInconclusive, "not distinguishable from noise yet; the lesson stays where it is: " + counts

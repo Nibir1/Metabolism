@@ -5,6 +5,38 @@ change it. Don't reverse a decision without adding a new entry that says why.
 
 ---
 
+### D-034 · 2026-10-09 · A lesson must also beat its own losses (a sign test)
+
+**Context.** The first automated day under D-033 (2026-10-09 12:11) showed
+what D-029 had warned of: with a model reading the answers, the judge
+picks a winner far more often. Between two replays of the same baseline it
+was decisive on 15 of 24 and 20 of 26 pairs, against about 3 to 6 of 26
+before. D-018's rule asks only whether a lesson's wins exceed what noise
+gives, and with noise this high a lesson that merely changes the plans
+collects many wins and many losses: one passed to trial on 8 wins against 6
+losses (the scratch-file lesson).
+
+**Decision (the user, 2026-10-09).** In addition to D-018's tests against
+the noise floor, a lesson's wins must beat its own losses: of the decisive
+pairs, P(at least that many wins | a fair coin) ≤ the level of the call (α
+0.1 to pass; the quarantine level, 0.02, for a quarantined lesson). The
+same check guards elimination: losses must beat wins at α 0.1, besides the
+strict test against noise. It applies only when there is something to
+weigh, losses against wins (or wins against losses): with none, D-018's
+test against the noise floor decides alone. Applied everywhere, it cut the
+simulator's correct lessons accepted from 100% to 67%, because a sign test
+cannot speak below 4 decisive pairs and a quiet judge's 2 clean wins are
+good evidence. 8 against 6 is now inconclusive (p ≈ 0.40); 2 against 0
+with a quiet judge, and 8 against 2, still pass.
+
+**Consequences.** Fewer passes and fewer eliminations from the nutrient
+test; live credit (D-020) decides more. The lesson that passed on 8 against
+6 stays in trial: trial is reversible, and credit judges it on live turns.
+
+**What would change it.** A judge whose baseline pairs are rarely decisive
+again would make the check rarely bind; it stays, as a guard that costs
+little when the judge is quiet.
+
 ### D-033 · 2026-10-09 · The judge reads the answers: outcome+deepseek, and the same facts no longer make a tie
 
 **Context.** The first 30 human labels (2026-10-08, one labeller, blind,

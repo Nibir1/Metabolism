@@ -272,6 +272,11 @@ planner round came with a token report (207 of 207).
   check of explain answers (the run keeps each reply in drive.ndjson) is
   needed before calling thinking off harmless.
 
+**Second and third flipped days (2026-10-08 13:29, 2026-10-09 12:11),
+together with the first: 148 turns on, 135 off.** Success 98.0% on against
+95.6% off; $0.00131 against $0.00060 per turn; 2.9 against 2.1 model calls.
+P(at most 5 points worse) 0.87, still under 0.95: one or two more days.
+
 If both halves pass, "think or not, per request" is the first habit for
 5b: something cheap decides per request, and the coin keeps measuring it
 live. If either fails, it is written up beside 5a's negative result.
