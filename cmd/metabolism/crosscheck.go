@@ -46,6 +46,7 @@ func cmdCrosscheck(ctx context.Context, args []string, out io.Writer) error {
 	judgeName := fs.String("judge", "deepseek", "second judge: ollama, deepseek, jev")
 	judgeModel := fs.String("judge-model", "", "model for the second judge")
 	allowRemote := fs.Bool("allow-remote", false, "allow a remote judge to receive the saved comparisons")
+	labelled := fs.Bool("labelled", false, "re-judge only the comparisons a person labelled, and score both judges against those labels (Phase 2)")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
@@ -56,8 +57,15 @@ func cmdCrosscheck(ctx context.Context, args []string, out io.Writer) error {
 	if err != nil {
 		return err
 	}
+	var human map[string]types.Preference
+	if *labelled {
+		comps, human, err = labelledOnly(*from, comps)
+		if err != nil {
+			return err
+		}
+	}
 	if len(comps) == 0 {
-		return fmt.Errorf("%s has no comparisons", *from)
+		return fmt.Errorf("%s has no comparisons to re-judge", *from)
 	}
 	rem := remote{allowed: *allowRemote, out: out}
 	j, err := pickJudge(*judgeName, *judgeModel, rem)
@@ -81,6 +89,7 @@ func cmdCrosscheck(ctx context.Context, args []string, out io.Writer) error {
 	enc := json.NewEncoder(f)
 
 	sets := map[string][]bench.Labelled{}
+	var vsHuman, firstVsHuman []bench.Labelled
 	first := ""
 	for i, c := range comps {
 		pair := judge.Pair{Request: c.Request, Original: c.Original, PlanA: c.PlanA, PlanB: c.PlanB, WithIsA: c.WithIsA}
@@ -94,6 +103,10 @@ func cmdCrosscheck(ctx context.Context, args []string, out io.Writer) error {
 		if err := enc.Encode(rec); err != nil {
 			return err
 		}
+		if h, ok := human[string(c.Lesson)+"/"+string(c.Episode)]; ok {
+			vsHuman = append(vsHuman, bench.Labelled{Human: h, Judge: v.Prefer})
+			firstVsHuman = append(firstVsHuman, bench.Labelled{Human: h, Judge: c.JudgePrefer})
+		}
 		// Score() calls its fields Human and Judge; here they are the second
 		// and first judge.
 		l := bench.Labelled{Human: v.Prefer, Judge: c.JudgePrefer}
@@ -105,6 +118,21 @@ func cmdCrosscheck(ctx context.Context, args []string, out io.Writer) error {
 		}
 	}
 
+	if *labelled {
+		say(out, "against your %d labels (the Phase 2 bar is ≥ 80%%):\n", len(vsHuman))
+		for _, x := range []struct {
+			name string
+			ls   []bench.Labelled
+		}{{pj.Name(), vsHuman}, {first + " (its saved verdicts)", firstVsHuman}} {
+			a := bench.Score(x.ls)
+			say(out, "  %-40s agree %d of %d (%s), Cohen's κ %.2f\n", x.name, a.Agree, a.N, pct(a.Rate), a.Kappa)
+		}
+		a := bench.Score(vsHuman)
+		for k, n := range a.Confused {
+			say(out, "    you→%s %s: %d\n", pj.Name(), k, n)
+		}
+		say(out, "\n")
+	}
 	say(out, "%s against %s on %d saved comparisons (the same view, the same A/B order)\n\n", pj.Name(), first, len(comps))
 	for _, name := range []string{"all", "episodes the lesson is about", "past successes"} {
 		ls := sets[name]
@@ -124,6 +152,29 @@ func cmdCrosscheck(ctx context.Context, args []string, out io.Writer) error {
 	say(out, "\nThis is judge-against-judge agreement, not the human-labelled Phase 2 criterion:\n")
 	say(out, "two models can agree on the same mistake. Saved: %s\n", path)
 	return nil
+}
+
+// labelledOnly keeps the comparisons a person labelled, with each label as
+// a preference about the lesson.
+func labelledOnly(from string, comps []comparisonRecord) ([]comparisonRecord, map[string]types.Preference, error) {
+	labels, err := readNDJSON[labelRecord](from + ".labels")
+	if err != nil {
+		return nil, nil, fmt.Errorf("no labels for %s: %w", from, err)
+	}
+	done := map[string]string{}
+	for _, l := range labels {
+		done[string(l.Lesson)+"/"+string(l.Episode)] = l.Label
+	}
+	var out []comparisonRecord
+	human := map[string]types.Preference{}
+	for _, c := range comps {
+		k := string(c.Lesson) + "/" + string(c.Episode)
+		if label, ok := done[k]; ok {
+			out = append(out, c)
+			human[k] = judge.Pair{WithIsA: c.WithIsA}.Verdict(label, 1, "").Prefer
+		}
+	}
+	return out, human, nil
 }
 
 // crossPath names the saved cross verdicts after the second judge, keeping
