@@ -62,7 +62,7 @@ func cmdPlanted(ctx context.Context, args []string, out io.Writer) error {
 	hostName := fs.String("host", "helix", "what replays: helix (sim has its own planted suite: nutrient-eval)")
 	helixBin := fs.String("helix-bin", filepath.Join("bin", "helix"), "helix binary")
 	replayDir := fs.String("replay-dir", "", "directory Helix plans replays in (default: home)")
-	judgeName := fs.String("judge", "outcome+jev", "what compares replays")
+	judgeName := fs.String("judge", currentJudge, "what compares replays")
 	allowRemote := fs.Bool("allow-remote", false, "allow the replays and the judge")
 	if err := fs.Parse(args); err != nil {
 		return err

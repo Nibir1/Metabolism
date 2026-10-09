@@ -43,7 +43,7 @@ func cmdAuto(ctx context.Context, args []string, out io.Writer) error {
 	requests := fs.Int("requests", 100, "requests the synthetic user sends")
 	baseline := fs.Int("baseline", 300, "recorded episodes before lessons are delivered (the lessons-off baseline)")
 	reflector := fs.String("reflector", "deepseek", "what proposes lessons: deepseek, ollama")
-	judgeName := fs.String("judge", "outcome+jev", "what compares replays: outcome facts first, then jev (D-024); or jev, deepseek, ollama")
+	judgeName := fs.String("judge", currentJudge, "what compares replays: outcome facts first, then the model on different actions or answers (D-024, D-033); or jev, deepseek, ollama")
 	verifyMax := fs.Int("verify-max", 5, "most lessons tested per run: never tested first, then the longest since a test")
 	verifyAfter := fs.Int("verify-after", 100, "skip the nutrient test until the journal holds this many episodes "+
 		"(on fewer, replay noise swamps any effect: day one had 10 of 14 baseline pairs decisive)")

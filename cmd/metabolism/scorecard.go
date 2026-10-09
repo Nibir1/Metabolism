@@ -337,16 +337,36 @@ func gatherLabels(path string) (audit.Labels, error) {
 	for _, lr := range labels {
 		done[string(lr.Lesson)+"/"+string(lr.Episode)] = lr.Label
 	}
+	// The judge in use is measured by its model's re-judging of each
+	// labelled pair (crosscheck -labelled); a pair it has not re-judged
+	// counts only if the judge in use judged it in the first place.
+	again := map[string]types.Preference{}
+	if xs, err := readNDJSON[crossRecord](crossPath(path, currentJudgeModel)); err == nil {
+		for _, x := range xs {
+			again[string(x.Lesson)+"/"+string(x.Episode)] = x.SecondSays
+		}
+		l.Judge = currentJudgeModel + " (the model in " + currentJudge + ")"
+	} else {
+		l.Judge = currentJudge
+	}
 	letters := map[string]int{}
 	var ls []bench.Labelled
 	for _, c := range comps {
-		label, ok := done[string(c.Lesson)+"/"+string(c.Episode)]
+		k := string(c.Lesson) + "/" + string(c.Episode)
+		label, ok := done[k]
 		if !ok {
+			continue
+		}
+		says, judged := again[k]
+		if !judged && c.Judge == currentJudge {
+			says, judged = c.JudgePrefer, true
+		}
+		if !judged {
 			continue
 		}
 		letters[label]++
 		human := judge.Pair{WithIsA: c.WithIsA}.Verdict(label, 1, "").Prefer
-		ls = append(ls, bench.Labelled{Human: human, Judge: c.JudgePrefer})
+		ls = append(ls, bench.Labelled{Human: human, Judge: says})
 	}
 	l.Labelled = len(ls)
 	for _, k := range letters {
@@ -365,7 +385,7 @@ func cmdPool(_ context.Context, args []string, out io.Writer) error {
 	fs := flag.NewFlagSet("pool", flag.ContinueOnError)
 	fs.SetOutput(out)
 	to := fs.String("to", filepath.Join(".runs", "labels", "comparisons.ndjson"), "the pool")
-	judgeName := fs.String("judge", currentJudge, "pool only this judge's comparisons: agreement is measured for the judge in use")
+	judgeName := fs.String("judge", "", "pool only this judge's comparisons (default: any; a label is about the pair, not the judge)")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
@@ -386,7 +406,7 @@ func cmdPool(_ context.Context, args []string, out io.Writer) error {
 		for _, c := range comps {
 			// The judge's view of a pair whose plans were the same is not a
 			// judgement anyone could check.
-			if slices.Equal(c.PlanA, c.PlanB) || c.Judge != *judgeName {
+			if slices.Equal(c.PlanA, c.PlanB) || (*judgeName != "" && c.Judge != *judgeName) {
 				continue
 			}
 			k := string(c.Lesson) + "/" + string(c.Episode)
@@ -419,8 +439,13 @@ func cmdPool(_ context.Context, args []string, out io.Writer) error {
 	return nil
 }
 
-// currentJudge is the judge automated days compare with (D-024, D-029).
-const currentJudge = "outcome+jev"
+// currentJudge is the judge the nutrient test uses (D-024, D-029, D-033),
+// and currentJudgeModel its model, which re-judges labelled pairs to
+// measure it against people (crosscheck -labelled).
+const (
+	currentJudge      = "outcome+deepseek"
+	currentJudgeModel = "llm:deepseek/deepseek-flash"
+)
 
 func pairHash(c comparisonRecord) string {
 	h := sha256.Sum256([]byte(string(c.Lesson) + "/" + string(c.Episode)))

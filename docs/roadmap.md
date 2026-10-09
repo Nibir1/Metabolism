@@ -210,7 +210,9 @@ Exit criteria:
   - [ ] On real Helix replays (2c). There are no planted wrong lessons in
         real data yet; the noisy-host test (D-018) is the proxy so far.
 - [ ] Judge agreement with a human-labelled sample is ≥ 80%, or the judge is
-      replaced (2c).
+      replaced (2c). First reading, 30 labels (D-033): outcome+jev 30%
+      (κ 0.06), so replaced by outcome+deepseek, whose model agrees on 60%
+      (κ 0.40). Under the bar; 50 labels before the next change.
 
 ## Phase 3: Distribution and the credit ledger (about 4 weeks). C4, C9
 

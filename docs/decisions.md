@@ -5,6 +5,55 @@ change it. Don't reverse a decision without adding a new entry that says why.
 
 ---
 
+### D-033 · 2026-10-09 · The judge reads the answers: outcome+deepseek, and the same facts no longer make a tie
+
+**Context.** The first 30 human labels (2026-10-08, one labeller, blind,
+pairs from the automated days) put the judge in use, outcome+jev, at 9 of
+30 agreements (30%, κ 0.06): agreement no better than chance. It called 21
+of 30 pairs ties where the person called 6. Most came from D-029's rule
+that two replays with the same end, action and failed steps are a tie,
+"wording aside": when both plans only answer, the wording is the answer,
+and that is what the person judged. A planted wrong lesson ("read
+package.json first") also passed the nutrient test on real replays.
+
+Re-judging the same 30 labelled pairs offline (`crosscheck -labelled`):
+
+| Judge | Agrees with the labels | κ |
+|---|---|---|
+| outcome+jev (in use) | 9 of 30, 30% | 0.06 |
+| Jev, comparing the plans directly | 14 of 30, 47% | 0.15 |
+| DeepSeek (deepseek-flash), comparing directly | 18 of 30, 60% | 0.40 |
+
+Neither position bias (both the person and Jev chose plan B 17 times) nor
+uniform labels (17 b, 7 a, 6 same) explains the gap.
+
+**Decision (the user, 2026-10-09).**
+1. Amends D-029: facts still decide first (answered against ran out;
+   fewer failed steps). When the facts are the same, a pair is a tie only
+   if the two answers say the same thing (`judge.SameAnswer`: ≥ 85% of
+   their words shared, or both empty); otherwise the model compares the
+   answers. D-029's concern, a planner rewording itself, stays a tie
+   without a model call.
+2. The judge is **outcome+deepseek** for automated days, `make collect`,
+   transfer and planted runs (off-peak only, as all DeepSeek use).
+3. `make collect` measures the judge in use against the labels after each
+   labelling session (its model re-judges each labelled pair) and asks for
+   labels until there are 50: at 30, an agreement of 60% could be anywhere
+   from about 45% to 75%.
+4. The planted wrong lessons are re-tested with the new judge.
+
+**Still open.** 60% is under the Phase 2 bar of 80%. DeepSeek's remaining
+disagreements lean toward the plan with the lesson (6 times the person
+preferred the plan without it), though it cannot see which plan had the
+lesson; watched, not acted on. The baseline-against-baseline noise floor
+may rise with the model judging more pairs; the decision rule (D-018)
+already accounts for it, and the automated days will show by how much.
+
+**What would change it.** At 50 labels, a judge clearly under 60%, or a
+noise floor so high no lesson passes: then answer-only pairs go back to
+ties and the nutrient test is written up as unable to judge answer quality
+(a Phase 2 finding), leaving answer quality to outcome credit from real use.
+
 ### D-032 · 2026-10-08 · Build the remaining phases; one `make collect` gathers the evidence
 
 **Context.** What is left of Phases 1 to 9 is mostly evidence, not code:

@@ -12,7 +12,8 @@
 #   3. runs DAYS automated days (default 0), with the planning-mode coin
 #      flip while FLIP=1, setting your recording aside and back;
 #   4. measures everything into .runs/collect/<time>/;
-#   5. offers the judge-labelling session if fewer than 30 are labelled;
+#   5. offers the judge-labelling session if fewer than 50 are labelled
+#      (D-033), and measures the judge in use against the labels;
 #   6. writes .runs/collect/<time>/summary.md: paste it to Claude.
 #
 # Settings (environment or make variables):
@@ -88,7 +89,7 @@ if [[ $STAGE == learning && $LEARN == 1 ]]; then
 		# A failed step is reported and the run goes on to the measurements.
 		"$BIN" digest -journal "$REAL" -reflector deepseek -allow-remote -since "$(date -v-7d +%Y-%m-%d)" || echo "digest failed"
 		"$BIN" verify -journal "$REAL" -host helix -helix-bin "$HELIX_BIN" -replay-dir "$HOME" \
-			-judge outcome+jev -allow-remote -max 3 -save "$OUT/real-comparisons.ndjson" || echo "verify failed"
+			-judge outcome+deepseek -allow-remote -max 3 -save "$OUT/real-comparisons.ndjson" || echo "verify failed"
 		"$BIN" credit -journal "$REAL" -apply || echo "credit failed"
 		if "$BIN" export -journal "$REAL"; then
 			echo "lessons exported to Helix: turn them on in Helix with /lessons on (they are delivered by coin flip)"
@@ -133,7 +134,7 @@ if ((TRANSFER > 0)) && [[ -f $AUTO ]]; then
 	if "$BIN" offpeak; then
 		step "transfer: $TRANSFER lesson(s) on projects they were not learned in (paid replays)"
 		"$BIN" transfer -journal "$AUTO" -host helix -helix-bin "$HELIX_BIN" -replay-dir "$HOME" \
-			-judge outcome+jev -allow-remote -max "$TRANSFER" || echo "transfer stopped early"
+			-judge outcome+deepseek -allow-remote -max "$TRANSFER" || echo "transfer stopped early"
 	else
 		echo "skipped transfer: peak hours"
 	fi
@@ -181,8 +182,8 @@ fi
 
 if [[ $LABEL == 1 && -t 0 && -f $POOL ]]; then
 	labelled=$(grep -c . "$POOL.labels" 2>/dev/null || true)
-	if ((${labelled:-0} < 30)); then
-		step "judge labelling (${labelled:-0} of 30 done)"
+	if ((${labelled:-0} < 50)); then
+		step "judge labelling (${labelled:-0} of 50 done)"
 		echo "Each comparison shows a request and two plans, blind; you pick a, b or same (q stops, and it resumes next time)."
 		read -r -p "Label some now? [y/N] " yes
 		if [[ $yes == [yY]* ]]; then
@@ -191,7 +192,13 @@ if [[ $LABEL == 1 && -t 0 && -f $POOL ]]; then
 	fi
 fi
 if [[ -f $POOL.labels ]]; then
-	measure judge-agreement "$BIN" label -from "$POOL" -score
+	# Agreement for the judge in use: its model re-judges every labelled pair
+	# (D-033). About one call per label, off-peak only.
+	if "$BIN" offpeak >/dev/null; then
+		measure judge-agreement "$BIN" crosscheck -from "$POOL" -labelled -judge deepseek -allow-remote
+	else
+		echo "  • judge agreement not refreshed: peak hours"
+	fi
 fi
 
 step "scorecard"

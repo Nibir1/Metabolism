@@ -84,6 +84,7 @@ type Labels struct {
 	Labelled  int             `json:"labelled"`  // labelled so far
 	Uniform   bool            `json:"uniform"`   // ≥ 90% one letter: unusable
 	Agreement bench.Agreement `json:"agreement"` // the judge against them
+	Judge     string          `json:"judge"`     // which judge was measured
 }
 
 // Evidence is everything the scorecard judges.
@@ -156,7 +157,10 @@ const (
 	BaselineEpisodes = 300
 	BaselineSpan     = 21 * 24 * time.Hour
 	MinLabels        = 30
-	Endurance        = 90 * 24 * time.Hour
+	// TargetLabels is how many labels D-033 asks for before the judge is
+	// changed again: at 30, an agreement of 60% could be 45% to 75%.
+	TargetLabels = 50
+	Endurance    = 90 * 24 * time.Hour
 	// MinTransferLessons is how many lessons must be measured on held-out
 	// projects before transfer is judged.
 	MinTransferLessons = 5
@@ -245,8 +249,8 @@ func Evaluate(ev Evidence) Report {
 		l := ev.Labels
 		c := Criterion{Phase: 2, ID: "2.judge-agreement", Name: "Judge agrees with your labels",
 			Bar: fmt.Sprintf("≥ 80%% agreement on ≥ %d labels", MinLabels),
-			Have: fmt.Sprintf("%d labelled of %d pooled; agreement %.0f%%, κ %.2f",
-				l.Labelled, l.Pooled, 100*l.Agreement.Rate, l.Agreement.Kappa)}
+			Have: fmt.Sprintf("%s: %d labelled of %d pooled; agreement %.0f%%, κ %.2f",
+				orNone(l.Judge), l.Labelled, l.Pooled, 100*l.Agreement.Rate, l.Agreement.Kappa)}
 		switch {
 		case l.Uniform:
 			c.Status, c.Next = Short, "the labels are ≥ 90% one letter and cannot measure a judge: label again (make collect asks)"
@@ -254,8 +258,10 @@ func Evaluate(ev Evidence) Report {
 			c.Status, c.Next = Waiting, fmt.Sprintf("label %d more comparisons (make collect asks; about 2 minutes each)", MinLabels-l.Labelled)
 		case l.Agreement.Rate >= 0.8:
 			c.Status = Met
+		case l.Labelled < TargetLabels:
+			c.Status, c.Next = Short, fmt.Sprintf("label %d more to narrow the estimate (make collect asks; D-033)", TargetLabels-l.Labelled)
 		default:
-			c.Status, c.Next = Short, "improve or replace the judge (D-029)"
+			c.Status, c.Next = Short, "improve or replace the judge (D-033)"
 		}
 		add(c)
 	}
@@ -496,6 +502,13 @@ func auditStatus(cs []Criterion) Status {
 		return Manual
 	}
 	return Waiting
+}
+
+func orNone(s string) string {
+	if s == "" {
+		return "no judge yet"
+	}
+	return s
 }
 
 func yesNo(b bool, yes, no string) string {

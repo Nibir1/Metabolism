@@ -314,3 +314,41 @@ func TestUnsupportedClaims(t *testing.T) {
 		}
 	}
 }
+
+// The same facts and different answers go to the model; the same answer,
+// reworded slightly, stays a tie without asking it (D-033).
+func TestOutcomeJudgeComparesDifferentAnswers(t *testing.T) {
+	asked := 0
+	o := Outcome{Model: stubJudge{asked: &asked}}
+	ctx := context.Background()
+	reply := func(text string) types.ReplayResult {
+		return types.ReplayResult{Rounds: 2, End: types.ReplayEndAnswered, Text: text,
+			Steps: []types.Step{{Tool: "file", Action: "read", Subject: "verify/verify.go", OK: true}, {Tool: "response", OK: true}}}
+	}
+	a := reply("verify runs the nutrient test: it replays episodes with and without a lesson and judges each pair.")
+	reworded := reply("Verify runs the nutrient test: it replays episodes with and without a lesson, and judges each pair.")
+	other := reply("It is a package.")
+	if v, _ := o.Compare(ctx, types.Episode{}, nil, a, reworded); v.Prefer != types.PreferNeither || asked != 0 {
+		t.Fatalf("the same answer reworded: %+v, asked %d", v, asked)
+	}
+	v, _ := o.Compare(ctx, types.Episode{}, nil, a, other)
+	if asked != 1 || v.Prefer != types.PreferWith || !strings.HasPrefix(v.Reason, "answers differ") {
+		t.Fatalf("different answers: %+v, asked %d", v, asked)
+	}
+}
+
+func TestSameAnswer(t *testing.T) {
+	for _, c := range []struct {
+		a, b string
+		same bool
+	}{
+		{"", "", true},
+		{"", "something", false},
+		{"Run go test ./...", "run GO test ./...", true},
+		{"read go.mod for the module path", "read package.json for the scripts", false},
+	} {
+		if got := SameAnswer(c.a, c.b); got != c.same {
+			t.Errorf("SameAnswer(%q, %q) = %v", c.a, c.b, got)
+		}
+	}
+}

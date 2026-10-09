@@ -26,12 +26,17 @@ import (
 //
 //   - Both measurable, different ends: the one that answered wins.
 //   - The same end and the same action (both answered, both ran out, or both
-//     stopped at the same step), or both measurable: facts only. Fewer
-//     failed steps wins; otherwise a tie. Answer wording is not judged, and
-//     neither are model calls: the first day under D-029 found 5 of 6
-//     decisive baseline-against-baseline facts were call counts (6 against
-//     4, 4 against 8), a planner varying with itself. Cost is measured by
-//     credit, over many turns.
+//     stopped at the same step), or both measurable: facts first. Fewer
+//     failed steps wins. Model calls are not judged: the first day under
+//     D-029 found 5 of 6 decisive baseline-against-baseline facts were call
+//     counts (6 against 4, 4 against 8), a planner varying with itself. Cost
+//     is measured by credit, over many turns.
+//   - The same facts: a tie if the two answers say the same thing (SameAnswer),
+//     and otherwise the model compares the answers (D-033). D-029 called every
+//     such pair a tie, "wording aside"; human labels then showed the wording
+//     is the answer: on 30 labelled pairs the judge called 21 ties where the
+//     person called 6, and agreed with the person on 9 (κ 0.06). Near-identical
+//     answers stay ties, so a planner rewording itself adds no verdicts.
 //   - Otherwise (different actions where a replay stops, or ends that cannot
 //     be compared): the model grades each plan on its own, "does it do what
 //     was asked?", when it can (Grader), and the pair is decisive only when
@@ -77,7 +82,18 @@ func (o Outcome) Compare(ctx context.Context, original types.Episode, outcomes [
 		}
 		return v, nil
 	case okW && okWo, with.End == without.End && sameAction(with, without):
-		return facts(with, without), nil
+		v := facts(with, without)
+		if v.Prefer != types.PreferNeither || SameAnswer(with.Text, without.Text) {
+			return v, nil
+		}
+		// The same facts, different answers: which answers better is the
+		// model's to say (D-033).
+		mv, err := o.Model.Compare(ctx, original, outcomes, with, without)
+		if err != nil {
+			return types.Verdict{}, err
+		}
+		mv.Reason = "answers differ, the facts do not: " + mv.Reason
+		return mv, nil
 	}
 	if g, ok := o.Model.(Grader); ok {
 		return g.Grade(ctx, original, outcomes, with, without)
@@ -99,6 +115,36 @@ func facts(with, without types.ReplayResult) types.Verdict {
 	}
 	return types.Verdict{Prefer: types.PreferNeither, Confidence: 1,
 		Reason: "facts: the same end, the same action, the same failed steps; wording and model calls are not judged"}
+}
+
+// SameAnswerAt is how much two answers' words must overlap (Jaccard, on
+// lower-cased words) for them to count as the same answer.
+const SameAnswerAt = 0.85
+
+// SameAnswer reports whether two replies say the same thing: both empty, or
+// sharing at least SameAnswerAt of their words.
+func SameAnswer(a, b string) bool {
+	wa, wb := words(a), words(b)
+	if len(wa) == 0 || len(wb) == 0 {
+		return len(wa) == len(wb)
+	}
+	inter := 0
+	for w := range wa {
+		if wb[w] {
+			inter++
+		}
+	}
+	return float64(inter)/float64(len(wa)+len(wb)-inter) >= SameAnswerAt
+}
+
+func words(s string) map[string]bool {
+	out := map[string]bool{}
+	for _, w := range strings.FieldsFunc(strings.ToLower(s), func(r rune) bool {
+		return (r < 'a' || r > 'z') && (r < '0' || r > '9') && r != '_' && r != '.' && r != '/'
+	}) {
+		out[w] = true
+	}
+	return out
 }
 
 func failedSteps(r types.ReplayResult) int {
