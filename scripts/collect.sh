@@ -120,7 +120,10 @@ if ((BENCH > 0)); then
 			# The loop on the second host, with the engine's own commands. A
 			# judge is not needed: go test decided each run.
 			"$BIN" digest -journal "$BENCH_J" -reflector deepseek -allow-remote -since "$(date -v-7d +%Y-%m-%d)" || true
-			"$BIN" verify -journal "$BENCH_J" -host coder -judge heuristic -allow-remote -max 2 || true
+			# Each replay here is a whole solve, sometimes minutes of thinking:
+			# one lesson per run, on a small sample (about 30 solves, not 150).
+			"$BIN" verify -journal "$BENCH_J" -host coder -judge heuristic -allow-remote -max 1 \
+				-relevant 6 -regression 4 || true
 			"$BIN" credit -journal "$BENCH_J" -apply || true
 		else
 			echo "the benchmark run stopped early (make bench-setup first?)"

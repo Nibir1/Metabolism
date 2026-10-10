@@ -311,6 +311,8 @@ func cmdVerify(ctx context.Context, args []string, out io.Writer) error {
 	allowRemote := fs.Bool("allow-remote", false, "allow a remote judge to receive replayed plans")
 	only := fs.String("lesson", "", "test one lesson (default: every candidate and quarantined lesson)")
 	maxTest := fs.Int("max", 0, "test at most this many lessons, oldest first (0: all)")
+	relevantN := fs.Int("relevant", 0, "episodes the lesson is about, replayed per lesson (0: the default, 16)")
+	regressionN := fs.Int("regression", 0, "past successes replayed per lesson (0: the default, 10)")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
@@ -362,7 +364,8 @@ func cmdVerify(ctx context.Context, args []string, out io.Writer) error {
 		say(out, "nothing to test: no candidate or quarantined lessons (run metabolism digest first)\n")
 		return nil
 	}
-	v := &verify.Verifier{Host: host, Judge: jd, History: h}
+	v := &verify.Verifier{Host: host, Judge: jd, History: h,
+		Config: verify.Config{MaxRelevant: *relevantN, RegressionSample: *regressionN}}
 	tw := tabwriter.NewWriter(out, 0, 0, 2, ' ', 0)
 	say(tw, "  result\tmove\tW/L/T\tworse/better\tnoise\tlesson\n")
 	skipped := 0
