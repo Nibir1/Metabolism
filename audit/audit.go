@@ -163,6 +163,11 @@ const (
 	// TargetLabels is how many labels D-033 asks for before the judge is
 	// changed again: at 30, an agreement of 60% could be 45% to 75%.
 	TargetLabels = 50
+	// D-036: a judge is measured against the labeller's own consistency.
+	// It must reach CeilingShare of the labeller's self-agreement and of
+	// their κ, measured on at least MinRetest re-labelled pairs.
+	CeilingShare = 0.8
+	MinRetest    = 20
 	Endurance    = 90 * 24 * time.Hour
 	// MinTransferLessons is how many lessons must be measured on held-out
 	// projects before transfer is judged.
@@ -251,25 +256,26 @@ func Evaluate(ev Evidence) Report {
 	{
 		l := ev.Labels
 		c := Criterion{Phase: 2, ID: "2.judge-agreement", Name: "Judge agrees with your labels",
-			Bar: fmt.Sprintf("≥ 80%% agreement on ≥ %d labels", MinLabels),
+			Bar: fmt.Sprintf("D-036: agreement and κ each ≥ %.0f%% of the labeller's own (label -retest), on ≥ %d labels", 100*CeilingShare, MinLabels),
 			Have: fmt.Sprintf("%s: %d labelled of %d pooled; agreement %.0f%%, κ %.2f",
 				orNone(l.Judge), l.Labelled, l.Pooled, 100*l.Agreement.Rate, l.Agreement.Kappa)}
 		if l.Self.N > 0 {
-			c.Have += fmt.Sprintf("; you agree with yourself on %.0f%% of %d (κ %.2f)", 100*l.Self.Rate, l.Self.N, l.Self.Kappa)
+			c.Have += fmt.Sprintf("; you agree with yourself on %.0f%% of %d (κ %.2f), so the bar is %.0f%% and κ %.2f",
+				100*l.Self.Rate, l.Self.N, l.Self.Kappa, 100*CeilingShare*l.Self.Rate, CeilingShare*l.Self.Kappa)
 		}
 		switch {
 		case l.Uniform:
 			c.Status, c.Next = Short, "the labels are ≥ 90% one letter and cannot measure a judge: label again (make collect asks)"
 		case l.Labelled < MinLabels:
 			c.Status, c.Next = Waiting, fmt.Sprintf("label %d more comparisons (make collect asks; about 2 minutes each)", MinLabels-l.Labelled)
-		case l.Agreement.Rate >= 0.8:
+		case l.Self.N < MinRetest:
+			c.Status, c.Next = Short, fmt.Sprintf("re-label %d pairs to find the ceiling: bin/metabolism label -from .runs/labels/comparisons.ndjson -retest %d (D-035)", MinRetest, MinRetest)
+		case l.Agreement.Rate >= CeilingShare*l.Self.Rate && l.Agreement.Kappa >= CeilingShare*l.Self.Kappa:
 			c.Status = Met
 		case l.Labelled < TargetLabels:
 			c.Status, c.Next = Short, fmt.Sprintf("label %d more to narrow the estimate (make collect asks; D-033)", TargetLabels-l.Labelled)
-		case l.Self.N < 20:
-			c.Status, c.Next = Short, "re-label 20 pairs to find the ceiling: bin/metabolism label -from .runs/labels/comparisons.ndjson -retest 20 (D-035)"
 		default:
-			c.Status, c.Next = Short, "improve or replace the judge (D-033)"
+			c.Status, c.Next = Short, "improve the judge toward the labeller's own consistency (D-036)"
 		}
 		add(c)
 	}

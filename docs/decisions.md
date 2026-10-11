@@ -5,6 +5,45 @@ change it. Don't reverse a decision without adding a new entry that says why.
 
 ---
 
+### D-036 · 2026-10-11 · The judge is measured against the labeller's own consistency; worked examples do not help
+
+**Context.** The labeller re-labelled 20 pairs blind with the plans swapped
+(`label -retest`, D-035) and agreed with themselves on 15 (75%, κ 0.62). No
+judge can reliably agree with a person more than the person agrees with
+themselves, so an absolute bar of 80% could not be met with these labels by
+any judge. The judge in use was at 54% (κ 0.31).
+
+**Decision (the user, 2026-10-11).** Phase 2's judge criterion is relative:
+the judge's agreement and κ must each reach 80% of the labeller's own,
+measured on at least 20 re-labelled pairs. Here that is 60% and κ 0.50. This
+does not lower the bar to pass: every judge measured fails it. It is how
+agreement between a judge and people is usually read (against agreement
+between people).
+
+**Worked examples, measured the same day.** DeepSeek was shown the
+labeller's other labelled pairs as examples of how they decide (never the
+pair being judged), on the 65 labels:
+
+| Judge | Agreement | κ |
+|---|---|---|
+| once, no examples | 55 to 60% (varies run to run) | 0.33 to 0.40 |
+| once, 10 examples | 57% | 0.35 |
+| once, 25 examples | 60% | 0.40 |
+| both orders, no examples (in use) | 54% | 0.31 |
+| both orders, 10 examples | 48% | 0.22 |
+
+No setting differs from another by more than the judge's own run-to-run
+variation, and none reaches κ 0.50. **A negative result:** neither a
+stronger model (D-035), nor asking in both orders, nor the person's own
+examples brings a model judge to the person's consistency on these pairs.
+The judge stays outcome+both+deepseek for its lower noise (to be measured);
+answer quality the judge cannot see is left to outcome credit on live
+turns, which needs no judge.
+
+**What would change it.** More labellers (agreement between people sets a
+truer ceiling than one person against themselves), or a judge that clears
+κ 0.50 on these labels.
+
 ### D-035 · 2026-10-11 · The judge asks both orders; the labeller's own consistency is measured
 
 **Context.** Under D-033 the judge picked a winner in 18 to 23 of 26

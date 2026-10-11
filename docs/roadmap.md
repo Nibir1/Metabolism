@@ -209,13 +209,14 @@ Exit criteria:
         lesson fixes which failure.
   - [ ] On real Helix replays (2c). There are no planted wrong lessons in
         real data yet; the noisy-host test (D-018) is the proxy so far.
-- [ ] Judge agreement with a human-labelled sample is ≥ 80%, or the judge is
-      replaced (2c). First reading, 30 labels (D-033): outcome+jev 30%
+- [ ] Judge agreement with a human-labelled sample is ≥ 80% of the
+      labeller's own (D-036; was ≥ 80% absolute), or the judge is replaced (2c). First reading, 30 labels (D-033): outcome+jev 30%
       (κ 0.06), so replaced by outcome+deepseek, whose model agrees on 60%
       (κ 0.40). Under the bar; 50 labels before the next change. At 65
       labels (D-035): no model judge passes 60%, a stronger one agrees less;
       the judge asks both orders now, and the labeller's own consistency
-      (label -retest) sets the ceiling.
+      (label -retest) sets the ceiling: 75%, κ 0.62. Best judge 60%, κ 0.40
+      against a bar of 60% and κ 0.50; worked examples do not help (D-036).
 
 ## Phase 3: Distribution and the credit ledger (about 4 weeks). C4, C9
 

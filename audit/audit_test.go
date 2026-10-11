@@ -58,20 +58,25 @@ func TestBaselineStages(t *testing.T) {
 	}
 }
 
-// Labels: too few wait, uniform ones are refused, enough agreeing ones meet.
+// Labels: too few wait, uniform ones are refused, and the bar is the
+// labeller's own consistency (D-036): 80% of their self-agreement and κ.
 func TestJudgeAgreement(t *testing.T) {
+	self := bench.Agreement{N: 20, Rate: 0.75, Kappa: 0.62}
 	cases := []struct {
+		name string
 		l    Labels
 		want Status
 	}{
-		{Labels{Labelled: 10, Agreement: bench.Agreement{Rate: 0.9}}, Waiting},
-		{Labels{Labelled: 40, Uniform: true}, Short},
-		{Labels{Labelled: 40, Agreement: bench.Agreement{Rate: 0.7}}, Short},
-		{Labels{Labelled: 40, Agreement: bench.Agreement{Rate: 0.85}}, Met},
+		{"too few", Labels{Labelled: 10, Agreement: bench.Agreement{Rate: 0.9}}, Waiting},
+		{"uniform", Labels{Labelled: 40, Uniform: true}, Short},
+		{"no retest yet", Labels{Labelled: 65, Agreement: bench.Agreement{Rate: 0.9, Kappa: 0.8}}, Short},
+		{"today's judge", Labels{Labelled: 65, Self: self, Agreement: bench.Agreement{Rate: 0.54, Kappa: 0.31}}, Short},
+		{"rate enough, κ not", Labels{Labelled: 65, Self: self, Agreement: bench.Agreement{Rate: 0.62, Kappa: 0.40}}, Short},
+		{"both enough", Labels{Labelled: 65, Self: self, Agreement: bench.Agreement{Rate: 0.62, Kappa: 0.52}}, Met},
 	}
 	for _, tc := range cases {
 		if c := find(t, Evaluate(Evidence{Labels: tc.l}), "2.judge-agreement"); c.Status != tc.want {
-			t.Errorf("%+v: %s, want %s", tc.l, c.Status, tc.want)
+			t.Errorf("%s: %s, want %s", tc.name, c.Status, tc.want)
 		}
 	}
 }

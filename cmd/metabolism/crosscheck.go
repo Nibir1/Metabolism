@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"slices"
 	"strings"
 
 	"github.com/Nibir1/metabolism/bench"
@@ -46,6 +47,7 @@ func cmdCrosscheck(ctx context.Context, args []string, out io.Writer) error {
 	judgeName := fs.String("judge", "deepseek", "second judge: ollama, deepseek, jev")
 	judgeModel := fs.String("judge-model", "", "model for the second judge")
 	allowRemote := fs.Bool("allow-remote", false, "allow a remote judge to receive the saved comparisons")
+	nExamples := fs.Int("examples", 0, "with -labelled: show the judge this many of the person's other labelled pairs as worked examples (never the pair it judges)")
 	labelled := fs.Bool("labelled", false, "re-judge only the comparisons a person labelled, and score both judges against those labels (Phase 2)")
 	if err := fs.Parse(args); err != nil {
 		return err
@@ -58,11 +60,15 @@ func cmdCrosscheck(ctx context.Context, args []string, out io.Writer) error {
 		return err
 	}
 	var human map[string]types.Preference
+	var letters map[string]string
 	if *labelled {
-		comps, human, err = labelledOnly(*from, comps)
+		comps, human, letters, err = labelledOnly(*from, comps)
 		if err != nil {
 			return err
 		}
+	}
+	if *nExamples > 0 && !*labelled {
+		return errors.New("-examples needs -labelled")
 	}
 	if len(comps) == 0 {
 		return fmt.Errorf("%s has no comparisons to re-judge", *from)
@@ -81,6 +87,11 @@ func cmdCrosscheck(ctx context.Context, args []string, out io.Writer) error {
 	}
 
 	path := crossPath(*from, pj.Name())
+	if *nExamples > 0 {
+		// An experiment, kept apart from the judge-in-use's file, which the
+		// scorecard reads.
+		path = crossPath(*from, fmt.Sprintf("%s-examples%d", pj.Name(), *nExamples))
+	}
 	f, err := os.Create(path)
 	if err != nil {
 		return err
@@ -93,7 +104,13 @@ func cmdCrosscheck(ctx context.Context, args []string, out io.Writer) error {
 	first := ""
 	for i, c := range comps {
 		pair := judge.Pair{Request: c.Request, Original: c.Original, PlanA: c.PlanA, PlanB: c.PlanB, WithIsA: c.WithIsA}
-		v, err := pj.ComparePair(ctx, pair)
+		jj := pj
+		if *nExamples > 0 {
+			if jj, err = withExamples(pj, examplesFor(c, comps, letters, *nExamples)); err != nil {
+				return err
+			}
+		}
+		v, err := jj.ComparePair(ctx, pair)
 		if err != nil {
 			return fmt.Errorf("comparison %d (%s): %w", i+1, c.Episode, err)
 		}
@@ -119,7 +136,7 @@ func cmdCrosscheck(ctx context.Context, args []string, out io.Writer) error {
 	}
 
 	if *labelled {
-		say(out, "against your %d labels (the Phase 2 bar is ≥ 80%%):\n", len(vsHuman))
+		say(out, "against your %d labels (the Phase 2 bar, D-036: 80%% of your own agreement and κ, from label -retest):\n", len(vsHuman))
 		for _, x := range []struct {
 			name string
 			ls   []bench.Labelled
@@ -156,10 +173,10 @@ func cmdCrosscheck(ctx context.Context, args []string, out io.Writer) error {
 
 // labelledOnly keeps the comparisons a person labelled, with each label as
 // a preference about the lesson.
-func labelledOnly(from string, comps []comparisonRecord) ([]comparisonRecord, map[string]types.Preference, error) {
+func labelledOnly(from string, comps []comparisonRecord) ([]comparisonRecord, map[string]types.Preference, map[string]string, error) {
 	labels, err := readNDJSON[labelRecord](from + ".labels")
 	if err != nil {
-		return nil, nil, fmt.Errorf("no labels for %s: %w", from, err)
+		return nil, nil, nil, fmt.Errorf("no labels for %s: %w", from, err)
 	}
 	done := map[string]string{}
 	for _, l := range labels {
@@ -174,7 +191,49 @@ func labelledOnly(from string, comps []comparisonRecord) ([]comparisonRecord, ma
 			human[k] = judge.Pair{WithIsA: c.WithIsA}.Verdict(label, 1, "").Prefer
 		}
 	}
-	return out, human, nil
+	return out, human, done, nil
+}
+
+// examplesFor picks n of the other labelled pairs as worked examples for c,
+// in an order fixed by the two pairs (leave-one-out: never c itself).
+func examplesFor(c comparisonRecord, comps []comparisonRecord, letters map[string]string, n int) []judge.Example {
+	key := string(c.Lesson) + "/" + string(c.Episode)
+	var others []comparisonRecord
+	for _, o := range comps {
+		if k := string(o.Lesson) + "/" + string(o.Episode); k != key && letters[k] != "" {
+			others = append(others, o)
+		}
+	}
+	slices.SortFunc(others, func(a, b comparisonRecord) int {
+		return strings.Compare(pairHash(comparisonRecord{Lesson: c.Lesson + a.Lesson, Episode: c.Episode + a.Episode}),
+			pairHash(comparisonRecord{Lesson: c.Lesson + b.Lesson, Episode: c.Episode + b.Episode}))
+	})
+	if len(others) > n {
+		others = others[:n]
+	}
+	exs := make([]judge.Example, len(others))
+	for i, o := range others {
+		exs[i] = judge.Example{Pair: judge.Pair{Request: o.Request, Original: o.Original, PlanA: o.PlanA, PlanB: o.PlanB, WithIsA: o.WithIsA},
+			Better: letters[string(o.Lesson)+"/"+string(o.Episode)]}
+	}
+	return exs
+}
+
+// withExamples gives a model judge (or one asked in both orders) worked
+// examples.
+func withExamples(j pairJudge, exs []judge.Example) (pairJudge, error) {
+	switch v := j.(type) {
+	case judge.LLM:
+		v.Examples = exs
+		return v, nil
+	case judge.Both:
+		if inner, ok := v.Inner.(judge.LLM); ok {
+			inner.Examples = exs
+			v.Inner = inner
+			return v, nil
+		}
+	}
+	return nil, fmt.Errorf("-examples: %s cannot take worked examples (use deepseek or both+deepseek)", j.Name())
 }
 
 // crossPath names the saved cross verdicts after the second judge, keeping

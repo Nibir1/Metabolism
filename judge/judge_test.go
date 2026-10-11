@@ -388,3 +388,27 @@ func TestBothOrders(t *testing.T) {
 		t.Fatalf("name %q", n)
 	}
 }
+
+// promptModel records the prompt and answers "a".
+type promptModel struct{ user *string }
+
+func (promptModel) Name() string { return "prompt" }
+func (m promptModel) Complete(_ context.Context, req ports.ModelRequest) (ports.ModelResponse, error) {
+	*m.user = req.User
+	return ports.ModelResponse{Text: `{"better":"a","confidence":0.8,"reason":"r"}`}, nil
+}
+
+// Worked examples go before the pair, with the person's answers.
+func TestLLMJudgeShowsExamples(t *testing.T) {
+	var user string
+	j := LLM{Model: promptModel{&user}, Examples: []Example{
+		{Pair: Pair{Request: "list the targets", PlanA: []string{"read Makefile"}, PlanB: []string{"guess"}}, Better: "a"},
+	}}
+	if _, err := j.ComparePair(context.Background(), Pair{Request: "explain verify", PlanA: []string{"x"}, PlanB: []string{"y"}}); err != nil {
+		t.Fatal(err)
+	}
+	ex, cmp := strings.Index(user, "<examples>"), strings.Index(user, "<comparison>")
+	if ex < 0 || cmp < ex || !strings.Contains(user, "their answer: a") || !strings.Contains(user, "list the targets") {
+		t.Fatalf("prompt:\n%s", user)
+	}
+}
