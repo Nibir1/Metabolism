@@ -389,7 +389,9 @@ Exit criteria:
       negative:** retry level touches 1% of calls; answer-now touches 19%
       but nothing cost-free predicts it (0% saved). Planning mode, a token
       saving, was not part of this measure (D-031, habits.md).
-- [ ] 5b: at least one habit is accepted by live credit (cheaper at cost
+- [ ] 5b: at least one habit is accepted by live credit (no candidate
+      survived measurement: answer-now and retry level in 5a, planning mode
+      2026-10-11, cheaper but about 3.4 points less successful; habits.md) (cheaper at cost
       BF ≥ 30, success not worse), saves at least half the slow-path cost
       on its decision at equal or better outcomes, and beats routing that
       decision to a small model.
@@ -424,9 +426,13 @@ Deliverables:
 
 Exit criteria:
 
-- [ ] Measured transfer on held-out projects or tasks (the C4 bar): on at
+- [x] Measured transfer on held-out projects or tasks (the C4 bar): on at
       least 5 lessons, more help than harm, at least one helping
-      (`audit`, the scorecard's 6.transfer).
+      (`audit`, the scorecard's 6.transfer). **Met 2026-10-11:** 5 lessons
+      learned in Metabolism (and Helix) tested on Helix and typesafe-go
+      requests: 3 helped, 1 harmed (the `todo add` lesson, specific to its
+      projects), 1 undecided. Caveats: synthetic requests, and verdicts from
+      a judge short of Phase 2's bar (D-036).
 
 ## Phase 7: Parametric tier (about 6–8 weeks). C7
 

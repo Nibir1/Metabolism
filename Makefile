@@ -120,7 +120,7 @@ baseline-sim: ## regenerate the synthetic baseline in bench/results/
 # ---------------------------------------------------------------- Helix
 
 collect: build ## gather the evidence for every open exit criterion, then the scorecard (DAYS=n BENCH=n PLANTED=n TRANSFER=n TRAIN=1 FLIP=0|1 LEARN=0 LABEL=0)
-	@DAYS=$(or $(DAYS),0) FLIP=$(or $(FLIP),1) REQUESTS=$(or $(REQUESTS),100) LEARN=$(or $(LEARN),1) LABEL=$(or $(LABEL),1) \
+	@DAYS=$(or $(DAYS),0) FLIP=$(or $(FLIP),0) REQUESTS=$(or $(REQUESTS),100) LEARN=$(or $(LEARN),1) LABEL=$(or $(LABEL),1) \
 		TRANSFER=$(or $(TRANSFER),0) BENCH=$(or $(BENCH),0) TRAIN=$(or $(TRAIN),0) PLANTED=$(or $(PLANTED),0) $(if $(PROJECTS),PROJECTS=$(PROJECTS)) \
 		scripts/collect.sh
 

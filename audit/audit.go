@@ -168,7 +168,11 @@ const (
 	// their κ, measured on at least MinRetest re-labelled pairs.
 	CeilingShare = 0.8
 	MinRetest    = 20
-	Endurance    = 90 * 24 * time.Hour
+	// ThinkingJudgedAt is the flipped turns after which the planning-mode
+	// measurement was judged (2026-10-11, 683 turns): more days do not
+	// change a verdict that did not converge.
+	ThinkingJudgedAt = 600
+	Endurance        = 90 * 24 * time.Hour
 	// MinTransferLessons is how many lessons must be measured on held-out
 	// projects before transfer is judged.
 	MinTransferLessons = 5
@@ -404,6 +408,8 @@ func thinkingCriterion(th bench.Thinking) Criterion {
 		c.Status, c.Next = Met, "the habit itself: decide per request, credited live (5b)"
 	case strings.HasPrefix(th.Verdict, "stop"):
 		c.Status, c.Next = Short, "negative result: write it up beside 5a's"
+	case th.On.Turns+th.Off.Turns >= ThinkingJudgedAt:
+		c.Status, c.Next = Short, "judged negative after the flipped days (habits.md, D-031): cheaper, not shown harmless; no more days needed"
 	default:
 		c.Status, c.Next = Short, fmt.Sprintf("more flipped days: %d off and %d on turns so far, about 100–200 each needed",
 			th.Off.Turns, th.On.Turns)

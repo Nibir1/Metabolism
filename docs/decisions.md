@@ -242,6 +242,13 @@ judges the same two halves as 5a: reasoning ≥ 15% of planner cost, and
 thinking off no more than 5 points worse (P ≥ 0.95) and cheaper. Details in
 habits.md.
 
+**Planning mode judged 2026-10-11: negative.** Six flipped days, 683
+turns: thinking off is 51% cheaper but about 3.4 points less successful
+(94.5% against 97.9%); P(at most 5 points worse) 0.86, never converging on
+0.95. With 5a's two candidates, every Phase 5 cost habit measured in Helix
+has failed its stop condition; the habit compiler is not built for Helix.
+Details in habits.md.
+
 **5a judged 2026-10-07 (five days, decided by the user): the stop
 condition fires for both measured candidates.** Over days 2 to 5 (335
 turns, 1,013 calls, after the native-planner fix) "retry level" touches 1%

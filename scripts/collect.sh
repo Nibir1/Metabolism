@@ -18,7 +18,8 @@
 #
 # Settings (environment or make variables):
 #   DAYS=n       automated days to run first (each ~40 min, off-peak only)
-#   FLIP=0|1     planning-mode coin flip on those days (default 1)
+#   FLIP=0|1     planning-mode coin flip on those days (default 0: measured
+#                and judged 2026-10-11, habits.md)
 #   REQUESTS=n   requests per automated day (default 100)
 #   PROJECTS=a,b where automated days work (default Metabolism, Helix and
 #                typesafe-go: a third project gives transfer somewhere new)
@@ -39,7 +40,7 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 DAYS=${DAYS:-0}
-FLIP=${FLIP:-1}
+FLIP=${FLIP:-0}
 REQUESTS=${REQUESTS:-100}
 PROJECTS=${PROJECTS:-Development/Personal/Metabolism,Development/Personal/Helix,Development/Personal/typesafe-go}
 TRANSFER=${TRANSFER:-0}

@@ -25,7 +25,8 @@ Phase 5 (D-031, docs/habits.md): 5a measured five automated days and came
 back negative for the call-saving habits (retry level touches 1% of calls;
 "answer now" touches 19% but nothing cost-free predicts it). 5c's miner is
 built; guards wait for real use. Planning mode (does the planner need to
-think?) is instrumented: wire v4 tokens and `auto -thinking-flip`.
+think?) was measured over 683 coin-flipped turns and came back negative
+too (51% cheaper, about 3.4 points less successful; habits.md).
 Phases 6 to 9 are built in code (D-032): transfer and procedures, the
 second host (`hosts/coder`), the local trainer (`parametric/`), the
 scorecard (`audit/`). What is left is evidence: `make collect`.
