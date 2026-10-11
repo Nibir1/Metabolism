@@ -197,8 +197,12 @@ if [[ $LABEL == 1 && -t 0 && -f $POOL ]]; then
 fi
 if [[ -f $POOL.labels ]]; then
 	# Agreement for the judge in use: its model re-judges every labelled pair
-	# (D-033). About one call per label, off-peak only.
-	if "$BIN" offpeak >/dev/null; then
+	# (D-033). Two calls per label, so only when the labels changed since the
+	# last measurement, and off-peak.
+	agreement=$POOL.crosscheck.both_llm_deepseek_deepseek-flash
+	if [[ -f $agreement && ! $POOL.labels -nt $agreement ]]; then
+		echo "  • judge agreement unchanged: no new labels since the last measurement"
+	elif "$BIN" offpeak >/dev/null; then
 		measure judge-agreement "$BIN" crosscheck -from "$POOL" -labelled -judge both+deepseek -allow-remote
 	else
 		echo "  • judge agreement not refreshed: peak hours"
