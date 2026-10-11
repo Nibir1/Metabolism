@@ -1,6 +1,7 @@
 package main
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/Nibir1/metabolism/audit"
@@ -38,5 +39,29 @@ func TestPlantedTally(t *testing.T) {
 	}
 	if p := plantedTally([]plantedResult{r}); p.Planted != 3 || p.Rejected != 2 {
 		t.Fatalf("%+v", p)
+	}
+}
+
+// The retest shows labelled pairs swapped, stores answers in the original
+// orientation, and reports agreement: a person who answers the same about
+// the plans (not the letters) agrees with themselves.
+func TestRetestLabels(t *testing.T) {
+	dir := t.TempDir()
+	from := dir + "/c.ndjson"
+	c := comparisonRecord{Lesson: "01a1140000d4e5f6a7b8c9d0e1f7", Episode: "01a1140000d4e5f6a7b8c9d0e1f8",
+		PlanA: []string{"good"}, PlanB: []string{"bad"}, WithIsA: true}
+	var out strings.Builder
+	// Earlier label "a" (the good plan). Shown swapped, the good plan is now
+	// B, and answering "b" is consistent.
+	err := retestLabels(&out, strings.NewReader("b\n"), from, []comparisonRecord{c},
+		map[string]string{string(c.Lesson) + "/" + string(c.Episode): "a"}, 5)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(out.String(), "agreed with yourself on 1 of 1") {
+		t.Fatalf("output:\n%s", out.String())
+	}
+	if i, j := strings.Index(out.String(), "bad"), strings.Index(out.String(), "good"); i < 0 || j < 0 || i > j {
+		t.Fatal("the plans were not shown swapped")
 	}
 }

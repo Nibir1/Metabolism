@@ -89,7 +89,7 @@ if [[ $STAGE == learning && $LEARN == 1 ]]; then
 		# A failed step is reported and the run goes on to the measurements.
 		"$BIN" digest -journal "$REAL" -reflector deepseek -allow-remote -since "$(date -v-7d +%Y-%m-%d)" || echo "digest failed"
 		"$BIN" verify -journal "$REAL" -host helix -helix-bin "$HELIX_BIN" -replay-dir "$HOME" \
-			-judge outcome+deepseek -allow-remote -max 3 -save "$OUT/real-comparisons.ndjson" || echo "verify failed"
+			-judge outcome+both+deepseek -allow-remote -max 3 -save "$OUT/real-comparisons.ndjson" || echo "verify failed"
 		"$BIN" credit -journal "$REAL" -apply || echo "credit failed"
 		if "$BIN" export -journal "$REAL"; then
 			echo "lessons exported to Helix: turn them on in Helix with /lessons on (they are delivered by coin flip)"
@@ -137,7 +137,7 @@ if ((TRANSFER > 0)) && [[ -f $AUTO ]]; then
 	if "$BIN" offpeak; then
 		step "transfer: $TRANSFER lesson(s) on projects they were not learned in (paid replays)"
 		"$BIN" transfer -journal "$AUTO" -host helix -helix-bin "$HELIX_BIN" -replay-dir "$HOME" \
-			-judge outcome+deepseek -allow-remote -max "$TRANSFER" || echo "transfer stopped early"
+			-judge outcome+both+deepseek -allow-remote -max "$TRANSFER" || echo "transfer stopped early"
 	else
 		echo "skipped transfer: peak hours"
 	fi
@@ -198,7 +198,7 @@ if [[ -f $POOL.labels ]]; then
 	# Agreement for the judge in use: its model re-judges every labelled pair
 	# (D-033). About one call per label, off-peak only.
 	if "$BIN" offpeak >/dev/null; then
-		measure judge-agreement "$BIN" crosscheck -from "$POOL" -labelled -judge deepseek -allow-remote
+		measure judge-agreement "$BIN" crosscheck -from "$POOL" -labelled -judge both+deepseek -allow-remote
 	else
 		echo "  • judge agreement not refreshed: peak hours"
 	fi

@@ -352,3 +352,39 @@ func TestSameAnswer(t *testing.T) {
 		}
 	}
 }
+
+// orderBiased always prefers plan A; steady prefers the plan with "good".
+type orderBiased struct{}
+
+func (orderBiased) Name() string { return "biased" }
+func (orderBiased) ComparePair(_ context.Context, p Pair) (types.Verdict, error) {
+	return p.Verdict("a", 0.9, "first"), nil
+}
+
+type steady struct{}
+
+func (steady) Name() string { return "steady" }
+func (steady) ComparePair(_ context.Context, p Pair) (types.Verdict, error) {
+	better := "b"
+	if strings.Contains(strings.Join(p.PlanA, " "), "good") {
+		better = "a"
+	}
+	return p.Verdict(better, 0.8, "content"), nil
+}
+
+// A preference that follows the order becomes a tie; one that follows the
+// plans survives the swap.
+func TestBothOrders(t *testing.T) {
+	ctx := context.Background()
+	pair := Pair{PlanA: []string{"good plan"}, PlanB: []string{"other plan"}, WithIsA: true}
+	if v, _ := (Both{Inner: orderBiased{}}).ComparePair(ctx, pair); v.Prefer != types.PreferNeither {
+		t.Fatalf("an order-biased judge: %+v", v)
+	}
+	v, _ := (Both{Inner: steady{}}).ComparePair(ctx, pair)
+	if v.Prefer != types.PreferWith || !strings.HasPrefix(v.Reason, "both orders") {
+		t.Fatalf("a steady judge: %+v", v)
+	}
+	if n := (Both{Inner: steady{}}).Name(); n != "both+steady" {
+		t.Fatalf("name %q", n)
+	}
+}

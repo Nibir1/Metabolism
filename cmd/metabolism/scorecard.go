@@ -375,6 +375,25 @@ func gatherLabels(path string) (audit.Labels, error) {
 		}
 	}
 	l.Agreement = bench.Score(ls)
+	// The person against themselves (label -retest): the ceiling.
+	if again, err := readNDJSON[labelRecord](path + ".retest"); err == nil {
+		byKey := map[string]comparisonRecord{}
+		for _, c := range comps {
+			byKey[string(c.Lesson)+"/"+string(c.Episode)] = c
+		}
+		var self []bench.Labelled
+		for _, r := range again {
+			k := string(r.Lesson) + "/" + string(r.Episode)
+			c, ok := byKey[k]
+			first, labelled := done[k]
+			if !ok || !labelled {
+				continue
+			}
+			p := judge.Pair{WithIsA: c.WithIsA}
+			self = append(self, bench.Labelled{Human: p.Verdict(first, 1, "").Prefer, Judge: p.Verdict(r.Label, 1, "").Prefer})
+		}
+		l.Self = bench.Score(self)
+	}
 	return l, nil
 }
 
@@ -439,12 +458,12 @@ func cmdPool(_ context.Context, args []string, out io.Writer) error {
 	return nil
 }
 
-// currentJudge is the judge the nutrient test uses (D-024, D-029, D-033),
-// and currentJudgeModel its model, which re-judges labelled pairs to
-// measure it against people (crosscheck -labelled).
+// currentJudge is the judge the nutrient test uses (D-024, D-029, D-033,
+// D-035), and currentJudgeModel its model judge, which re-judges labelled
+// pairs to measure it against people (crosscheck -labelled).
 const (
-	currentJudge      = "outcome+deepseek"
-	currentJudgeModel = "llm:deepseek/deepseek-flash"
+	currentJudge      = "outcome+both+deepseek"
+	currentJudgeModel = "both+llm:deepseek/deepseek-flash"
 )
 
 func pairHash(c comparisonRecord) string {

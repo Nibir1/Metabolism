@@ -180,6 +180,19 @@ func pickJudge(name, model string, r remote) (ports.Judge, error) {
 		}
 		return judge.Outcome{Model: m}, nil
 	}
+	// both+<judge>: ask twice, the plans swapped, and count a winner only
+	// when the answers agree.
+	if inner, ok := strings.CutPrefix(name, "both+"); ok {
+		m, err := pickJudge(inner, model, r)
+		if err != nil {
+			return nil, err
+		}
+		pj, ok := m.(judge.PairJudge)
+		if !ok {
+			return nil, fmt.Errorf("-judge %q: %s cannot be asked about a swapped pair", name, inner)
+		}
+		return judge.Both{Inner: pj}, nil
+	}
 	switch name {
 	case "heuristic":
 		return judge.Heuristic{}, nil
@@ -195,11 +208,11 @@ func pickJudge(name, model string, r remote) (ports.Judge, error) {
 		}
 		return jev.New(model)
 	}
-	return nil, fmt.Errorf("-judge %q is not available (have: heuristic, ollama, deepseek, jev, and outcome+ any of them)", name)
+	return nil, fmt.Errorf("-judge %q is not available (have: heuristic, ollama, deepseek, jev; both+ a model judge; outcome+ any of them)", name)
 }
 
 func isRemote(name string) bool {
-	name = strings.TrimPrefix(name, "outcome+")
+	name = strings.TrimPrefix(strings.TrimPrefix(name, "outcome+"), "both+")
 	return name == "deepseek" || name == "jev"
 }
 

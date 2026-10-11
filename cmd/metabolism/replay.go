@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"slices"
 	"strings"
 	"time"
 
@@ -178,6 +179,7 @@ func cmdLabel(ctx context.Context, args []string, out io.Writer, in io.Reader) e
 	from := fs.String("from", "", "comparisons file written by verify -save (required)")
 	score := fs.Bool("score", false, "score the judge against the labels instead of labelling")
 	redo := fs.Bool("redo", false, "start labelling again; earlier labels are kept in <file>.labels.<time>")
+	retest := fs.Int("retest", 0, "show this many pairs you already labelled again, plans swapped, and report how often you agree with yourself")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
@@ -208,6 +210,9 @@ func cmdLabel(ctx context.Context, args []string, out io.Writer, in io.Reader) e
 	}
 	if *score {
 		return scoreLabels(out, comps, done)
+	}
+	if *retest > 0 {
+		return retestLabels(out, in, *from, comps, done, *retest)
 	}
 
 	f, err := os.OpenFile(labelsPath, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0o600)
@@ -336,4 +341,100 @@ func readNDJSON[T any](path string) ([]T, error) {
 		out = append(out, v)
 	}
 	return out, sc.Err()
+}
+
+// retestLabels shows n pairs the person already labelled again, with the
+// plans swapped so position memory cannot answer, and reports how often the
+// two labels agree: the ceiling any judge can reach against these labels
+// (D-035). Answers are kept in <file>.retest, in the original orientation.
+func retestLabels(out io.Writer, in io.Reader, from string, comps []comparisonRecord, done map[string]string, n int) error {
+	path := from + ".retest"
+	prior, err := readNDJSON[labelRecord](path)
+	if err != nil && !errors.Is(err, os.ErrNotExist) {
+		return err
+	}
+	again := map[string]string{}
+	for _, l := range prior {
+		again[string(l.Lesson)+"/"+string(l.Episode)] = l.Label
+	}
+	var pick []comparisonRecord
+	for _, c := range comps {
+		if _, ok := done[string(c.Lesson)+"/"+string(c.Episode)]; ok {
+			pick = append(pick, c)
+		}
+	}
+	// A fixed order unlike the one they were labelled in.
+	slices.SortFunc(pick, func(a, b comparisonRecord) int {
+		return strings.Compare(pairHash(comparisonRecord{Lesson: a.Lesson + "retest", Episode: a.Episode}),
+			pairHash(comparisonRecord{Lesson: b.Lesson + "retest", Episode: b.Episode}))
+	})
+	if len(pick) > n {
+		pick = pick[:n]
+	}
+	f, err := os.OpenFile(path, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0o600)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = f.Close() }()
+	enc := json.NewEncoder(f)
+	sc := bufio.NewScanner(in)
+	todo := 0
+	for _, c := range pick {
+		if _, ok := again[string(c.Lesson)+"/"+string(c.Episode)]; !ok {
+			todo++
+		}
+	}
+	say(out, "%d pairs you labelled before, shown again with the plans swapped (%d to go). Answer as you would now; earlier answers are not shown.\n", len(pick), todo)
+	i := 0
+	for _, c := range pick {
+		key := string(c.Lesson) + "/" + string(c.Episode)
+		if _, ok := again[key]; ok {
+			continue
+		}
+		i++
+		say(out, "\n━━ %d/%d ━━\nrequest:  %s\noriginal: %s\n\nplan A:\n", i, todo, c.Request, c.Original)
+		for _, l := range c.PlanB {
+			say(out, "  - %s\n", l)
+		}
+		say(out, "plan B:\n")
+		for _, l := range c.PlanA {
+			say(out, "  - %s\n", l)
+		}
+		label := ""
+		for label == "" {
+			say(out, "\nwhich plan better accomplishes the request? [a/b/s(ame)/q(uit)] ")
+			if !sc.Scan() {
+				return sc.Err()
+			}
+			switch strings.ToLower(strings.TrimSpace(sc.Text())) {
+			case "a":
+				label = "b" // shown swapped: this is the original's plan B
+			case "b":
+				label = "a"
+			case "s", "same":
+				label = "same"
+			case "q", "quit":
+				say(out, "saved; run the same command to continue\n")
+				return nil
+			}
+		}
+		if err := enc.Encode(labelRecord{Lesson: c.Lesson, Episode: c.Episode, Label: label, At: time.Now().UTC()}); err != nil {
+			return err
+		}
+		again[key] = label
+	}
+	var ls []bench.Labelled
+	for _, c := range pick {
+		key := string(c.Lesson) + "/" + string(c.Episode)
+		second, ok := again[key]
+		if !ok {
+			continue
+		}
+		p := judge.Pair{WithIsA: c.WithIsA}
+		ls = append(ls, bench.Labelled{Human: p.Verdict(done[key], 1, "").Prefer, Judge: p.Verdict(second, 1, "").Prefer})
+	}
+	a := bench.Score(ls)
+	say(out, "\nyou agreed with yourself on %d of %d pairs (%s), Cohen's κ %.2f.\n", a.Agree, a.N, pct(a.Rate), a.Kappa)
+	say(out, "That is about the most any judge can agree with these labels.\n")
+	return nil
 }

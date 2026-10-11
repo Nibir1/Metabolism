@@ -85,6 +85,9 @@ type Labels struct {
 	Uniform   bool            `json:"uniform"`   // ≥ 90% one letter: unusable
 	Agreement bench.Agreement `json:"agreement"` // the judge against them
 	Judge     string          `json:"judge"`     // which judge was measured
+	// Self is the person against their own earlier labels (label -retest):
+	// how much any judge could agree with these labels.
+	Self bench.Agreement `json:"self_agreement"`
 }
 
 // Evidence is everything the scorecard judges.
@@ -251,6 +254,9 @@ func Evaluate(ev Evidence) Report {
 			Bar: fmt.Sprintf("≥ 80%% agreement on ≥ %d labels", MinLabels),
 			Have: fmt.Sprintf("%s: %d labelled of %d pooled; agreement %.0f%%, κ %.2f",
 				orNone(l.Judge), l.Labelled, l.Pooled, 100*l.Agreement.Rate, l.Agreement.Kappa)}
+		if l.Self.N > 0 {
+			c.Have += fmt.Sprintf("; you agree with yourself on %.0f%% of %d (κ %.2f)", 100*l.Self.Rate, l.Self.N, l.Self.Kappa)
+		}
 		switch {
 		case l.Uniform:
 			c.Status, c.Next = Short, "the labels are ≥ 90% one letter and cannot measure a judge: label again (make collect asks)"
@@ -260,6 +266,8 @@ func Evaluate(ev Evidence) Report {
 			c.Status = Met
 		case l.Labelled < TargetLabels:
 			c.Status, c.Next = Short, fmt.Sprintf("label %d more to narrow the estimate (make collect asks; D-033)", TargetLabels-l.Labelled)
+		case l.Self.N < 20:
+			c.Status, c.Next = Short, "re-label 20 pairs to find the ceiling: bin/metabolism label -from .runs/labels/comparisons.ndjson -retest 20 (D-035)"
 		default:
 			c.Status, c.Next = Short, "improve or replace the judge (D-033)"
 		}

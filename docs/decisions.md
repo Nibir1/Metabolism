@@ -5,6 +5,41 @@ change it. Don't reverse a decision without adding a new entry that says why.
 
 ---
 
+### D-035 · 2026-10-11 · The judge asks both orders; the labeller's own consistency is measured
+
+**Context.** Under D-033 the judge picked a winner in 18 to 23 of 26
+baseline-against-baseline pairs. On the 65 labelled pairs (2026-10-11):
+
+| Judge | Agrees with the labels | κ |
+|---|---|---|
+| outcome+jev (before D-033) | 34% | 0.02 |
+| DeepSeek V4 Pro, once | 43% | 0.14 |
+| DeepSeek Flash, both orders (a winner only when both agree) | 54% | 0.31 |
+| DeepSeek Flash, once (D-033) | 55 to 60% (varies run to run) | 0.33 to 0.40 |
+
+DeepSeek Flash named a different winner when the two plans swapped places
+on 24 of the 65 pairs: over a third of its single verdicts follow the
+order. Where both orders named the same winner (33 pairs), it matched the
+labels on 19 (58%). The stronger model agreed less. Together this says the
+gap to the 80% bar is not only the judge: the labels (one labeller, not an
+expert in every request, some pairs with no clear winner) may be noisy too,
+and no measurement so far separates the two.
+
+**Decision (the user, 2026-10-11).**
+1. The judge is **outcome+both+deepseek**: facts first (D-029, D-033);
+   where the model decides, it is asked with the plans in both orders and
+   a winner counts only when both answers agree, otherwise a tie. It agrees
+   with the labels as well as asking once (54% against 55%) and drops the
+   order-driven verdicts, which should lower the noise floor; the next
+   automated day measures by how much. Two calls per compared pair.
+2. **The labeller's own consistency** is measured: `label -retest 20`
+   shows 20 labelled pairs again, plans swapped, earlier answers hidden,
+   and reports self-agreement. The scorecard shows it beside the judge's.
+   If the labeller agrees with themselves about as often as the judge
+   agrees with them, the 80% bar cannot be met with these labels and that
+   is written up as a Phase 2 finding; if far more often, the judge is the
+   weak part and work on it goes on.
+
 ### D-034 · 2026-10-09 · A lesson must also beat its own losses (a sign test)
 
 **Context.** The first automated day under D-033 (2026-10-09 12:11) showed
