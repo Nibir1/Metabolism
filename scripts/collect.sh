@@ -120,10 +120,14 @@ if ((BENCH > 0)); then
 		if "$BIN" bench -journal "$BENCH_J" -n "$BENCH" -allow-remote; then
 			# The loop on the second host, with the engine's own commands. A
 			# judge is not needed: go test decided each run.
-			"$BIN" digest -journal "$BENCH_J" -reflector deepseek -allow-remote -since "$(date -v-7d +%Y-%m-%d)" || true
+			# At most one new lesson per run, and none about the host's own
+			# machinery (answer format, truncation, provider errors): advice
+			# about those cannot help the model write Go (2026-10-12).
+			"$BIN" digest -journal "$BENCH_J" -reflector deepseek -allow-remote -since "$(date -v-7d +%Y-%m-%d)" \
+				-max 1 -exclude '(?i)(no JSON object|not JSON|finish_reason|read tcp|provider error|HTTP 4[0-9][0-9]|insufficient balance|model write)' || true
 			# Each replay here is a whole solve, sometimes minutes of thinking:
-			# one lesson per run, on a small sample (about 30 solves, not 150).
-			"$BIN" verify -journal "$BENCH_J" -host coder -judge heuristic -allow-remote -max 1 \
+			# three lessons per run, each on a small sample (about 30 solves).
+			"$BIN" verify -journal "$BENCH_J" -host coder -judge heuristic -allow-remote -max 3 \
 				-relevant 6 -regression 4 || true
 			"$BIN" credit -journal "$BENCH_J" -apply || true
 		else

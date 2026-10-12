@@ -13,6 +13,7 @@ package digest
 import (
 	"context"
 	"fmt"
+	"regexp"
 	"strings"
 	"time"
 
@@ -28,6 +29,10 @@ type Config struct {
 	// MaxLessons bounds what one run may record (default 10): a reflector
 	// that floods the metabolome is broken, not insightful.
 	MaxLessons int
+	// Exclude refuses lessons whose text matches it: what a host knows is
+	// about its own machinery, not the task (the coding host's provider
+	// errors and answer formats), so advice about it cannot help the work.
+	Exclude *regexp.Regexp
 }
 
 // Outcome of one proposal.
@@ -88,6 +93,10 @@ func Run(ctx context.Context, m *metabolome.Metabolome, r ports.Reflector, batch
 		lesson, why := shape(p, byID, r.Name())
 		if why != "" {
 			reject(why)
+			continue
+		}
+		if cfg.Exclude != nil && cfg.Exclude.MatchString(lesson.Text) {
+			reject("about the host's own machinery, not the task (-exclude)")
 			continue
 		}
 		if err := immune.Screen(lesson, cfg.Policy); err != nil {

@@ -3,6 +3,7 @@ package digest
 import (
 	"context"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
 	"time"
@@ -162,5 +163,25 @@ func TestPerRunLimit(t *testing.T) {
 	}
 	if res.Recorded != 2 || !strings.Contains(res.Decisions[4].Reason, "per-run limit") {
 		t.Fatalf("limit not enforced: %+v", res)
+	}
+}
+
+// A lesson about the host's own machinery is refused by Exclude; one about
+// the task is recorded.
+func TestExcludeRefusesMachineryLessons(t *testing.T) {
+	_, m, batch := simJournal(t, 60)
+	src := []types.ID{batch[0].Episode.ID}
+	r := scripted{
+		{Kind: types.KindPattern, Scope: types.Scope{Level: types.ScopeGlobal}, Sources: src,
+			Text: "A model write that comes back as not JSON means the answer was cut off."},
+		{Kind: types.KindPattern, Scope: types.Scope{Level: types.ScopeGlobal}, Sources: src,
+			Text: "Check the error type with errors.As before reading its fields."},
+	}
+	res, err := Run(context.Background(), m, r, batch, Config{Exclude: regexp.MustCompile(`(?i)not JSON|finish_reason`)})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.Recorded != 1 || res.Decisions[0].State != "rejected" || !strings.Contains(res.Decisions[0].Reason, "machinery") {
+		t.Fatalf("%+v", res.Decisions)
 	}
 }

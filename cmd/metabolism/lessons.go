@@ -8,6 +8,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"regexp"
 	"slices"
 	"strings"
 	"text/tabwriter"
@@ -237,8 +238,17 @@ func cmdDigest(ctx context.Context, args []string, out io.Writer) error {
 	since := fs.String("since", "", "only episodes started on or after this day (YYYY-MM-DD)")
 	until := fs.String("until", "", "only episodes started before this day (YYYY-MM-DD)")
 	maxLessons := fs.Int("max", 10, "most lessons one run may record")
+	exclude := fs.String("exclude", "", "refuse lessons whose text matches this regular expression (a host's own machinery, not the task)")
 	if err := fs.Parse(args); err != nil {
 		return err
+	}
+	var excludeRe *regexp.Regexp
+	if *exclude != "" {
+		re, err := regexp.Compile(*exclude)
+		if err != nil {
+			return fmt.Errorf("-exclude: %w", err)
+		}
+		excludeRe = re
 	}
 	rem := remote{allowed: *allowRemote, out: out}
 	r, err := pickReflector(*refl, *model, rem)
@@ -269,7 +279,7 @@ func cmdDigest(ctx context.Context, args []string, out io.Writer) error {
 	if isRemote(*refl) {
 		rem.notice("up to 40 of %d episodes (requests and steps, already masked by the host) go to %s", len(batch), r.Name())
 	}
-	res, err := digest.Run(ctx, m, r, batch, digest.Config{MaxLessons: *maxLessons})
+	res, err := digest.Run(ctx, m, r, batch, digest.Config{MaxLessons: *maxLessons, Exclude: excludeRe})
 	if err != nil {
 		return err
 	}
@@ -432,8 +442,13 @@ func cmdLessons(ctx context.Context, args []string, out io.Writer) error {
 	state := fs.String("state", "", "only lessons in this state")
 	id := fs.String("id", "", "show one lesson: its sources, history and evidence")
 	asOf := fs.String("as-of", "", "the lessons as they were at a version (a name from `metabolism versions`, or a record number)")
+	eliminate := fs.String("eliminate", "", "eliminate this lesson by your decision, with -reason (kept in its history; a rollback leaves it alone)")
+	reason := fs.String("reason", "", "why, for -eliminate")
 	if err := fs.Parse(args); err != nil {
 		return err
+	}
+	if *eliminate != "" {
+		return eliminateLesson(ctx, *path, types.ID(*eliminate), *reason, out)
 	}
 	if *state != "" && !types.LessonState(*state).Valid() {
 		return fmt.Errorf("-state %q is not a lesson state", *state)
@@ -616,4 +631,26 @@ func joinIDs(ids []types.ID) string {
 		parts[i] = string(id)
 	}
 	return strings.Join(parts, ", ")
+}
+
+// eliminateLesson records the user's decision to eliminate a lesson. The
+// reason starts like a forget's, so a rollback leaves it alone (D-028).
+func eliminateLesson(ctx context.Context, path string, id types.ID, reason string, out io.Writer) error {
+	if strings.TrimSpace(reason) == "" {
+		return errors.New("-reason is required: it is kept in the lesson's history")
+	}
+	j, err := openExisting(ctx, path)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = j.Close() }()
+	m, err := metabolome.Load(ctx, j)
+	if err != nil {
+		return err
+	}
+	if err := m.Move(ctx, id, types.StateEliminated, metabolome.ReasonUserForget+" (eliminated by hand): "+reason); err != nil {
+		return err
+	}
+	say(out, "eliminated %s: %s\n", id, reason)
+	return nil
 }
