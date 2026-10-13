@@ -3,11 +3,16 @@
 # journal's durability and permissions are platform-sensitive.
 name: CI
 
+# Paused 2026-10-13: the account's GitHub Actions minutes ran out. The
+# workflow runs only when started by hand (Actions → CI → Run workflow).
+# To resume on every push and pull request, put back:
+#   push:
+#     branches: [main]
+#   pull_request:
+#     branches: [main]
+# make check runs the same checks locally.
 on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
+  workflow_dispatch:
 
 permissions:
   contents: read
