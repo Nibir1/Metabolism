@@ -67,7 +67,7 @@ truth for what, why and how.
   | `internal/privacyguard` | test: no network code outside `adapters/remote/` |
   | `internal/hostguard` | test: no engine package depends on a host |
   | `hosts/helixsim` | simulated Helix |
-  | `hosts/coder` | the second host (Phase 8, D-032): a coding agent on a public benchmark's Go exercises, model code run only in a macOS sandbox |
+  | `hosts/coder` | the second host (Phase 8, D-032): a coding agent on a public benchmark's Go exercises, model code run only in a macOS sandbox; its agent is a small local model since D-037 (`.runs/bench-local/`) |
   | `parametric/` | Phase 7: promotion rule, training set, forgetting check, adapter registry with rollback |
   | `hosts/helixuser` | synthetic Helix user: writes a day's requests for `metabolism auto` (D-023) |
   | `mine/` | Phase 5c: recurring failures, sorted into guard candidates (a person pushed back), lesson territory and unattended refusals (D-031) |

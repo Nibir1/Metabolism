@@ -23,8 +23,10 @@
 #   REQUESTS=n   requests per automated day (default 100)
 #   PROJECTS=a,b where automated days work (default Metabolism, Helix and
 #                typesafe-go: a third project gives transfer somewhere new)
-#   BENCH=n      run the second host (a coding agent) on n exercises of the
-#                public benchmark (make bench-setup first; paid, off-peak):
+#   BENCH=n      run the second host (a coding agent, on a small local model)
+#                on n exercises of the public benchmark (make bench-setup and
+#                make trainer-setup first; free but for one lesson-writing
+#                call to DeepSeek, off-peak):
 #                the lessons-off baseline until every exercise has run, then
 #                with lessons, which are digested, tested and credited here
 #   TRAIN=1      Phase 7: consolidate the second host's credited lessons into
@@ -47,7 +49,9 @@ TRANSFER=${TRANSFER:-0}
 BENCH=${BENCH:-0}
 TRAIN=${TRAIN:-0}
 PLANTED=${PLANTED:-0}
-BENCH_J=.runs/bench/journal.db
+# The coding host runs a small local model (free, and with room for lessons
+# to help); .runs/bench/journal.db keeps the earlier DeepSeek runs.
+BENCH_J=.runs/bench-local/journal.db
 LEARN=${LEARN:-1}
 LABEL=${LABEL:-1}
 BIN=bin/metabolism
@@ -115,26 +119,28 @@ if ((DAYS > 0)); then
 fi
 
 if ((BENCH > 0)); then
-	if "$BIN" offpeak; then
-		step "second host: $BENCH benchmark exercise(s) (paid: the agent's model calls)"
-		if "$BIN" bench -journal "$BENCH_J" -n "$BENCH" -allow-remote; then
-			# The loop on the second host, with the engine's own commands. A
-			# judge is not needed: go test decided each run.
-			# At most one new lesson per run, and none about the host's own
-			# machinery (answer format, truncation, provider errors): advice
-			# about those cannot help the model write Go (2026-10-12).
+	step "second host: $BENCH benchmark exercise(s), local model (free; the first run downloads it)"
+	if "$BIN" bench -journal "$BENCH_J" -agent mlx -n "$BENCH" -allow-remote; then
+		# The loop on the second host, with the engine's own commands. A judge
+		# is not needed: go test decided each run. Only the lesson writing
+		# reaches DeepSeek, so only it waits for off-peak. At most one new
+		# lesson per run, and none about the host's own machinery (answer
+		# format, truncation, provider errors): advice about those cannot
+		# help the model write Go (2026-10-12).
+		if "$BIN" offpeak >/dev/null; then
 			"$BIN" digest -journal "$BENCH_J" -reflector deepseek -allow-remote -since "$(date -v-7d +%Y-%m-%d)" \
 				-max 1 -exclude '(?i)(no JSON object|not JSON|finish_reason|read tcp|provider error|HTTP 4[0-9][0-9]|insufficient balance|model write)' || true
-			# Each replay here is a whole solve, sometimes minutes of thinking:
-			# three lessons per run, each on a small sample (about 30 solves).
-			"$BIN" verify -journal "$BENCH_J" -host coder -judge heuristic -allow-remote -max 3 \
-				-relevant 6 -regression 4 || true
-			"$BIN" credit -journal "$BENCH_J" -apply || true
 		else
-			echo "the benchmark run stopped early (make bench-setup first?)"
+			echo "  • no new lesson this run: DeepSeek's peak hours"
 		fi
+		# Each replay is a whole local solve: three lessons per run, each on a
+		# small sample, and never more than about 40 minutes (2026-10-13: one
+		# run without a limit replayed for 17 hours).
+		"$BIN" verify -journal "$BENCH_J" -host coder -agent mlx -judge heuristic -allow-remote -max 3 \
+			-relevant 6 -regression 4 -budget 40m || true
+		"$BIN" credit -journal "$BENCH_J" -apply || true
 	else
-		echo "skipped the benchmark: peak hours"
+		echo "the benchmark run stopped early (make bench-setup and make trainer-setup first?)"
 	fi
 fi
 

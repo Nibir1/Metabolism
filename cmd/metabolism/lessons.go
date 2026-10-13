@@ -5,6 +5,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"github.com/Nibir1/metabolism/adapters/remote/mlx"
 	"io"
 	"os"
 	"path/filepath"
@@ -142,7 +143,7 @@ func pickHost(name, bin, dir string, rounds int, r remote) (ports.Host, error) {
 		if err != nil {
 			return nil, fmt.Errorf("-host coder: %w (make bench-setup)", err)
 		}
-		m, err := pickModel("deepseek", "", r)
+		m, stop, err := coderModel(context.Background(), coderAgent, "", mlx.DefaultBase, r, r.out)
 		if err != nil {
 			return nil, err
 		}
@@ -150,10 +151,23 @@ func pickHost(name, bin, dir string, rounds int, r remote) (ports.Host, error) {
 		for _, ex := range exs {
 			byName[ex.Name] = ex
 		}
-		return coder.Host{Agent: coder.Agent{Model: m}, Exercises: byName}, nil
+		return closingHost{coder.Host{Agent: coder.Agent{Model: m}, Exercises: byName}, stop}, nil
 	}
 	return nil, fmt.Errorf("-host %q is not available (have: sim, helix, coder)", name)
 }
+
+// coderAgent is the coding host's model for replays: it must be the model
+// that made the journal's episodes (verify -agent).
+var coderAgent = "mlx"
+
+// closingHost stops what a host started (the local model's server) when the
+// command is done with it.
+type closingHost struct {
+	ports.Host
+	stop func()
+}
+
+func (h closingHost) Close() error { h.stop(); return nil }
 
 // checkPair refuses combinations that cannot mean anything: the heuristic
 // judge counts failed steps, and a real replay only plans, so nothing failed.
@@ -334,6 +348,8 @@ func cmdVerify(ctx context.Context, args []string, out io.Writer) error {
 	allowRemote := fs.Bool("allow-remote", false, "allow a remote judge to receive replayed plans")
 	only := fs.String("lesson", "", "test one lesson (default: every candidate and quarantined lesson)")
 	maxTest := fs.Int("max", 0, "test at most this many lessons, oldest first (0: all)")
+	fs.StringVar(&coderAgent, "agent", "mlx", "for -host coder: the agent's model, as in metabolism bench (mlx or deepseek)")
+	budget := fs.Duration("budget", 0, "start no new lesson after this long, and stop at 1.5 times it; a test cut off records nothing (0: no limit)")
 	relevantN := fs.Int("relevant", 0, "episodes the lesson is about, replayed per lesson (0: the default, 16)")
 	regressionN := fs.Int("regression", 0, "past successes replayed per lesson (0: the default, 10)")
 	if err := fs.Parse(args); err != nil {
@@ -393,7 +409,18 @@ func cmdVerify(ctx context.Context, args []string, out io.Writer) error {
 	say(tw, "  result\tmove\tW/L/T\tworse/better\tnoise\tlesson\n")
 	skipped := 0
 	var failed []string
-	for _, id := range ids {
+	started := time.Now()
+	if *budget > 0 {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, *budget*3/2)
+		defer cancel()
+	}
+	untested := 0
+	for i, id := range ids {
+		if *budget > 0 && time.Since(started) > *budget {
+			untested = len(ids) - i
+			break
+		}
 		rep, err := v.Test(ctx, m, id)
 		if errors.Is(err, ports.ErrCannotReplay) {
 			e, _ := m.Get(id)
@@ -408,6 +435,12 @@ func cmdVerify(ctx context.Context, args []string, out io.Writer) error {
 			say(tw, "  error\t%s (unchanged)\t-\t-\t-\t%s\n", e.Lesson.State, truncate(e.Lesson.Text, 60))
 			failed = append(failed, fmt.Sprintf("%s: %v", id, err))
 			continue
+		}
+		if err != nil && errors.Is(ctx.Err(), context.DeadlineExceeded) && *budget > 0 {
+			// The hard limit: this lesson's test is cut off and records
+			// nothing; the others wait for the next run.
+			untested = len(ids) - i
+			break
 		}
 		if err != nil {
 			return err
@@ -424,6 +457,9 @@ func cmdVerify(ctx context.Context, args []string, out io.Writer) error {
 			truncate(e.Lesson.Text, 60))
 	}
 	_ = tw.Flush()
+	if untested > 0 {
+		say(out, "\ntime limit (%s) reached: %d lesson(s) left for the next run; a test cut off records nothing\n", *budget, untested)
+	}
 	say(out, "\njudge: %s · W/L/T on the episodes a lesson is about; worse/better on past successes; noise = decisive baseline-vs-baseline pairs (D-018)\n", jd.Name())
 	say(out, "details: metabolism lessons -id <ID>\n")
 	if skipped > 0 {

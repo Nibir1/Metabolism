@@ -34,7 +34,7 @@ var defaultTrainDir = filepath.Join(".runs", "train")
 func cmdTrain(ctx context.Context, args []string, out io.Writer) error {
 	fs := flag.NewFlagSet("train", flag.ContinueOnError)
 	fs.SetOutput(out)
-	path := fs.String("journal", filepath.Join(".runs", "bench", "journal.db"), "the second host's journal (where the lessons were credited)")
+	path := fs.String("journal", benchLocalJournal, "the coding host's journal with the local agent (where the lessons were credited)")
 	dir := fs.String("exercises", defaultExercises, "the benchmark's exercises")
 	base := fs.String("base", mlx.DefaultBase, "the small local model to train (an MLX model on Hugging Face)")
 	py := fs.String("python", mlx.DefaultPython, "the trainer environment's Python (make trainer-setup)")

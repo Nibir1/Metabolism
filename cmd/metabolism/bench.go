@@ -5,12 +5,16 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"github.com/Nibir1/metabolism/adapters/remote/llm"
+	"github.com/Nibir1/metabolism/adapters/remote/mlx"
+	"github.com/Nibir1/metabolism/ports"
 	"hash/fnv"
 	"io"
 	"math/rand/v2"
 	"os"
 	"path/filepath"
 	"slices"
+	"strings"
 	"time"
 
 	"github.com/Nibir1/metabolism/adapters/journal/sqlite"
@@ -34,13 +38,15 @@ var defaultExercises = filepath.Join(".runs", "bench", "polyglot-benchmark", "go
 func cmdBench(ctx context.Context, args []string, out io.Writer) error {
 	fs := flag.NewFlagSet("bench", flag.ContinueOnError)
 	fs.SetOutput(out)
-	path := fs.String("journal", filepath.Join(".runs", "bench", "journal.db"), "the second host's journal")
+	path := fs.String("journal", benchLocalJournal, "the second host's journal (one per agent model)")
+	agentName := fs.String("agent", "mlx", "the agent's model: mlx (a small local model, free) or deepseek")
+	base := fs.String("base", mlx.DefaultBase, "for -agent mlx: the local model")
 	dir := fs.String("exercises", defaultExercises, "the benchmark's Go exercises (make bench-setup)")
 	n := fs.Int("n", 10, "exercises this run: the least-run first")
 	lessonsMode := fs.String("lessons", "auto", "deliver the journal's tested lessons by coin flip: on, off (the learning-off baseline), "+
 		"or auto: off until every exercise has a baseline run, then on")
-	model := fs.String("model", "", "DeepSeek model (default: deepseek-flash)")
-	allowRemote := fs.Bool("allow-remote", false, "allow the agent's model calls (each exercise's instructions and code go to DeepSeek)")
+	model := fs.String("model", "", "for -agent deepseek: the DeepSeek model (default: deepseek-flash)")
+	allowRemote := fs.Bool("allow-remote", false, "allow remote calls: DeepSeek for -agent deepseek; the local model's first download from Hugging Face")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
@@ -49,11 +55,11 @@ func cmdBench(ctx context.Context, args []string, out io.Writer) error {
 		return fmt.Errorf("%w (make bench-setup downloads the benchmark)", err)
 	}
 	rem := remote{allowed: *allowRemote, out: out}
-	m0, err := pickModel("deepseek", *model, rem)
+	m0, stop, err := coderModel(ctx, *agentName, *model, *base, rem, out)
 	if err != nil {
 		return err
 	}
-	rem.notice("each exercise's instructions, stub and test output go to %s; its code runs only in a sandboxed copy", m0.Name())
+	defer stop()
 	if err := os.MkdirAll(filepath.Dir(*path), 0o700); err != nil {
 		return err
 	}
@@ -65,6 +71,13 @@ func cmdBench(ctx context.Context, args []string, out io.Writer) error {
 	ds, err := bench.Load(ctx, j)
 	if err != nil {
 		return err
+	}
+	// One journal, one agent: a baseline from one model and lessons tested
+	// on another would compare nothing.
+	for _, ep := range ds.Episodes {
+		if a := ep.Attrs["agent"]; a != m0.Name() && (a != "" || !strings.HasPrefix(m0.Name(), "deepseek/")) {
+			return fmt.Errorf("%s holds runs by %s; use a separate -journal for %s", *path, orDash(a), m0.Name())
+		}
 	}
 	runs := map[string]int{}
 	baseline := map[string]bool{}
@@ -139,6 +152,7 @@ func cmdBench(ctx context.Context, args []string, out io.Writer) error {
 			return fmt.Errorf("%s: %w", ex.Name, err)
 		}
 		ep, o := coder.Episode(ex, res, sel.Delivered, sel.Withheld, started, time.Now())
+		ep.Attrs["agent"] = m0.Name()
 		if err := j.AppendEpisode(ctx, ep); err != nil {
 			return err
 		}
@@ -161,4 +175,33 @@ func hashName(s string) uint64 {
 	h := fnv.New64a()
 	_, _ = h.Write([]byte(s))
 	return h.Sum64()
+}
+
+// benchLocalJournal is the coding host's journal with the local agent
+// (2026-10-13); .runs/bench/journal.db keeps the DeepSeek runs.
+var benchLocalJournal = filepath.Join(".runs", "bench-local", "journal.db")
+
+// coderModel is the coding agent's model: a local MLX server (started here,
+// stopped by stop) or DeepSeek.
+func coderModel(ctx context.Context, agent, model, base string, rem remote, out io.Writer) (ports.Model, func(), error) {
+	switch agent {
+	case "deepseek":
+		m, err := pickModel("deepseek", model, rem)
+		if err != nil {
+			return nil, nil, err
+		}
+		rem.notice("each exercise's instructions, stub and test output go to %s; its code runs only in a sandboxed copy", m.Name())
+		return m, func() {}, nil
+	case "mlx":
+		if err := rem.require("the local model's first download", "huggingface.co (once; nothing about the exercises is sent)"); err != nil {
+			return nil, nil, err
+		}
+		say(out, "starting the local model %s (the first time downloads it, about 2 GB)…\n", base)
+		url, stop, err := (mlx.Server{Base: base}).Start(ctx)
+		if err != nil {
+			return nil, nil, fmt.Errorf("%w (make trainer-setup)", err)
+		}
+		return llm.OpenAI{Provider: "mlx", BaseURL: url, Model: base, APIKey: "local"}, stop, nil
+	}
+	return nil, nil, fmt.Errorf("-agent %q: want mlx or deepseek", agent)
 }

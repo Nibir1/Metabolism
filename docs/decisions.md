@@ -5,6 +5,39 @@ change it. Don't reverse a decision without adding a new entry that says why.
 
 ---
 
+### D-037 · 2026-10-13 · The coding host learns on a small local model; the nutrient test has a time limit
+
+**Context.** On the second host with DeepSeek as the agent, the benchmark
+baseline passed 91% of the exercises (after the six runs lost to an empty
+balance were forgotten). Every lesson the nutrient test judged there came
+back inconclusive, mostly all ties: with or without a lesson, DeepSeek
+passes or fails an exercise the same way, so a lesson cannot show. Testing
+was also expensive in time and money: each replay is a whole solve, some
+with minutes of reasoning, and one run without a limit replayed for 17
+hours (2026-10-12/13), partly at peak price, and recorded one result.
+**A negative result:** with DeepSeek near the ceiling of this benchmark,
+the coding host cannot show lessons helping, and Phase 7 has nothing to
+consolidate from it. The DeepSeek runs stay in `.runs/bench/journal.db`;
+they met the public benchmark baseline and the second-host criterion.
+
+**Decision (the user, 2026-10-13).**
+1. The coding agent runs on a small local model, Qwen2.5-Coder-3B through
+   MLX (`metabolism bench -agent mlx`, the default): free per exercise,
+   with room for lessons to help, and the model Phase 7 trains, so lessons
+   are learned and consolidated on one model. Its runs go to their own
+   journal (`.runs/bench-local/`), with a fresh baseline; a journal refuses
+   episodes from a second agent. Replays use the same model
+   (`verify -host coder -agent mlx`).
+2. `verify -budget`: no new lesson is started after the budget, and the run
+   stops at 1.5 times it; a test cut off records nothing. `make collect`
+   gives the coding host 40 minutes.
+3. Only the lesson writing (one DeepSeek call a run) waits for off-peak;
+   the local work runs at any hour the user is at the machine.
+
+**What would change it.** A local model too weak to pass anything (no room
+the other way), or lessons written by DeepSeek that a 3B model cannot use;
+then a larger local model, or the reflector local too.
+
 ### D-036 · 2026-10-11 · The judge is measured against the labeller's own consistency; worked examples do not help
 
 **Context.** The labeller re-labelled 20 pairs blind with the plans swapped
