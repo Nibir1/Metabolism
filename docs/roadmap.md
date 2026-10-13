@@ -461,7 +461,11 @@ against text lessons on the held-out half, pass rate and prompt size) and an
 append-only adapter registry with rollback. `metabolism train` runs it all
 and exercises the rollback; `metabolism adapter` lists, uses or rolls back.
 Not built: serving an adapter to Helix as a provider; that waits on an
-adapter that passes.
+adapter that passes. **Stopped 2026-10-13 (D-037):** on the coding host no
+model in reach lands between the floor and the ceiling (DeepSeek 91%; local
+3B and 7B 3 to 5%, tests hidden or shown), so there are no credited lessons
+to consolidate; the trainer is untested on real lessons and waits on real
+Helix use.
 
 Exit criteria:
 

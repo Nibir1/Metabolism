@@ -57,6 +57,25 @@ mixes the two. These numbers are not comparable with Aider's leaderboard.
 If this baseline also lands at the floor or the ceiling, the coding host's
 learning is written up as a negative result and the 7B model deleted.
 
+**Stopped 2026-10-13: a negative result.** With the tests visible the 7B
+model passed 1 of 39 (3%): fewer compile errors, but wrong answers. On this
+benchmark the agents measured sit at the ceiling or the floor:
+
+| Agent | Tests | Passed |
+|---|---|---|
+| DeepSeek V4.1 Flash | hidden | 91% (the earlier lesson tests all inconclusive) |
+| Qwen2.5-Coder-3B, local | hidden | 3% |
+| Qwen2.5-Coder-7B, local | hidden | 5% |
+| Qwen2.5-Coder-7B, local | visible | 3% |
+
+No affordable model lands in between, where a lesson could change an
+exercise's outcome, so the coding host's learning stops and Phase 7 has no
+credited lessons to consolidate from it. The second host already met what
+it was for (the public benchmark baseline, and the loop running with no
+engine changes). Phase 7 waits on real Helix use, or a benchmark nearer a
+local model's level. The runs are kept in `.runs/bench-local/`, each
+labelled; the 7B model was deleted from the cache.
+
 ### D-036 · 2026-10-11 · The judge is measured against the labeller's own consistency; worked examples do not help
 
 **Context.** The labeller re-labelled 20 pairs blind with the plans swapped

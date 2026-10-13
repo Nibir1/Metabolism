@@ -444,7 +444,7 @@ func retentionCriterion(rt *Retention) Criterion {
 		c.Status, c.Have, c.Next = Unbuilt, "not built", "Phase 7 (D-032: local MLX)"
 	case !rt.Trained:
 		c.Status, c.Have, c.Next = Waiting, "no adapter trained",
-			"make trainer-setup once, then make collect TRAIN=1 (it needs lessons accepted and credited on the second host)"
+			"no credited lessons to consolidate: the coding host's learning stopped (D-037, no model in range); waits on real Helix use"
 	default:
 		c.Have = fmt.Sprintf("retained %.0f%% of %d old tasks; gain vs text %+.1f points at %.0f%% of the tokens; rollback %s",
 			100*rt.Retained, rt.OldTasks, 100*rt.GainVsText, 100*rt.TokensVsText, yesNo(rt.RolledBack, "works", "untested"))
