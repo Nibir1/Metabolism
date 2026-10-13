@@ -151,7 +151,7 @@ func pickHost(name, bin, dir string, rounds int, r remote) (ports.Host, error) {
 		for _, ex := range exs {
 			byName[ex.Name] = ex
 		}
-		return closingHost{coder.Host{Agent: coder.Agent{Model: m, MaxTokens: maxTokens}, Exercises: byName}, stop}, nil
+		return closingHost{coder.Host{Agent: coder.Agent{Model: m, MaxTokens: maxTokens, ShowTests: showTests(coderAgent)}, Exercises: byName}, stop}, nil
 	}
 	return nil, fmt.Errorf("-host %q is not available (have: sim, helix, coder)", name)
 }

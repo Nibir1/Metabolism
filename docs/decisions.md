@@ -46,6 +46,17 @@ Qwen2.5-Coder-7B (4-bit), the next size up; the 3B runs are kept as their
 own baseline in `.runs/bench-local/qwen-3b-2026-10-13`, and the 3B model
 was deleted from the cache at the user's request.
 
+**Changed again 2026-10-13: the agent sees the tests.** The 7B model, tests
+hidden as in Aider's rules, passed 2 of 39 (5%), again mostly code that did
+not compile: it guessed names and error values only the tests define.
+Without the tests a model that fits here sits at the floor, and DeepSeek at
+the ceiling (91%); neither leaves lessons room. The local agent now gets
+the test files, read-only, beside the stub; runs with and without lessons
+use the same setting, and episodes are labelled "+tests" so a journal never
+mixes the two. These numbers are not comparable with Aider's leaderboard.
+If this baseline also lands at the floor or the ceiling, the coding host's
+learning is written up as a negative result and the 7B model deleted.
+
 ### D-036 · 2026-10-11 · The judge is measured against the labeller's own consistency; worked examples do not help
 
 **Context.** The labeller re-labelled 20 pairs blind with the plans swapped

@@ -75,8 +75,8 @@ func cmdBench(ctx context.Context, args []string, out io.Writer) error {
 	// One journal, one agent: a baseline from one model and lessons tested
 	// on another would compare nothing.
 	for _, ep := range ds.Episodes {
-		if a := ep.Attrs["agent"]; a != m0.Name() && (a != "" || !strings.HasPrefix(m0.Name(), "deepseek/")) {
-			return fmt.Errorf("%s holds runs by %s; use a separate -journal for %s", *path, orDash(a), m0.Name())
+		if a, want := ep.Attrs["agent"], agentLabel(m0.Name(), *agentName); a != want && (a != "" || !strings.HasPrefix(want, "deepseek/")) {
+			return fmt.Errorf("%s holds runs by %s; use a separate -journal for %s", *path, orDash(a), want)
 		}
 	}
 	runs := map[string]int{}
@@ -134,7 +134,7 @@ func cmdBench(ctx context.Context, args []string, out io.Writer) error {
 		file = deliver.Build(m, book.Lessons, time.Now())
 	}
 	host := coder.Host{}.Describe()
-	agent := coder.Agent{Model: m0, MaxTokens: maxTokens}
+	agent := coder.Agent{Model: m0, MaxTokens: maxTokens, ShowTests: showTests(*agentName)}
 	passed := 0
 	say(out, "second host: %d exercise(s) · lessons %s (%d deliverable)\n", len(exs), map[bool]string{true: "on", false: "off (the baseline)"}[lessonsOn], len(file.Lessons))
 	for i, ex := range exs {
@@ -152,7 +152,7 @@ func cmdBench(ctx context.Context, args []string, out io.Writer) error {
 			return fmt.Errorf("%s: %w", ex.Name, err)
 		}
 		ep, o := coder.Episode(ex, res, sel.Delivered, sel.Withheld, started, time.Now())
-		ep.Attrs["agent"] = m0.Name()
+		ep.Attrs["agent"] = agentLabel(m0.Name(), *agentName)
 		if err := j.AppendEpisode(ctx, ep); err != nil {
 			return err
 		}
@@ -180,6 +180,19 @@ func hashName(s string) uint64 {
 // benchLocalJournal is the coding host's journal with the local agent
 // (2026-10-13); .runs/bench/journal.db keeps the DeepSeek runs.
 var benchLocalJournal = filepath.Join(".runs", "bench-local", "journal.db")
+
+// showTests is whether the agent sees the exercise's tests: the local model
+// does (it sits at the floor without them, D-037); DeepSeek's runs did not.
+func showTests(agent string) bool { return agent == "mlx" }
+
+// agentLabel names the agent and its setting in each episode, so a journal
+// never mixes runs that saw the tests with runs that did not.
+func agentLabel(model, agent string) string {
+	if showTests(agent) {
+		return model + "+tests"
+	}
+	return model
+}
 
 // localMaxTokens bounds a local model's answers: MLX's server stops at 512
 // tokens by default, which cut most solutions off (2026-10-13).

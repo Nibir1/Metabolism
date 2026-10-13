@@ -179,3 +179,20 @@ func TestPassingFirstAttemptYieldsAnExample(t *testing.T) {
 		t.Fatalf("the lessons should make the prompt longer: %d vs %d", res.PromptChars, len(e.System)+len(e.User))
 	}
 }
+
+// The test files reach the prompt only with ShowTests, marked read-only.
+func TestShowTests(t *testing.T) {
+	needSandbox(t)
+	ex := exercises(t)["greeting"]
+	for _, show := range []bool{false, true} {
+		model := &scripted{replies: []string{files("greeting.go", right)}}
+		if _, err := (Agent{Model: model, ShowTests: show, Runner: Sandbox{CacheDir: t.TempDir()}}).Solve(context.Background(), ex, nil); err != nil {
+			t.Fatal(err)
+		}
+		has := strings.Contains(model.prompts[0], `<test file="greeting_test.go" read-only="true">`) &&
+			strings.Contains(model.prompts[0], `Hello("Ada")`)
+		if has != show {
+			t.Fatalf("ShowTests=%v: tests in prompt %v\n%s", show, has, model.prompts[0])
+		}
+	}
+}
