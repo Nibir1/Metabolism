@@ -22,9 +22,10 @@ import (
 	"github.com/Nibir1/metabolism/ports"
 )
 
-// DefaultBase is a small instruction-tuned coding model, 4-bit, that trains
-// in minutes on Apple Silicon.
-const DefaultBase = "mlx-community/Qwen2.5-Coder-3B-Instruct-4bit"
+// DefaultBase is an instruction-tuned coding model, 4-bit, small enough to
+// run and train on this machine. The 3B model passed 1 of the 39 exercises
+// and left lessons no room (D-037); the 7B is the next size up.
+const DefaultBase = "mlx-community/Qwen2.5-Coder-7B-Instruct-4bit"
 
 // DefaultPython is the trainer environment's interpreter.
 const DefaultPython = ".runs/trainer/venv/bin/python"

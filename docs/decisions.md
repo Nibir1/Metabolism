@@ -21,7 +21,7 @@ consolidate from it. The DeepSeek runs stay in `.runs/bench/journal.db`;
 they met the public benchmark baseline and the second-host criterion.
 
 **Decision (the user, 2026-10-13).**
-1. The coding agent runs on a small local model, Qwen2.5-Coder-3B through
+1. The coding agent runs on a small local model (first Qwen2.5-Coder-3B, now 7B; below) through
    MLX (`metabolism bench -agent mlx`, the default): free per exercise,
    with room for lessons to help, and the model Phase 7 trains, so lessons
    are learned and consolidated on one model. Its runs go to their own
@@ -37,6 +37,14 @@ they met the public benchmark baseline and the second-host criterion.
 **What would change it.** A local model too weak to pass anything (no room
 the other way), or lessons written by DeepSeek that a 3B model cannot use;
 then a larger local model, or the reflector local too.
+
+**Changed 2026-10-13: the 3B model was too weak.** Its baseline passed 1 of
+39 exercises (3%), mostly code that did not compile (after a first run lost
+to the answer format: MLX's 512-token default and code inside JSON; fixed
+with a 4096-token bound and a plain code block). The agent is now
+Qwen2.5-Coder-7B (4-bit), the next size up; the 3B runs are kept as their
+own baseline in `.runs/bench-local/qwen-3b-2026-10-13`, and the 3B model
+was deleted from the cache at the user's request.
 
 ### D-036 · 2026-10-11 · The judge is measured against the labeller's own consistency; worked examples do not help
 

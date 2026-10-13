@@ -143,7 +143,7 @@ func pickHost(name, bin, dir string, rounds int, r remote) (ports.Host, error) {
 		if err != nil {
 			return nil, fmt.Errorf("-host coder: %w (make bench-setup)", err)
 		}
-		m, stop, err := coderModel(context.Background(), coderAgent, "", mlx.DefaultBase, r, r.out)
+		m, maxTokens, stop, err := coderModelBound(context.Background(), coderAgent, "", mlx.DefaultBase, r, r.out)
 		if err != nil {
 			return nil, err
 		}
@@ -151,7 +151,7 @@ func pickHost(name, bin, dir string, rounds int, r remote) (ports.Host, error) {
 		for _, ex := range exs {
 			byName[ex.Name] = ex
 		}
-		return closingHost{coder.Host{Agent: coder.Agent{Model: m}, Exercises: byName}, stop}, nil
+		return closingHost{coder.Host{Agent: coder.Agent{Model: m, MaxTokens: maxTokens}, Exercises: byName}, stop}, nil
 	}
 	return nil, fmt.Errorf("-host %q is not available (have: sim, helix, coder)", name)
 }

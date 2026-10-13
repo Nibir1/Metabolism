@@ -55,7 +55,7 @@ func cmdBench(ctx context.Context, args []string, out io.Writer) error {
 		return fmt.Errorf("%w (make bench-setup downloads the benchmark)", err)
 	}
 	rem := remote{allowed: *allowRemote, out: out}
-	m0, stop, err := coderModel(ctx, *agentName, *model, *base, rem, out)
+	m0, maxTokens, stop, err := coderModelBound(ctx, *agentName, *model, *base, rem, out)
 	if err != nil {
 		return err
 	}
@@ -134,7 +134,7 @@ func cmdBench(ctx context.Context, args []string, out io.Writer) error {
 		file = deliver.Build(m, book.Lessons, time.Now())
 	}
 	host := coder.Host{}.Describe()
-	agent := coder.Agent{Model: m0}
+	agent := coder.Agent{Model: m0, MaxTokens: maxTokens}
 	passed := 0
 	say(out, "second host: %d exercise(s) · lessons %s (%d deliverable)\n", len(exs), map[bool]string{true: "on", false: "off (the baseline)"}[lessonsOn], len(file.Lessons))
 	for i, ex := range exs {
@@ -181,9 +181,24 @@ func hashName(s string) uint64 {
 // (2026-10-13); .runs/bench/journal.db keeps the DeepSeek runs.
 var benchLocalJournal = filepath.Join(".runs", "bench-local", "journal.db")
 
-// coderModel is the coding agent's model: a local MLX server (started here,
-// stopped by stop) or DeepSeek.
-func coderModel(ctx context.Context, agent, model, base string, rem remote, out io.Writer) (ports.Model, func(), error) {
+// localMaxTokens bounds a local model's answers: MLX's server stops at 512
+// tokens by default, which cut most solutions off (2026-10-13).
+const localMaxTokens = 4096
+
+// coderModelBound is coderModel with the answer bound the agent should use
+// (0: the provider's own).
+func coderModelBound(ctx context.Context, agent, model, base string, rem remote, out io.Writer) (ports.Model, int, func(), error) {
+	if agent == "mlx" {
+		m, stop, err := coderModelRaw(ctx, agent, model, base, rem, out)
+		return m, localMaxTokens, stop, err
+	}
+	m, stop, err := coderModelRaw(ctx, agent, model, base, rem, out)
+	return m, 0, stop, err
+}
+
+// coderModelRaw is the coding agent's model: a local MLX server (started
+// here, stopped by stop) or DeepSeek.
+func coderModelRaw(ctx context.Context, agent, model, base string, rem remote, out io.Writer) (ports.Model, func(), error) {
 	switch agent {
 	case "deepseek":
 		m, err := pickModel("deepseek", model, rem)
@@ -196,7 +211,7 @@ func coderModel(ctx context.Context, agent, model, base string, rem remote, out 
 		if err := rem.require("the local model's first download", "huggingface.co (once; nothing about the exercises is sent)"); err != nil {
 			return nil, nil, err
 		}
-		say(out, "starting the local model %s (the first time downloads it, about 2 GB)…\n", base)
+		say(out, "starting the local model %s (the first time downloads it, about 4.5 GB)…\n", base)
 		url, stop, err := (mlx.Server{Base: base}).Start(ctx)
 		if err != nil {
 			return nil, nil, fmt.Errorf("%w (make trainer-setup)", err)

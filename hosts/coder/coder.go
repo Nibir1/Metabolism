@@ -103,8 +103,11 @@ func loadOne(dir string) (Exercise, error) {
 // Agent solves exercises with a model.
 type Agent struct {
 	Model    ports.Model
-	Attempts int           // default 2: one try, one with the test output
-	Timeout  time.Duration // per go test run, default 2 minutes
+	Attempts int // default 2: one try, one with the test output
+	// MaxTokens bounds each answer (0: the provider's own limit). A local
+	// server's default is small (MLX: 512), which cut most answers off.
+	MaxTokens int
+	Timeout   time.Duration // per go test run, default 2 minutes
 	// Runner runs the tests in a prepared copy; the default is the sandbox.
 	Runner Runner
 }
@@ -143,6 +146,22 @@ const system = `You are a coding agent solving a programming exercise in Go. You
 Answer with one JSON object and nothing else: {"files":{"<file name>":"<the complete new content of that file>"}}.
 Write only the files you are given. Use only the Go standard library. Do not change the package name. Never write tests.`
 
+// systemOne is the prompt for an exercise with one solution file: the
+// answer is a plain Go code block. A small model often cannot escape code
+// inside JSON (the first local run, 2026-10-13: most answers unparseable).
+const systemOne = `You are a coding agent solving a programming exercise in Go. You will get the exercise's instructions and the current content of the file you may change.
+
+Answer with the complete new content of that file in one Go code block (three backquotes and go), and nothing else.
+Use only the Go standard library. Do not change the package name. Never write tests.`
+
+// systemFor is the prompt for ex.
+func systemFor(ex Exercise) (string, bool) {
+	if len(ex.Solution) == 1 {
+		return systemOne, false
+	}
+	return system, true
+}
+
 // Solve runs the agent on ex with lessons in its prompt.
 func (a Agent) Solve(ctx context.Context, ex Exercise, lessons []types.Lesson) (Result, error) {
 	attempts := a.Attempts
@@ -179,15 +198,17 @@ func (a Agent) Solve(ctx context.Context, ex Exercise, lessons []types.Lesson) (
 			return res, err
 		}
 		if round == 1 {
-			res.PromptChars = len(system) + len(user)
+			sys, _ := systemFor(ex)
+			res.PromptChars = len(sys) + len(user)
 		}
 		// No completion bound: a reasoning model thinks before it answers,
 		// and a bound of 8000 tokens cut most answers off before the code
 		// (the first benchmark run, 2026-10-08: 14 of 20 attempts empty or
 		// truncated). The provider's own limit applies.
-		resp, err := a.Model.Complete(ctx, ports.ModelRequest{System: system, User: user, JSON: true})
+		sys, asJSON := systemFor(ex)
+		resp, err := a.Model.Complete(ctx, ports.ModelRequest{System: sys, User: user, JSON: asJSON, MaxTokens: a.MaxTokens})
 		res.Usage.ModelCalls++
-		res.Usage.InputChars += len(system) + len(user)
+		res.Usage.InputChars += len(sys) + len(user)
 		res.Usage.OutputChars += len(resp.Text)
 		if err != nil {
 			if ctx.Err() != nil {
@@ -204,7 +225,7 @@ func (a Agent) Solve(ctx context.Context, ex Exercise, lessons []types.Lesson) (
 			// truncated answer is told apart from a wrong one.
 			write.Err = clip(perr.Error()+"; "+resp.Describe(), 200)
 			res.Steps = append(res.Steps, write)
-			feedback = "Your last answer could not be used: " + perr.Error() + ". Answer with the JSON object only."
+			feedback = "Your last answer could not be used: " + perr.Error() + ". Answer in the format asked for, and nothing else."
 			continue
 		}
 		for name, content := range files {
@@ -229,7 +250,8 @@ func (a Agent) Solve(ctx context.Context, ex Exercise, lessons []types.Lesson) (
 				if err != nil {
 					return res, err
 				}
-				res.Example = &Example{Exercise: ex.Name, System: system, User: bare, Answer: resp.Text}
+				sys, _ := systemFor(ex)
+				res.Example = &Example{Exercise: ex.Name, System: sys, User: bare, Answer: resp.Text}
 			}
 			break
 		}
@@ -265,14 +287,17 @@ func (a Agent) prompt(ex Exercise, work string, lessons []types.Lesson, feedback
 // small model often cannot escape code inside JSON; with one solution file,
 // a fenced Go block is accepted instead.
 func parseFiles(text string, allowed []string) (map[string]string, error) {
+	if len(allowed) == 1 {
+		if code, ok := fencedGo(text); ok {
+			return map[string]string{allowed[0]: code}, nil
+		}
+	}
 	files, err := parseJSONFiles(text, allowed)
 	if err == nil {
 		return files, nil
 	}
 	if len(allowed) == 1 {
-		if code, ok := fencedGo(text); ok {
-			return map[string]string{allowed[0]: code}, nil
-		}
+		return nil, errors.New("no Go code block (and " + err.Error() + ")")
 	}
 	return nil, err
 }
@@ -303,7 +328,7 @@ func parseJSONFiles(text string, allowed []string) (map[string]string, error) {
 
 // fencedGo returns the first ```go block that declares a package.
 func fencedGo(text string) (string, bool) {
-	for _, fence := range []string{"```go\n", "```golang\n"} {
+	for _, fence := range []string{"```go\n", "```golang\n", "```\n"} {
 		rest := text
 		for {
 			i := strings.Index(rest, fence)
