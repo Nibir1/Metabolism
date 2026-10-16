@@ -72,14 +72,15 @@ Helix turn
                                                                           │
 later: /undo, declined confirmations, repeated request ── late Outcome ──▶│
                                                                           ▼
-by hand, for now: ingest → digest → verify (Helix plan-only replay) → credit -apply → export
+make collect, when the user starts it: ingest → digest → verify (Helix plan-only replay) → credit -apply → export
 ```
 
 Built: recording (episodes and late outcomes into a local NDJSON file, read
 by `metabolism ingest`), replay (`helix replay`, driven by `metabolism verify
 -host helix`), and delivery (`metabolism export` → `lessons.json` → the
-fenced block in live turns, with `/lessons on`). Not built: running the slow
-stages automatically; the user runs them by hand.
+fenced block in live turns, with `/lessons on`). The slow stages run when
+the user starts `make collect` (D-032): on a work machine nothing runs on a
+schedule or unattended.
 
 ## Changes on the Helix side
 
@@ -98,7 +99,8 @@ delivery).
 | 7 | `/doctor` shows the engine's status | not built in Helix; `metabolism doctor` reports recording, delivery and the journal |
 
 Changes 1 and 2 are a recorder that writes NDJSON (wire v2 since Phase 3, v3
-with decision records since Phase 5a, D-031)
+with decision records since Phase 5a, v4 with the provider's reported tokens
+and the planning-mode arm since 2026-10-08, D-031)
 rather than calling the engine (D-013). Change 3 in live turns reads a file
 the engine writes (D-019). What was built:
 
@@ -144,7 +146,7 @@ The user's own workflow:
   from `-replay-dir` rather than the original directory, and without RAG
   (D-017).
 
-### The planned changes in detail
+### The changes in detail (all built)
 
 1. **Episode emission** (built). At the end of each planner turn and agentic run, build
    an Episode from the request, provenance, lesson IDs in context (the
@@ -242,7 +244,8 @@ real config, recorded and ingested into a scratch journal.
 45 requests submitted through the Helix daemon (`helix remote submit`), with
 recording on, then ingested into a separate journal,
 `.demo/helix-driven.db` (since lost: see `bench/results/README.md`). The
-requests were written by Claude, not the user, so
+requests were written by the coding assistant driving the session, not
+the user, so
 this is real Helix behaviour on scripted work, **not a usage baseline**. It
 yielded 42 planner episodes, 100% labelled: 30 done, 4 budget-exhausted,
 7 failed, 1 open work.
@@ -283,19 +286,23 @@ yielded 42 planner episodes, 100% labelled: 30 done, 4 budget-exhausted,
   terminal), and a non-zero exit is recorded as a failed step
   (`exit status N`) and a failed turn. What the user sees is unchanged.
 
-**Found, not yet fixed (Helix):**
+**Found during the session (Helix), with what became of each (2026-10-16):**
 - **Reading a private key is rated low risk.** A plain read of a key file
   under `~/.ssh` runs without asking, and its content can reach the model
-  provider. Found by the poisoning suite (docs/poisoning.md); Metabolism's
-  immune screen now rejects lessons that point at secret material, but Helix
-  itself should ask before reading it.
+  provider. Found by the poisoning suite (docs/poisoning.md). **Fixed
+  2026-10-07:** reading secret material asks in every posture, replays never
+  read it, and `helix -c` refuses it (Helix SECURITY.md §1).
 - **Plain English is misrouted to the shell.** "summarise …" ran `summarise`
    (exit 127), and "find the config.yaml for …" ran `find` with English
    arguments. The classifier decides on the first word, and these turns
-   never reach the planner, so they are not recorded either.
+   never reach the planner, so they are not recorded either. **Partly fixed
+   2026-10-07:** a first word that is neither a known command nor on `PATH`
+   now goes to the planner; a real command name followed by English
+   ("find the config.yaml …") still runs as a command.
 - **The daemon offers the planner a task-list tool it cannot use.** "build
    the project" and "check the dependencies" failed with `no task list is
-   loaded` (3 episodes).
+   loaded` (3 episodes). **Still open**; the automated days kept meeting it,
+   and a trial lesson advises against it.
 - **The daemon listens to the microphone by default.** Wake listening is on
    unless `speech.wake_word.enabled` is false, and `helix remote manual` does
    not close the stream. It was disabled for this session and the user's

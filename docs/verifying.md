@@ -16,7 +16,7 @@ This runs, in order:
 |---|---|---|
 | gofmt, vet, golangci-lint | `lint` | the code is clean |
 | every test, race detector on | `race` | the engine: journal durability and crash safety, append-only triggers, retrieval, the recall evaluation (signal *and* noise), the immune screen, digest validation, the nutrient test (including the 20-trial noisy-host test, D-018), the credit ledger (including the simulator acceptance test, D-020), versions, rollback and forget-with-proof (including the raw-bytes check, D-028), the judges and remote adapters against fakes, the privacy guard, the CLI and its opt-in rules |
-| golden files match | `check-wire` | Helix and the engine agree on every contract (recording v1 and v2, replay, delivery) byte for byte |
+| golden files match | `check-wire` | Helix and the engine agree on every contract (recording wire v1 to v4, replay v1 and v2, delivery v1) byte for byte |
 | Helix on the integration branch | `helix-branch` | you are testing the right Helix |
 | Helix vet + integration tests + full suite + lint | `helix-verify` | the recorder, the agent hooks, decline counting, refused steps, untrusted planner steps, exit codes on every turn, the undo link, the daemon wiring (pagers off, a fresh working directory per request), `helix replay`, lesson delivery and `/lessons`, and that nothing else in Helix broke |
 | the CLI end to end | `demo` | sim → ingest → inspect → curves → recall → recall-eval → digest → verify → lessons → credit → export → doctor all run on real files |
@@ -334,7 +334,13 @@ plans about half the turns with DeepSeek's thinking off, by coin flip per
 turn. The same `decisions` command then ends with the planning-mode section:
 reasoning's share of planner cost, and the two arms' success and cost per
 turn. It needs a Helix built from `feat/metabolism-integration` with wire v4
-(`make helix-build`).
+(`make helix-build`). Measured over 683 turns and judged negative on
+2026-10-11 (habits.md), so the flip is off by default in `make collect`.
+
+**The automated days have done their job (2026-10-11).** Everything they
+could measure is measured; what is open needs real use, which a synthetic
+user cannot stand in for (the rubric's C1, C8 and C9 ask for real use).
+`DAYS=n` stays available.
 
 The synthetic user never starts a request with a command name: Helix runs
 such a line as a shell command and it never reaches the planner (6 of 20
@@ -352,8 +358,8 @@ schedules anything.
 
 ```bash
 make collect                # gather and measure only: no API cost
-make collect DAYS=1         # plus one automated day (planning-mode flip on)
-make collect DAYS=2 FLIP=0  # two days without the flip
+make collect DAYS=1         # plus one automated day
+make collect DAYS=1 FLIP=1  # with the planning-mode coin flip
 ```
 
 In order, `scripts/collect.sh`:
@@ -370,26 +376,30 @@ In order, `scripts/collect.sh`:
    is interrupted;
 4. writes every measurement to `.runs/collect/<time>/`;
 5. adds each day's judged comparisons to the labelling pool
-   (`.runs/labels/`, the current judge only, shuffled) and, while fewer
-   than 30 are labelled, offers the blind labelling session (`LABEL=0`
-   skips it);
+   (`.runs/labels/`, shuffled) and, while fewer than 50 are labelled,
+   offers the blind labelling session (`LABEL=0` skips it); when the labels
+   changed, it measures the judge in use against them (D-033, D-035);
 6. writes `summary.md` beside them: each criterion met, short, waiting,
    manual or not built, with its bar, the evidence and what moves it.
 
-Paste `summary.md` to Claude; code changes are made from it.
+Share `summary.md` in your review session (with a person or your coding
+assistant); code changes are made from it.
 
 The paid or long steps are opt-in per run (all off-peak only):
 
 | Setting | What it gathers | Once first |
 |---|---|---|
-| `DAYS=n` | automated Helix days (planning-mode flip while `FLIP=1`) | |
-| `BENCH=n` | the second host on n benchmark exercises: the lessons-off baseline, then learning (Phase 0, 8) | `make bench-setup` |
+| `DAYS=n` | automated Helix days (planning-mode flip with `FLIP=1`) | |
+| `BENCH=n` | the second host on n benchmark exercises with a local model: the lessons-off baseline, then learning (Phase 0, 8). Stopped since 2026-10-13: no model lands between the floor and the ceiling (D-037) | `make bench-setup`, `make trainer-setup` |
 | `PLANTED=n` | n planted wrong lessons, tested in a copy of the automated journal (Phase 2) | |
 | `TRANSFER=n` | n tested lessons measured on projects they were not learned in (Phase 6) | |
 | `TRAIN=1` | consolidate the second host's credited lessons into a small local model, about an hour (Phase 7) | `make trainer-setup` |
 
 `make bench-setup` and `make trainer-setup` download the benchmark (git)
-and MLX's trainer (pip); run them yourself, once.
+and MLX's trainer (pip); run them yourself, once. The trainer environment
+and the local models were deleted on 2026-10-13 to free space;
+`make trainer-setup` puts the environment back, and the first local run
+downloads its model again.
 
 ## 3. Once there are weeks of data
 

@@ -41,7 +41,8 @@ session.
   The score shows the decision rule, the replay sets and the evidence wiring
   do what they should. Whether the test separates good from bad lessons on
   real plans depends on real Helix replays and a real judge. The first such
-  results are below; there are no planted wrong lessons in real data yet.
+  results are below. On real replays, 9 of 10 planted wrong lessons were
+  kept out (2026-10-08 to 2026-10-11, "Later results" at the end).
 - **The simulated credit evaluation proves the ledger's logic and its
   false-decision rate under frequent settling, not its speed on real
   lessons.** Simulated effects are large and clean: a repairing lesson turns
@@ -53,8 +54,11 @@ session.
   (`/metabolism on`); the baseline needs a few weeks of real use with
   learning off, and will be committed as `baseline-helix/`. The 42
   daemon-driven episodes used below are scripted work, not a baseline.
-- **The public-benchmark baseline doesn't exist yet.** The benchmark is still
-  to be chosen (`docs/research.md`, open tasks).
+- **The public-benchmark baseline exists, with caveats.** Aider's polyglot
+  benchmark, its 39 Go exercises, run by the coding host (D-032, D-037):
+  DeepSeek 91% with the tests hidden; local Qwen2.5-Coder 3B 3% and 7B 5%
+  (tests hidden), 7B 3% (tests shown, not comparable with Aider's
+  leaderboard). The runs are logged in `.runs/bench/` and `.runs/bench-local/`.
 - Token figures are estimates at 4 characters per token, as Helix's `/cost` labels them.
 
 ## Metric definitions
@@ -350,7 +354,7 @@ jev` replayed up to 4 rounds per episode (about 25 minutes).
 - **Part of the noise was a Helix bug, since fixed:** glob and grep reported
   paths relative to the searched folder, so reading a result often failed,
   at random in both arms. Re-testing the three inconclusive lessons on fixed
-  Helix is the next step.
+  Helix came next (below).
 - **The Go-projects lesson behaves well.** With it, Helix still searched,
   then said "there isn't one, it's a Go project" in 2 rounds instead of
   loosening the search until the rounds ran out. Most of its wins are on the
@@ -426,3 +430,21 @@ against bars of 5% and 2%, all of it the false-answer attack, which wins
 replays by imitating a real fix. With them: 0% and 0%; benign lessons kept
 in every case. Details and caveats in
 [docs/poisoning.md](../../docs/poisoning.md#results).
+
+## Later results (2026-10-07 to 2026-10-13)
+
+Each is written up in full where it was decided; the numbers are here so the
+results live in one place. All from automated days or the coding host:
+synthetic requests, real Helix and real models.
+
+| What | Result | Where |
+|---|---|---|
+| Where Helix's model calls go (5a) | follow-up rounds about 65%, retries 1%, answer-only rounds 19%; no cost-free predictor | habits.md, D-031 |
+| Planning without reasoning (683 coin-flipped turns) | 51% cheaper, 94.5% against 97.9% success; not shown harmless | habits.md, D-031 |
+| Planted wrong lessons, real replays | 9 of 10 kept out of trial | roadmap Phase 2, D-033, D-034 |
+| Judge against 65 blind human labels | best 55 to 60% (κ 0.33 to 0.40); the labeller against themselves 75% (κ 0.62) | D-033, D-035, D-036 |
+| Noise floor, by judge | outcome+deepseek 18 to 23 of 26 A/A pairs decisive; asked in both orders 10 to 12 of 26 | D-034, D-035 |
+| Transfer to held-out projects | 5 lessons: 3 helped, 1 harmed, 1 undecided | roadmap Phase 6 |
+| Public benchmark (39 Go exercises) | DeepSeek 91%; local 3B 3%, 7B 5% (tests hidden), 7B 3% (tests shown) | D-037 |
+| Coding-host lessons (DeepSeek) | every nutrient test inconclusive, mostly all ties | D-037 |
+

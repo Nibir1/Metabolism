@@ -1,4 +1,4 @@
-# Metabolism — orientation for a fresh session
+# Metabolism — orientation for contributors and coding agents
 
 Metabolism is a **Digestive AI engine** written in Go. It lets an AI system
 learn from its own experience and *prove* the learning helped. The engine
@@ -7,29 +7,18 @@ lessons, verifies each lesson before keeping it, delivers kept lessons to
 future work, credits or blames them by outcome, and eliminates what stops
 earning its place.
 
-Status (2026-10-02): **Phases 0–3 built.** Phase 2: reflection and the
-nutrient test, on the simulator and on real Helix replays (the first real
-lesson passed, D-018). Phase 3: delivery of tested lessons into live Helix
-turns by coin flip (D-019) and a credit ledger that accepts or eliminates them
-by Bayes factor on live outcomes (D-020), checked on the simulator. Open exit
-criteria, all waiting on real data: the real Helix baseline (weeks of use with
-lessons off), a public benchmark, planted wrong lessons on real replays, a
-human-labelled sample for judge agreement, real credit decisions, and the
-Phase 3 go/no-go. Phase 4 started (D-025): the poisoning suite and its
-defences (4a, docs/poisoning.md) and drift (4b, D-026: a recent window, and
-credit that counts the turns bearing on a lesson) and contradictions and
-supersession (4c, D-027: the nutrient test in context, pairs in the
-ledger), all on the simulator, and the versioned metabolome (4d, D-028:
-versions, rollback to trial, forget-with-proof).
-Phase 5 (D-031, docs/habits.md): 5a measured five automated days and came
-back negative for the call-saving habits (retry level touches 1% of calls;
-"answer now" touches 19% but nothing cost-free predicts it). 5c's miner is
-built; guards wait for real use. Planning mode (does the planner need to
-think?) was measured over 683 coin-flipped turns and came back negative
-too (51% cheaper, about 3.4 points less successful; habits.md).
-Phases 6 to 9 are built in code (D-032): transfer and procedures, the
-second host (`hosts/coder`), the local trainer (`parametric/`), the
-scorecard (`audit/`). What is left is evidence: `make collect`.
+Status (2026-10-16): **every phase is built in code; what is left is
+evidence.** The rubric in docs/vision.md stands at 4 of 9 (C2, C3, C4, C6),
+and `make collect` (D-032) gathers the rest and writes the scorecard. Met:
+the public benchmark baseline, planted wrong lessons kept out on real
+replays (9 of 10), transfer to held-out projects, and a second host with no
+engine changes. Short, and written up: judge agreement with a person (best
+55 to 60% against the labeller's own 75%, D-035, D-036), and every Phase 5
+habit candidate (D-031, habits.md). The coding host's learning stopped: no
+affordable model lands between the benchmark's floor and ceiling (D-037).
+Everything still open waits on the user's real Helix use, with
+`/metabolism on`: the real baseline, real credit, drift, guards, three
+months of endurance, and Phase 7's training.
 See [docs/roadmap.md](docs/roadmap.md). The docs below are the source of
 truth for what, why and how.
 
@@ -118,8 +107,9 @@ truth for what, why and how.
    libraries and benchmarks with URLs.
 8. [docs/poisoning.md](docs/poisoning.md) — Phase 4a: the poisoning suite's
    threat model, cases and metrics (modelled on MemSecBench).
-9. [docs/habits.md](docs/habits.md) — Phase 5 design (proposed, D-031):
-   what Helix's model decisions really are, and measuring before compiling.
+9. [docs/habits.md](docs/habits.md) — Phase 5 (D-031): what Helix's model
+   decisions really are, measured before compiling; every candidate failed
+   its stop condition.
 
 ## Non-negotiables
 

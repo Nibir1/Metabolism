@@ -8,6 +8,15 @@ Update this file as phases close, and record decisions in
 
 Helix is the first host throughout (see [helix-integration.md](helix-integration.md)).
 
+**Where it stands (2026-10-16).** Every phase is built in code. The rubric
+is at 4 of 9 (C2, C3, C4, C6); `make collect` gathers the evidence and
+writes the scorecard. What is open now waits on real Helix use (the real
+baseline, real credit, drift, guards, three months of endurance, Phase 7's
+training), on people (the go/no-go, the publication, the audit), or was
+measured and came back negative (Phase 5's habits, D-031; the judge's
+agreement with a person, D-036; the coding host's learning, D-037). The
+phase sections below keep their history; each says where it stands.
+
 ```
 Phase  0 Foundations & measurement    ── baseline curves before any learning
 Phase  1 Ingestion & episodic memory  ── C1, C3
@@ -60,16 +69,22 @@ Exit criteria:
         `feat/metabolism-integration`) and `metabolism ingest` reads them (D-012,
         D-013). Waiting on weeks of real use with learning off, then
         `metabolism curves` → `bench/results/baseline-helix/`.
-  - [ ] Public benchmark: pick one (research.md, open tasks), then write its runner.
+  - [x] Public benchmark: Aider's polyglot benchmark, its 39 Go exercises,
+        run by the second host (`metabolism bench`, D-032). Baselines with
+        learning off: DeepSeek 91% (tests hidden); local Qwen2.5-Coder 3B
+        3% and 7B 5% (tests hidden), 7B 3% (tests shown) (D-037).
 - [x] The Journal survives a crash test (kill mid-write, reopen, no loss).
 - [x] CI runs `go test -race ./...` and lint (`.github/workflows/ci.yml`).
+      Paused to manual runs since 2026-10-13 (the account's Actions minutes
+      ran out); `make check` runs the same locally.
 
 **Status (2026-09-30): engine side done.** Built so far: `types/`, `ports/`,
 `adapters/journal/sqlite` (append-only via triggers, versioned migrations,
 0600/0700, crash test), `hosts/helixsim` (scenarios drawn from real Helix
 failures), `bench/` (metrics, weekly curves, replay runner), `cmd/metabolism`
-(`sim`, `curves`, `inspect`), and CI. Phase 0 stays open until the real Helix
-baseline and the public benchmark are in place.
+(`sim`, `curves`, `inspect`), and CI. **2026-10-16:** the public benchmark
+baseline is in; Phase 0 stays open only for the real Helix baseline, which
+waits on real use.
 
 ## Phase 1: Ingestion and episodic memory (about 3 weeks). C1, C3
 
@@ -113,8 +128,10 @@ and the index is derived from it (`TestRebuildFromJournalAfterRestart`).
 ## Phase 2: Digestion and the nutrient test (about 4 weeks). C2, C6
 
 **Status (2026-10-02): built in all three stages.** The first real lesson has
-passed the nutrient test on real Helix replays. Two exit criteria stay open
-and need real data (below). Delivered in three stages.
+passed the nutrient test on real Helix replays. **2026-10-16:** planted
+wrong lessons are kept out on real replays (9 of 10, met); judge agreement
+with a person stays short of its bar and is written up (D-033 to D-036).
+Delivered in three stages.
 
 **2a: engine core (built 2026-10-01).**
 - [x] Lessons, lifecycle events and evidence as journal records. The
@@ -202,13 +219,16 @@ Exit criteria:
 
 - [x] Every trial lesson has with/without ablation evidence (the C6 bar).
       Enforced structurally by `metabolome.Move`, and tested.
-- [ ] Planted wrong lessons are rejected by the nutrient test at ≥ 90%.
+- [x] Planted wrong lessons are rejected by the nutrient test at ≥ 90%.
   - [x] On the simulator: 25/25 wrong rejected, 30/30 correct accepted
         (`bench/results/baseline-helixsim/nutrient.*`). **This proves the
         test's logic, not its power.** The simulator's host knows which
         lesson fixes which failure.
-  - [ ] On real Helix replays (2c). There are no planted wrong lessons in
-        real data yet; the noisy-host test (D-018) is the proxy so far.
+  - [x] On real Helix replays (2c): `metabolism planted` put 10 wrong
+        lessons into a copy of the automated journal and ran the ordinary
+        nutrient test with real Helix replays; 9 of 10 never reached trial
+        (2026-10-08 to 2026-10-11). The one that passed ("read package.json
+        first") was judged before D-033 and D-034.
 - [ ] Judge agreement with a human-labelled sample is ≥ 80% of the
       labeller's own (D-036; was ≥ 80% absolute), or the judge is replaced (2c). First reading, 30 labels (D-033): outcome+jev 30%
       (κ 0.06), so replaced by outcome+deepseek, whose model agrees on 60%
@@ -221,7 +241,9 @@ Exit criteria:
 ## Phase 3: Distribution and the credit ledger (about 4 weeks). C4, C9
 
 **Status (2026-10-02): built.** The go/no-go gate waits on weeks of real use
-with lessons on, after the real baseline (Phase 0) exists.
+with lessons on, after the real baseline (Phase 0) exists. Still true
+2026-10-16: the automated days credited lessons on synthetic turns, but no
+lesson has been decided by credit yet, and none on real use.
 
 Deliverables:
 
@@ -253,7 +275,8 @@ Deliverables:
 - [x] Multi-round replay (D-021): lessons about follow-up rounds (rereading,
       re-grepping until the budget runs out) were untestable on first plans.
       Replays now play the rounds a live turn would, running only read-only
-      file steps between them. Not yet measured on real episodes.
+      file steps between them. Measured on real replays since 2026-10-02
+      (bench/results, the driven sessions and every automated day).
 - [ ] Backlog: run automated days on a schedule. Not on the current machine
       (a work PC): days are run by hand while the user is at it, so nothing
       changes the Helix setup unattended.
@@ -316,7 +339,9 @@ aside. 4d, the versioned metabolome (D-028): named versions, the metabolome
 as of any version, diff, rollback that brings lessons back only to trial,
 and forget-with-proof by a guarded delete trigger with an audit record, in
 the journal, Helix's recording and its delivery file (`/lessons forget
---hard`).
+--hard`). **Open (2026-10-16):** the taint gap (a lesson learned from a
+turn that read a planted file or web page counts as trusted) is not built;
+it waits on the user's choice of option (a) or (b) in poisoning.md.
 
 Deliverables:
 
@@ -354,7 +379,11 @@ Exit criteria:
 
 **Design (approved, D-031):** [habits.md](habits.md). Helix turned out to
 have few compilable model decisions, so 5a instruments and measures first,
-with a stop condition, before any compiler is built. Habits (cost, governed
+with a stop condition, before any compiler is built. **Outcome (2026-10-11):
+every candidate failed its stop condition** (retry level, answer now,
+planning mode); no habit is compiled in Helix. 5c's miner is built; guards
+wait for real use, since only a person undoing or declining steps produces
+one. Habits (cost, governed
 like lessons) and guards (restrict-only, approved) are separate; 5c (guards)
 runs whatever 5a finds.
 
@@ -501,7 +530,11 @@ Metabolic Benchmark package waits on results worth packaging.
 Exit criteria:
 
 - [ ] Stable or improving curves over ≥ 3 months (the C8 bar).
-- [ ] The second host runs with zero changes to `engine/`.
+- [x] The second host runs with zero changes to `engine/`. Met 2026-10-09:
+      the coding host runs ingest, digest, the nutrient test and credit
+      through the engine's own commands, and `internal/hostguard` keeps the
+      engine free of host code. Its learning then stopped for want of a
+      model between the benchmark's floor and ceiling (D-037).
 
 ## Phase 9: The 100% audit
 

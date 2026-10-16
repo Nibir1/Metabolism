@@ -115,7 +115,11 @@ overlap is noted.
    making the same kind of decision, the engine compiles it into a Jev question
    set: a 100 ms typed check. Generated questions are linted by typesafe-go's
    analyzers (`atomicquestion`, `jaggededge`, `confidencecheck`) before use.
-   *Novelty not yet verified by a literature search. Do that before Phase 5.*
+   *Checked 2026-10-07 (research.md, "Habit compilation: prior art"):
+   compiling repeated model work into something cheaper is established; the
+   new part is doing it inside the agent's own loop, replay-tested and
+   credited live. Measured in Helix (D-031), no candidate passed its stop
+   condition, so no habit is compiled there.*
 4. **Three digestion depths with evidence-gated promotion:**
 
    | Tier | Stores | Examples |

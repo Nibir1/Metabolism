@@ -1,8 +1,13 @@
 # Phase 5 design: habit compilation, measured first
 
-Status: **approved 2026-10-07 (D-031)**: two kinds, 5a first with its stop
-condition, the exit criteria below, and 5c regardless of 5a's result. Prior
-art is in research.md ("Habit compilation: prior art").
+Status: **approved 2026-10-07 (D-031); measured, and negative (2026-10-11).**
+Every cost-habit candidate in Helix failed its stop condition: retry level
+(1% of calls), "answer now" (19% of calls, but nothing cost-free predicts
+it) and planning mode (51% cheaper, about 3.4 points less successful). No
+habit is compiled. 5c's miner is built and finds no guard candidate in
+synthetic use; guards wait for real use. The design below stays as written,
+with the measurements logged as they came in. Prior art is in research.md
+("Habit compilation: prior art").
 
 ## What Phase 5 was, and what Helix turned out to be
 
@@ -221,8 +226,8 @@ be tested through paid replays. **Decided 2026-10-07: recorded as a
 negative result** (D-031); no paid predictor, no answer-now habit.
 
 Day 5 lost 10 of its 100 turns before the planner: Helix's input
-classifier ran "run go test ./internal/... in …" and "summarise CLAUDE.md
-in …" as shell commands (zsh: command not found). An unknown first word
+classifier ran "run go test ./internal/... in …" and "summarise <a Markdown
+file> in …" as shell commands (zsh: command not found). An unknown first word
 plus a path token scored as shell with confidence 1.0. Those turns left no
 episode, so the counts above are not skewed, but a person typing the same
 words meets the same failure.

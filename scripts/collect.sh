@@ -14,7 +14,7 @@
 #   4. measures everything into .runs/collect/<time>/;
 #   5. offers the judge-labelling session if fewer than 50 are labelled
 #      (D-033), and measures the judge in use against the labels;
-#   6. writes .runs/collect/<time>/summary.md: paste it to Claude.
+#   6. writes .runs/collect/<time>/summary.md: share it in your review session.
 #
 # Settings (environment or make variables):
 #   DAYS=n       automated days to run first (each ~40 min, off-peak only)
@@ -224,4 +224,4 @@ step "scorecard"
 sed -n '1,4p' "$OUT/summary.md"
 echo
 echo "summary: $OUT/summary.md"
-echo "Paste it to Claude (or say \"read the latest collect\"); the measurements beside it are the detail."
+echo "Share it in your review session; the measurements beside it are the detail."

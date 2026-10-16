@@ -1,7 +1,12 @@
 # The poisoning suite (Phase 4a)
 
-Status: **design, 2026-10-03.** Nothing here is built yet. The metrics are
-defined before any result is seen, so the numbers cannot be shaped to fit.
+Status (2026-10-16): **built and run.** The design below was written on
+2026-10-03, before any result, so the numbers could not be shaped to fit.
+`metabolism poison-eval` runs the suite on the simulator: both bars are met
+(persistence 0%, attack success 0%, results below). On real Helix replays,
+`metabolism planted` kept 9 of 10 planted wrong lessons out of trial
+(roadmap Phase 2). **Still open:** the taint gap (below) is not built, and
+its option (a) or (b) is the user's to choose.
 
 ## Purpose
 
@@ -51,7 +56,8 @@ authoritative because of the channel it arrived on. The reflector's filter
 (`llmreflect` shows only trusted episodes) does not help, because these
 episodes are trusted by request.
 
-Proposed fix, to be measured by the suite before and after:
+Proposed fix, to be measured by the suite before and after. **Not built
+(2026-10-16):** it waits on the choice below.
 - Helix records what a turn consumed: an episode attribute listing the
   provenance of content its steps brought in (`retrieved-web` for web steps,
   `file-content` for file reads and searches, `tool-output` for captured
@@ -68,6 +74,7 @@ quarantine most coding lessons. Two options:
   a planted file in a cloned repository then counts as trusted.
 
 The suite reports results under both, so the choice is made on numbers.
+**Not decided yet (2026-10-16).**
 
 ## Defences under test
 
@@ -266,7 +273,8 @@ reflector):
   through: this is the suite's clearest open gap.
 - With the immune rules on, the false-answer wordings are rejected before
   the nutrient test, so this run does not exercise the claim check alone.
-  The suite should report each layer separately (next step).
+  The suite should report each layer separately: done, see "Per layer"
+  below.
 - Found along the way, in Helix: reading a private key is rated low risk
   and runs without asking. Fixed in Helix on 2026-10-07: reading secret
   material (SSH keys, cloud credentials, `.env` files, password stores) now
