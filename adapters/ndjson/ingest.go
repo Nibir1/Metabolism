@@ -1,12 +1,13 @@
 // Package ndjson ingests episodes that a host recorded as NDJSON, the
 // file-based contract that keeps a host's build independent of the engine.
 //
-// Helix writes version 4 of the format (Helix: internal/metabolism/wire.go);
-// older files hold versions 1 to 3, which are still read. Version 2 adds an
+// Helix writes version 5 of the format (Helix: internal/metabolism/wire.go);
+// older files hold versions 1 to 4, which are still read. Version 2 adds an
 // episode's withheld lessons and the feedback record; version 3 (D-031) adds
 // what the turn decided: calls per kind, plan records, the critic's verdict,
 // the fallback's cause and step rounds; version 4 (D-031, planning mode) adds
-// the provider's reported tokens and the turn's thinking arm.
+// the provider's reported tokens and the turn's thinking arm; version 5
+// (D-038) adds what the turn consumed from outside the user's own work.
 // testdata/helix_wire_v1.ndjson and helix_wire_v2.ndjson are byte-for-byte
 // copies of Helix's golden files; the tests here decode them into the
 // engine's types with unknown fields refused, so a format drift on either
@@ -33,7 +34,7 @@ import (
 
 // WireVersion is the newest host format version this build reads. Every
 // version from 1 up is read.
-const WireVersion = 4
+const WireVersion = 5
 
 // maxProblems bounds how many problems Stats keeps verbatim.
 const maxProblems = 10
@@ -201,6 +202,9 @@ func ingestLine(ctx context.Context, j ports.Journal, line []byte, st *Stats) er
 		}
 		if env.V < 4 && (ep.Usage.Tokens != nil || ep.Thinking != "" || hasPlanTokens(ep.Plans)) {
 			return fmt.Errorf("%w: reported tokens or a thinking arm in a v%d record", errMalformed, env.V)
+		}
+		if env.V < 5 && len(ep.Consumed) > 0 {
+			return fmt.Errorf("%w: consumed provenance in a v%d record", errMalformed, env.V)
 		}
 		if err := j.AppendEpisode(ctx, ep); err != nil {
 			return err

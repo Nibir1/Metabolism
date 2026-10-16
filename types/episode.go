@@ -50,6 +50,12 @@ type Episode struct {
 	// Thinking is the turn's arm of the host's planning-mode coin flip:
 	// "on" or "off" (wire v4, D-031). Empty when no coin was flipped.
 	Thinking string `json:"thinking,omitempty"`
+
+	// Consumed is the provenance of content the turn brought in from outside
+	// the user's own work (wire v5, D-038): retrieved-web, file-content. A
+	// lesson learned from it takes the least trusted of these and the
+	// request's provenance.
+	Consumed []Provenance `json:"consumed,omitempty"`
 }
 
 // The arms of the planning-mode coin flip (wire v4).
@@ -223,6 +229,11 @@ func (ep Episode) Validate() error {
 	for i, p := range ep.Plans {
 		if p.Tokens != nil && !p.Tokens.valid() {
 			errs = append(errs, fmt.Errorf("plan %d tokens are negative or inconsistent", i))
+		}
+	}
+	for _, p := range ep.Consumed {
+		if !p.Valid() {
+			errs = append(errs, fmt.Errorf("consumed provenance %q is unknown", p))
 		}
 	}
 	if ep.Thinking != "" && ep.Thinking != ThinkingOn && ep.Thinking != ThinkingOff {

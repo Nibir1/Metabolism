@@ -5,6 +5,32 @@ change it. Don't reverse a decision without adding a new entry that says why.
 
 ---
 
+### D-038 · 2026-10-16 · Taint: what a turn read counts toward its lessons' trust (option (b))
+
+**Context.** poisoning.md found the gap while designing the suite: a
+lesson's provenance was the least trusted *request* provenance of its
+sources, so a turn the user typed counted as trusted even when it read a
+planted file or a web page and that content shaped every later step. Two
+options were set out: (a) all file content untrusted (safest, slower
+learning, since most coding turns read files); (b) files inside the user's
+own repositories trusted, web content and files elsewhere not.
+
+**Decision (the user, 2026-10-16): option (b).**
+- Helix records what each turn consumed (recording wire v5, `consumed`):
+  `retrieved-web` for a web step, `file-content` for a file read or search
+  outside any git working tree, or inside a `vendor`, `node_modules` or
+  `third_party` directory. Listings and globs bring names, not content,
+  and are not counted; command output is not counted either.
+- digest gives a lesson the least trusted of its sources' request and
+  consumed provenance, so such a lesson is quarantined and must clear the
+  stricter nutrient-test bar (≥ 4 wins at p ≤ 0.02, D-018, with D-034's
+  sign test).
+- Accepted weakness, as stated in the options: a planted file in a
+  repository the user cloned counts as the user's own.
+
+**What would change it.** Real lessons learned from planted repository
+files, or a poisoning case that gets through this way: then option (a).
+
 ### D-037 · 2026-10-13 · The coding host learns on a small local model; the nutrient test has a time limit
 
 **Context.** On the second host with DeepSeek as the agent, the benchmark

@@ -285,3 +285,33 @@ func TestV4FieldsRefusedInOlderLines(t *testing.T) {
 		t.Fatalf("stats %+v, problems %v", st, st.Problems)
 	}
 }
+
+// Wire v5 (D-038): what a turn consumed reaches the journal, and is refused
+// in an older line.
+func TestHelixGoldenV5(t *testing.T) {
+	ctx := context.Background()
+	j := openJournal(t)
+	st, err := Ingest(ctx, j, filepath.Join("testdata", "helix_wire_v5.ndjson"))
+	if err != nil || st.Episodes != 1 || st.Invalid+st.Malformed != 0 {
+		t.Fatalf("stats %+v, %v", st, err)
+	}
+	for r, err := range j.Scan(ctx, types.JournalQuery{Kinds: []types.RecordKind{types.RecordEpisode}}) {
+		if err != nil {
+			t.Fatal(err)
+		}
+		if c := r.Episode.Consumed; len(c) != 2 || c[0] != types.ProvRetrievedWeb || c[1] != types.ProvFileContent {
+			t.Fatalf("consumed %v", c)
+		}
+	}
+	data, err := os.ReadFile(filepath.Join("testdata", "helix_wire_v5.ndjson"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	old := filepath.Join(t.TempDir(), "old.ndjson")
+	if err := os.WriteFile(old, bytes.ReplaceAll(data, []byte(`{"v":5,`), []byte(`{"v":4,`)), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if st, _ := Ingest(ctx, openJournal(t), old); st.Episodes != 0 || st.Malformed != 1 {
+		t.Fatalf("v5 field in a v4 line: %+v", st)
+	}
+}

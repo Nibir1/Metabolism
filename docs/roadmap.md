@@ -339,9 +339,9 @@ aside. 4d, the versioned metabolome (D-028): named versions, the metabolome
 as of any version, diff, rollback that brings lessons back only to trial,
 and forget-with-proof by a guarded delete trigger with an audit record, in
 the journal, Helix's recording and its delivery file (`/lessons forget
---hard`). **Open (2026-10-16):** the taint gap (a lesson learned from a
-turn that read a planted file or web page counts as trusted) is not built;
-it waits on the user's choice of option (a) or (b) in poisoning.md.
+--hard`). **Closed 2026-10-16 (D-038):** the taint gap. A lesson learned
+from a turn that read web content, or a file from outside the user's
+repositories, is now quarantined (option (b) in poisoning.md).
 
 Deliverables:
 

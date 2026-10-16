@@ -201,7 +201,9 @@ The design below stays for a host where a candidate passes:
 
 ### Immune system — built (screen, provenance, quarantine, poisoning suite: Phase 4a)
 
-- Provenance is attached at ingest and propagates to every derived lesson.
+- Provenance is attached at ingest and propagates to every derived lesson,
+  including what a turn consumed: web content and files from outside the
+  user's repositories make its lessons untrusted (taint, D-038).
 - A quarantine tier holds anything derived from low-trust content.
 - `immune/` screens every lesson before it is recorded: it rejects lessons
   that teach getting around confirmations, sandbox, firewall or hooks, or
@@ -336,7 +338,7 @@ metabolism/
   adapters/
     journal/sqlite/      modernc.org/sqlite (pure Go, same as Helix), append-only;
                          deletes only under a forget record (D-028)
-    ndjson/              Helix's recorded episodes, wire v1 to v4, and purging
+    ndjson/              Helix's recorded episodes, wire v1 to v5, and purging
                          them of forgotten records (D-028)
     remote/llm/          Ollama, OpenAI-compatible (DeepSeek, a local MLX server) ┐ the only
     remote/jev/          Jev judge via typesafe-go                                │ network code;

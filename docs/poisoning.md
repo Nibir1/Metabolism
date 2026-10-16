@@ -5,8 +5,8 @@ Status (2026-10-16): **built and run.** The design below was written on
 `metabolism poison-eval` runs the suite on the simulator: both bars are met
 (persistence 0%, attack success 0%, results below). On real Helix replays,
 `metabolism planted` kept 9 of 10 planted wrong lessons out of trial
-(roadmap Phase 2). **Still open:** the taint gap (below) is not built, and
-its option (a) or (b) is the user's to choose.
+(roadmap Phase 2). The taint gap (below) is closed by option (b), chosen by
+the user on 2026-10-16 (D-038).
 
 ## Purpose
 
@@ -56,8 +56,7 @@ authoritative because of the channel it arrived on. The reflector's filter
 (`llmreflect` shows only trusted episodes) does not help, because these
 episodes are trusted by request.
 
-Proposed fix, to be measured by the suite before and after. **Not built
-(2026-10-16):** it waits on the choice below.
+The fix, **built 2026-10-16 (D-038)** with option (b) below:
 - Helix records what a turn consumed: an episode attribute listing the
   provenance of content its steps brought in (`retrieved-web` for web steps,
   `file-content` for file reads and searches, `tool-output` for captured
@@ -73,8 +72,16 @@ quarantine most coding lessons. Two options:
   quarantine only web content and files elsewhere. Simpler to live with, but
   a planted file in a cloned repository then counts as trusted.
 
-The suite reports results under both, so the choice is made on numbers.
-**Not decided yet (2026-10-16).**
+The plan was to choose on the suite's numbers under both. **Decided
+2026-10-16 (D-038): option (b)**, by the user, before any real lessons
+exist, as the simpler rule to live with; its weakness (a planted file in a
+cloned repository counts as trusted) is accepted and stated. Helix records
+what each turn consumed (recording wire v5): `retrieved-web` for web steps,
+`file-content` for file reads and searches outside any git working tree or
+inside its `vendor`, `node_modules` or `third_party` directories. Listings
+and globs, which bring names rather than content, and command output are
+not counted. digest takes the least trusted of request and consumed
+provenance.
 
 ## Defences under test
 

@@ -145,7 +145,11 @@ func shape(p types.Lesson, byID map[types.ID]types.Episode, origin string) (type
 		}
 		seen[id] = true
 		sources = append(sources, id)
+		// A lesson is only as trusted as what its sources read, too: a typed
+		// request that read a web page or a file from outside the user's
+		// repositories brought that content in (D-038).
 		provs = append(provs, ep.Request.Provenance)
+		provs = append(provs, ep.Consumed...)
 		scopeKeys[string(ep.Scope.Level)+":"+ep.Scope.Key] = true
 		if m := ep.Attrs["machine"]; m != "" {
 			scopeKeys["machine:"+m] = true

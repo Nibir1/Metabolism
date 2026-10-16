@@ -158,6 +158,10 @@ check-wire: ## the Helix contracts: recording, replay and delivery golden files 
 		cmp adapters/ndjson/testdata/helix_wire_v4.ndjson $(HELIX)/internal/metabolism/testdata/wire_v4.ndjson \
 		&& echo "✔ wire v4: Helix and Metabolism agree"; \
 	else echo "• wire v4 check skipped: no Helix checkout with reported tokens at $(HELIX)"; fi
+	@if [ -f $(HELIX)/internal/metabolism/testdata/wire_v5.ndjson ]; then \
+		cmp adapters/ndjson/testdata/helix_wire_v5.ndjson $(HELIX)/internal/metabolism/testdata/wire_v5.ndjson \
+		&& echo "✔ wire v5: Helix and Metabolism agree"; \
+	else echo "• wire v5 check skipped: no Helix checkout with consumed provenance at $(HELIX)"; fi
 	@if [ -f $(HELIX)/internal/metabolism/testdata/lessons_v1.json ]; then \
 		cmp deliver/testdata/lessons_v1.json $(HELIX)/internal/metabolism/testdata/lessons_v1.json \
 		&& echo "✔ lessons v1: Helix and Metabolism agree"; \

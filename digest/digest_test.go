@@ -185,3 +185,20 @@ func TestExcludeRefusesMachineryLessons(t *testing.T) {
 		t.Fatalf("%+v", res.Decisions)
 	}
 }
+
+// A lesson learned from a typed request that read web content is
+// quarantined: it takes the least trusted of request and consumed
+// provenance (D-038).
+func TestConsumedContentQuarantinesTheLesson(t *testing.T) {
+	_, m, batch := simJournal(t, 60)
+	batch[0].Episode.Consumed = []types.Provenance{types.ProvRetrievedWeb}
+	r := scripted{{Kind: types.KindPattern, Scope: types.Scope{Level: types.ScopeGlobal},
+		Sources: []types.ID{batch[0].Episode.ID}, Text: "Check the release checklist before tagging a version."}}
+	res, err := Run(context.Background(), m, r, batch, Config{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.Recorded != 1 || res.Decisions[0].State != string(types.StateQuarantined) {
+		t.Fatalf("%+v", res.Decisions)
+	}
+}

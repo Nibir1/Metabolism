@@ -16,7 +16,7 @@ This runs, in order:
 |---|---|---|
 | gofmt, vet, golangci-lint | `lint` | the code is clean |
 | every test, race detector on | `race` | the engine: journal durability and crash safety, append-only triggers, retrieval, the recall evaluation (signal *and* noise), the immune screen, digest validation, the nutrient test (including the 20-trial noisy-host test, D-018), the credit ledger (including the simulator acceptance test, D-020), versions, rollback and forget-with-proof (including the raw-bytes check, D-028), the judges and remote adapters against fakes, the privacy guard, the CLI and its opt-in rules |
-| golden files match | `check-wire` | Helix and the engine agree on every contract (recording wire v1 to v4, replay v1 and v2, delivery v1) byte for byte |
+| golden files match | `check-wire` | Helix and the engine agree on every contract (recording wire v1 to v5, replay v1 and v2, delivery v1) byte for byte |
 | Helix on the integration branch | `helix-branch` | you are testing the right Helix |
 | Helix vet + integration tests + full suite + lint | `helix-verify` | the recorder, the agent hooks, decline counting, refused steps, untrusted planner steps, exit codes on every turn, the undo link, the daemon wiring (pagers off, a fresh working directory per request), `helix replay`, lesson delivery and `/lessons`, and that nothing else in Helix broke |
 | the CLI end to end | `demo` | sim → ingest → inspect → curves → recall → recall-eval → digest → verify → lessons → credit → export → doctor all run on real files |
